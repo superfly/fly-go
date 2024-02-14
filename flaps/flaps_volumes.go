@@ -7,7 +7,7 @@ import (
 	"slices"
 
 	"github.com/samber/lo"
-	"github.com/superfly/fly-go/api"
+	fly "github.com/superfly/fly-go"
 )
 
 var destroyedVolumeStates = []string{"scheduling_destroy", "fork_cleanup", "waiting_for_detach", "pending_destroy", "destroying"}
@@ -17,10 +17,10 @@ func (f *Client) sendRequestVolumes(ctx context.Context, method, endpoint string
 	return f._sendRequest(ctx, method, endpoint, in, out, headers)
 }
 
-func (f *Client) GetAllVolumes(ctx context.Context) ([]api.Volume, error) {
+func (f *Client) GetAllVolumes(ctx context.Context) ([]fly.Volume, error) {
 	listVolumesEndpoint := ""
 
-	out := make([]api.Volume, 0)
+	out := make([]fly.Volume, 0)
 	ctx = contextWithAction(ctx, volumeList)
 
 	err := f.sendRequestVolumes(ctx, http.MethodGet, listVolumesEndpoint, nil, &out, nil)
@@ -30,20 +30,20 @@ func (f *Client) GetAllVolumes(ctx context.Context) ([]api.Volume, error) {
 	return out, nil
 }
 
-func (f *Client) GetVolumes(ctx context.Context) ([]api.Volume, error) {
+func (f *Client) GetVolumes(ctx context.Context) ([]fly.Volume, error) {
 	volumes, err := f.GetAllVolumes(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return lo.Filter(volumes, func(v api.Volume, _ int) bool {
+	return lo.Filter(volumes, func(v fly.Volume, _ int) bool {
 		return !slices.Contains(destroyedVolumeStates, v.State)
 	}), nil
 }
 
-func (f *Client) CreateVolume(ctx context.Context, req api.CreateVolumeRequest) (*api.Volume, error) {
+func (f *Client) CreateVolume(ctx context.Context, req fly.CreateVolumeRequest) (*fly.Volume, error) {
 	createVolumeEndpoint := ""
 
-	out := new(api.Volume)
+	out := new(fly.Volume)
 	ctx = contextWithAction(ctx, volumeCreate)
 
 	err := f.sendRequestVolumes(ctx, http.MethodPost, createVolumeEndpoint, req, out, nil)
@@ -53,10 +53,10 @@ func (f *Client) CreateVolume(ctx context.Context, req api.CreateVolumeRequest) 
 	return out, nil
 }
 
-func (f *Client) UpdateVolume(ctx context.Context, volumeId string, req api.UpdateVolumeRequest) (*api.Volume, error) {
+func (f *Client) UpdateVolume(ctx context.Context, volumeId string, req fly.UpdateVolumeRequest) (*fly.Volume, error) {
 	updateVolumeEndpoint := fmt.Sprintf("/%s", volumeId)
 
-	out := new(api.Volume)
+	out := new(fly.Volume)
 	ctx = contextWithAction(ctx, volumetUpdate)
 
 	err := f.sendRequestVolumes(ctx, http.MethodPut, updateVolumeEndpoint, req, out, nil)
@@ -66,10 +66,10 @@ func (f *Client) UpdateVolume(ctx context.Context, volumeId string, req api.Upda
 	return out, nil
 }
 
-func (f *Client) GetVolume(ctx context.Context, volumeId string) (*api.Volume, error) {
+func (f *Client) GetVolume(ctx context.Context, volumeId string) (*fly.Volume, error) {
 	getVolumeEndpoint := fmt.Sprintf("/%s", volumeId)
 
-	out := new(api.Volume)
+	out := new(fly.Volume)
 	ctx = contextWithAction(ctx, volumeGet)
 
 	err := f.sendRequestVolumes(ctx, http.MethodGet, getVolumeEndpoint, nil, out, nil)
@@ -79,10 +79,10 @@ func (f *Client) GetVolume(ctx context.Context, volumeId string) (*api.Volume, e
 	return out, nil
 }
 
-func (f *Client) GetVolumeSnapshots(ctx context.Context, volumeId string) ([]api.VolumeSnapshot, error) {
+func (f *Client) GetVolumeSnapshots(ctx context.Context, volumeId string) ([]fly.VolumeSnapshot, error) {
 	getVolumeSnapshotsEndpoint := fmt.Sprintf("/%s/snapshots", volumeId)
 
-	out := make([]api.VolumeSnapshot, 0)
+	out := make([]fly.VolumeSnapshot, 0)
 	ctx = contextWithAction(ctx, volumeSnapshotList)
 
 	err := f.sendRequestVolumes(ctx, http.MethodGet, getVolumeSnapshotsEndpoint, nil, &out, nil)
@@ -110,11 +110,11 @@ type ExtendVolumeRequest struct {
 }
 
 type ExtendVolumeResponse struct {
-	Volume       *api.Volume `json:"volume"`
+	Volume       *fly.Volume `json:"volume"`
 	NeedsRestart bool        `json:"needs_restart"`
 }
 
-func (f *Client) ExtendVolume(ctx context.Context, volumeId string, size_gb int) (*api.Volume, bool, error) {
+func (f *Client) ExtendVolume(ctx context.Context, volumeId string, size_gb int) (*fly.Volume, bool, error) {
 	extendVolumeEndpoint := fmt.Sprintf("/%s/extend", volumeId)
 
 	req := ExtendVolumeRequest{
@@ -131,10 +131,10 @@ func (f *Client) ExtendVolume(ctx context.Context, volumeId string, size_gb int)
 	return out.Volume, out.NeedsRestart, nil
 }
 
-func (f *Client) DeleteVolume(ctx context.Context, volumeId string) (*api.Volume, error) {
+func (f *Client) DeleteVolume(ctx context.Context, volumeId string) (*fly.Volume, error) {
 	destroyVolumeEndpoint := fmt.Sprintf("/%s", volumeId)
 
-	out := new(api.Volume)
+	out := new(fly.Volume)
 	ctx = contextWithAction(ctx, volumeDelete)
 
 	err := f.sendRequestVolumes(ctx, http.MethodDelete, destroyVolumeEndpoint, nil, out, nil)
