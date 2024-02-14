@@ -175,11 +175,7 @@ func (f *Client) CreateApp(ctx context.Context, name string, org string) (err er
 	return
 }
 
-func WaitForApp(ctx context.Context, name string) error {
-	f, err := NewWithOptions(ctx, NewClientOpts{AppName: name})
-	if err != nil {
-		return err
-	}
+func (f *Client) WaitForApp(ctx context.Context, name string) error {
 	bo := &backoff.Backoff{
 		Min:    100 * time.Millisecond,
 		Max:    500 * time.Millisecond,
