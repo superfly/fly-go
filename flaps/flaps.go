@@ -19,7 +19,6 @@ import (
 	"github.com/jpillora/backoff"
 	"github.com/superfly/fly-go/api"
 	"github.com/superfly/fly-go/api/tokens"
-	"github.com/superfly/fly-go/client"
 	"github.com/superfly/fly-go/internal/tracing"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel/attribute"
@@ -35,16 +34,6 @@ type Client struct {
 	httpClient *http.Client
 	userAgent  string
 }
-
-/*
-	func New(ctx context.Context, app *api.AppCompact) (*Client, error) {
-		return NewWithOptions(ctx, NewClientOpts{AppCompact: app, AppName: app.Name})
-	}
-
-	func NewFromAppName(ctx context.Context, appName string) (*Client, error) {
-		return NewWithOptions(ctx, NewClientOpts{AppName: appName})
-	}
-*/
 
 type NewClientOpts struct {
 	// required:
@@ -126,8 +115,8 @@ func resolveOrgSlugForApp(ctx context.Context, app *api.AppCompact, appName stri
 func resolveApp(ctx context.Context, app *api.AppCompact, appName string) (*api.AppCompact, error) {
 	var err error
 	if app == nil {
-		client := client.FromContext(ctx).API()
-		app, err = client.GetAppCompact(ctx, appName)
+		apiClient := api.ClientFromContext(ctx)
+		app, err = apiClient.GetAppCompact(ctx, appName)
 	}
 	return app, err
 }
