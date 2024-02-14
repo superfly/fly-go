@@ -27,7 +27,7 @@ output:
 # all available settings of specific linters
 linters-settings:
   gofumpt:
-    module-path: github.com/superfly/fly-go
+    module-path: github.com/superfly/flyctl
 
   errcheck:
     # report about not checking of errors in type assetions: `a := b.(MyStruct)`;
@@ -62,4 +62,4 @@ linters-settings:
     blocked:
       modules:
         - github.com/superfly/flyctl:
-            reason: "can not depend on flyctl project"
+            reason: "`api` can not depend on flyctl project because it pulls tons of dependencies"

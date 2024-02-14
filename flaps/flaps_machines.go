@@ -11,8 +11,7 @@ import (
 	"github.com/cenkalti/backoff/v4"
 	"github.com/google/go-querystring/query"
 	"github.com/samber/lo"
-	"github.com/superfly/fly-go/api"
-	// "github.com/superfly/fly-go/internal/metrics"
+	fly "github.com/superfly/fly-go"
 )
 
 var NonceHeader = "fly-machine-lease-nonce"
@@ -22,7 +21,7 @@ func (f *Client) sendRequestMachines(ctx context.Context, method, endpoint strin
 	return f._sendRequest(ctx, method, endpoint, in, out, headers)
 }
 
-func (f *Client) Launch(ctx context.Context, builder api.LaunchMachineInput) (out *api.Machine, err error) {
+func (f *Client) Launch(ctx context.Context, builder fly.LaunchMachineInput) (out *fly.Machine, err error) {
 	//metrics.Started(ctx, "machine_launch")
 	//sendUpdateMetrics := metrics.StartTiming(ctx, "machine_launch/duration")
 	//defer func() {
@@ -34,7 +33,7 @@ func (f *Client) Launch(ctx context.Context, builder api.LaunchMachineInput) (ou
 
 	ctx = contextWithAction(ctx, machineLaunch)
 
-	out = new(api.Machine)
+	out = new(fly.Machine)
 	if err := f.sendRequestMachines(ctx, http.MethodPost, "", builder, out, nil); err != nil {
 		return nil, fmt.Errorf("failed to launch VM: %w", err)
 	}
@@ -42,7 +41,7 @@ func (f *Client) Launch(ctx context.Context, builder api.LaunchMachineInput) (ou
 	return out, nil
 }
 
-func (f *Client) Update(ctx context.Context, builder api.LaunchMachineInput, nonce string) (out *api.Machine, err error) {
+func (f *Client) Update(ctx context.Context, builder fly.LaunchMachineInput, nonce string) (out *fly.Machine, err error) {
 	headers := make(map[string][]string)
 	if nonce != "" {
 		headers[NonceHeader] = []string{nonce}
@@ -61,14 +60,14 @@ func (f *Client) Update(ctx context.Context, builder api.LaunchMachineInput, non
 	ctx = contextWithMachineID(ctx, builder.ID)
 
 	endpoint := fmt.Sprintf("/%s", builder.ID)
-	out = new(api.Machine)
+	out = new(fly.Machine)
 	if err := f.sendRequestMachines(ctx, http.MethodPost, endpoint, builder, out, headers); err != nil {
 		return nil, fmt.Errorf("failed to update VM %s: %w", builder.ID, err)
 	}
 	return out, nil
 }
 
-func (f *Client) Start(ctx context.Context, machineID string, nonce string) (out *api.MachineStartResponse, err error) {
+func (f *Client) Start(ctx context.Context, machineID string, nonce string) (out *fly.MachineStartResponse, err error) {
 	startEndpoint := fmt.Sprintf("/%s/start", machineID)
 
 	headers := make(map[string][]string)
@@ -76,7 +75,7 @@ func (f *Client) Start(ctx context.Context, machineID string, nonce string) (out
 		headers[NonceHeader] = []string{nonce}
 	}
 
-	out = new(api.MachineStartResponse)
+	out = new(fly.MachineStartResponse)
 
 	//metrics.Started(ctx, "machine_start")
 	//defer func() {
@@ -100,7 +99,7 @@ type waitQuerystring struct {
 
 const proxyTimeoutThreshold = 60 * time.Second
 
-func (f *Client) Wait(ctx context.Context, machine *api.Machine, state string, timeout time.Duration) (err error) {
+func (f *Client) Wait(ctx context.Context, machine *fly.Machine, state string, timeout time.Duration) (err error) {
 	waitEndpoint := fmt.Sprintf("/%s/wait", machine.ID)
 	if state == "" {
 		state = "started"
@@ -135,7 +134,7 @@ func (f *Client) Wait(ctx context.Context, machine *api.Machine, state string, t
 	return
 }
 
-func (f *Client) Stop(ctx context.Context, in api.StopMachineInput, nonce string) (err error) {
+func (f *Client) Stop(ctx context.Context, in fly.StopMachineInput, nonce string) (err error) {
 	stopEndpoint := fmt.Sprintf("/%s/stop", in.ID)
 
 	headers := make(map[string][]string)
@@ -152,7 +151,7 @@ func (f *Client) Stop(ctx context.Context, in api.StopMachineInput, nonce string
 	return
 }
 
-func (f *Client) Restart(ctx context.Context, in api.RestartMachineInput, nonce string) (err error) {
+func (f *Client) Restart(ctx context.Context, in fly.RestartMachineInput, nonce string) (err error) {
 	headers := make(map[string][]string)
 	if nonce != "" {
 		headers[NonceHeader] = []string{nonce}
@@ -177,14 +176,14 @@ func (f *Client) Restart(ctx context.Context, in api.RestartMachineInput, nonce 
 	return
 }
 
-func (f *Client) Get(ctx context.Context, machineID string) (*api.Machine, error) {
+func (f *Client) Get(ctx context.Context, machineID string) (*fly.Machine, error) {
 	getEndpoint := ""
 
 	if machineID != "" {
 		getEndpoint = fmt.Sprintf("/%s", machineID)
 	}
 
-	out := new(api.Machine)
+	out := new(fly.Machine)
 	ctx = contextWithAction(ctx, machineGet)
 	ctx = contextWithMachineID(ctx, machineID)
 	err := f.sendRequestMachines(ctx, http.MethodGet, getEndpoint, nil, out, nil)
@@ -194,8 +193,8 @@ func (f *Client) Get(ctx context.Context, machineID string) (*api.Machine, error
 	return out, nil
 }
 
-func (f *Client) GetMany(ctx context.Context, machineIDs []string) ([]*api.Machine, error) {
-	machines := make([]*api.Machine, 0, len(machineIDs))
+func (f *Client) GetMany(ctx context.Context, machineIDs []string) ([]*fly.Machine, error) {
+	machines := make([]*fly.Machine, 0, len(machineIDs))
 	for _, id := range machineIDs {
 		m, err := f.Get(ctx, id)
 		if err != nil {
@@ -206,14 +205,14 @@ func (f *Client) GetMany(ctx context.Context, machineIDs []string) ([]*api.Machi
 	return machines, nil
 }
 
-func (f *Client) List(ctx context.Context, state string) ([]*api.Machine, error) {
+func (f *Client) List(ctx context.Context, state string) ([]*fly.Machine, error) {
 	getEndpoint := ""
 
 	if state != "" {
 		getEndpoint = fmt.Sprintf("?%s", state)
 	}
 
-	out := make([]*api.Machine, 0)
+	out := make([]*fly.Machine, 0)
 	ctx = contextWithAction(ctx, machineList)
 
 	err := f.sendRequestMachines(ctx, http.MethodGet, getEndpoint, nil, &out, nil)
@@ -224,10 +223,10 @@ func (f *Client) List(ctx context.Context, state string) ([]*api.Machine, error)
 }
 
 // ListActive returns only non-destroyed that aren't in a reserved process group.
-func (f *Client) ListActive(ctx context.Context) ([]*api.Machine, error) {
+func (f *Client) ListActive(ctx context.Context) ([]*fly.Machine, error) {
 	getEndpoint := ""
 
-	machines := make([]*api.Machine, 0)
+	machines := make([]*fly.Machine, 0)
 	ctx = contextWithAction(ctx, machineList)
 
 	err := f.sendRequestMachines(ctx, http.MethodGet, getEndpoint, nil, &machines, nil)
@@ -235,7 +234,7 @@ func (f *Client) ListActive(ctx context.Context) ([]*api.Machine, error) {
 		return nil, fmt.Errorf("failed to list active VMs: %w", err)
 	}
 
-	machines = lo.Filter(machines, func(m *api.Machine, _ int) bool {
+	machines = lo.Filter(machines, func(m *fly.Machine, _ int) bool {
 		return !m.IsReleaseCommandMachine() && !m.IsFlyAppsConsole() && m.IsActive()
 	})
 
@@ -245,8 +244,8 @@ func (f *Client) ListActive(ctx context.Context) ([]*api.Machine, error) {
 // ListFlyAppsMachines returns apps that are part of Fly Launch.
 // Destroyed machines and console machines are excluded.
 // Unlike other List functions, this function retries multiple times.
-func (f *Client) ListFlyAppsMachines(ctx context.Context) ([]*api.Machine, *api.Machine, error) {
-	var allMachines []*api.Machine
+func (f *Client) ListFlyAppsMachines(ctx context.Context) ([]*fly.Machine, *fly.Machine, error) {
+	var allMachines []*fly.Machine
 	b := backoff.NewExponentialBackOff()
 	b.InitialInterval = 500 * time.Millisecond
 	b.MaxElapsedTime = 5 * time.Second
@@ -265,8 +264,8 @@ func (f *Client) ListFlyAppsMachines(ctx context.Context) ([]*api.Machine, *api.
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to list VMs even after retries: %w", err)
 	}
-	var releaseCmdMachine *api.Machine
-	machines := make([]*api.Machine, 0)
+	var releaseCmdMachine *fly.Machine
+	machines := make([]*fly.Machine, 0)
 	for _, m := range allMachines {
 		if m.IsFlyAppsPlatform() && m.IsActive() && !m.IsFlyAppsReleaseCommand() && !m.IsFlyAppsConsole() {
 			machines = append(machines, m)
@@ -277,7 +276,7 @@ func (f *Client) ListFlyAppsMachines(ctx context.Context) ([]*api.Machine, *api.
 	return machines, releaseCmdMachine, nil
 }
 
-func (f *Client) Destroy(ctx context.Context, input api.RemoveMachineInput, nonce string) (err error) {
+func (f *Client) Destroy(ctx context.Context, input fly.RemoveMachineInput, nonce string) (err error) {
 	headers := make(map[string][]string)
 	if nonce != "" {
 		headers[NonceHeader] = []string{nonce}
@@ -309,10 +308,10 @@ func (f *Client) Kill(ctx context.Context, machineID string) (err error) {
 	return
 }
 
-func (f *Client) FindLease(ctx context.Context, machineID string) (*api.MachineLease, error) {
+func (f *Client) FindLease(ctx context.Context, machineID string) (*fly.MachineLease, error) {
 	endpoint := fmt.Sprintf("/%s/lease", machineID)
 
-	out := new(api.MachineLease)
+	out := new(fly.MachineLease)
 	ctx = contextWithAction(ctx, machineFindLease)
 	ctx = contextWithMachineID(ctx, machineID)
 
@@ -323,14 +322,14 @@ func (f *Client) FindLease(ctx context.Context, machineID string) (*api.MachineL
 	return out, nil
 }
 
-func (f *Client) AcquireLease(ctx context.Context, machineID string, ttl *int) (*api.MachineLease, error) {
+func (f *Client) AcquireLease(ctx context.Context, machineID string, ttl *int) (*fly.MachineLease, error) {
 	endpoint := fmt.Sprintf("/%s/lease", machineID)
 
 	if ttl != nil {
 		endpoint += fmt.Sprintf("?ttl=%d", *ttl)
 	}
 
-	out := new(api.MachineLease)
+	out := new(fly.MachineLease)
 	ctx = contextWithAction(ctx, machineAcquireLease)
 	ctx = contextWithMachineID(ctx, machineID)
 
@@ -342,14 +341,14 @@ func (f *Client) AcquireLease(ctx context.Context, machineID string, ttl *int) (
 	return out, nil
 }
 
-func (f *Client) RefreshLease(ctx context.Context, machineID string, ttl *int, nonce string) (*api.MachineLease, error) {
+func (f *Client) RefreshLease(ctx context.Context, machineID string, ttl *int, nonce string) (*fly.MachineLease, error) {
 	endpoint := fmt.Sprintf("/%s/lease", machineID)
 	if ttl != nil {
 		endpoint += fmt.Sprintf("?ttl=%d", *ttl)
 	}
 	headers := make(map[string][]string)
 	headers[NonceHeader] = []string{nonce}
-	out := new(api.MachineLease)
+	out := new(fly.MachineLease)
 	ctx = contextWithAction(ctx, machineRefreshLease)
 	ctx = contextWithMachineID(ctx, machineID)
 
@@ -376,10 +375,10 @@ func (f *Client) ReleaseLease(ctx context.Context, machineID, nonce string) erro
 	return f.sendRequestMachines(ctx, http.MethodDelete, endpoint, nil, nil, headers)
 }
 
-func (f *Client) Exec(ctx context.Context, machineID string, in *api.MachineExecRequest) (*api.MachineExecResponse, error) {
+func (f *Client) Exec(ctx context.Context, machineID string, in *fly.MachineExecRequest) (*fly.MachineExecResponse, error) {
 	endpoint := fmt.Sprintf("/%s/exec", machineID)
 
-	out := new(api.MachineExecResponse)
+	out := new(fly.MachineExecResponse)
 	ctx = contextWithAction(ctx, machineExec)
 	ctx = contextWithMachineID(ctx, machineID)
 
@@ -390,10 +389,10 @@ func (f *Client) Exec(ctx context.Context, machineID string, in *api.MachineExec
 	return out, nil
 }
 
-func (f *Client) GetProcesses(ctx context.Context, machineID string) (api.MachinePsResponse, error) {
+func (f *Client) GetProcesses(ctx context.Context, machineID string) (fly.MachinePsResponse, error) {
 	endpoint := fmt.Sprintf("/%s/ps", machineID)
 
-	var out api.MachinePsResponse
+	var out fly.MachinePsResponse
 	ctx = contextWithAction(ctx, machinePs)
 	ctx = contextWithMachineID(ctx, machineID)
 

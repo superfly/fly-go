@@ -17,9 +17,9 @@ import (
 
 	"github.com/azazeal/pause"
 	"github.com/jpillora/backoff"
-	"github.com/superfly/fly-go/api"
-	"github.com/superfly/fly-go/api/tokens"
+	fly "github.com/superfly/fly-go"
 	"github.com/superfly/fly-go/internal/tracing"
+	"github.com/superfly/fly-go/tokens"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -40,7 +40,7 @@ type NewClientOpts struct {
 	AppName string
 
 	// optional, avoids API roundtrip when connecting to flaps by wireguard:
-	AppCompact *api.AppCompact
+	AppCompact *fly.AppCompact
 
 	// optional, sent with requests
 	UserAgent string
@@ -54,7 +54,7 @@ type NewClientOpts struct {
 	Tokens *tokens.Tokens
 
 	// optional:
-	Logger api.Logger
+	Logger fly.Logger
 }
 
 func NewWithOptions(ctx context.Context, opts NewClientOpts) (*Client, error) {
@@ -85,7 +85,7 @@ func NewWithOptions(ctx context.Context, opts NewClientOpts) (*Client, error) {
 		return nil, fmt.Errorf("invalid FLY_FLAPS_BASE_URL '%s' with error: %w", flapsBaseURL, err)
 	}
 	transport := otelhttp.NewTransport(http.DefaultTransport)
-	httpClient, err := api.NewHTTPClient(opts.Logger, transport)
+	httpClient, err := fly.NewHTTPClient(opts.Logger, transport)
 	if err != nil {
 		return nil, fmt.Errorf("flaps: can't setup HTTP client to %s: %w", flapsUrl.String(), err)
 	}
@@ -104,7 +104,7 @@ func NewWithOptions(ctx context.Context, opts NewClientOpts) (*Client, error) {
 	}, nil
 }
 
-func resolveOrgSlugForApp(ctx context.Context, app *api.AppCompact, appName string) (string, error) {
+func resolveOrgSlugForApp(ctx context.Context, app *fly.AppCompact, appName string) (string, error) {
 	app, err := resolveApp(ctx, app, appName)
 	if err != nil {
 		return "", err
@@ -112,10 +112,10 @@ func resolveOrgSlugForApp(ctx context.Context, app *api.AppCompact, appName stri
 	return app.Organization.Slug, nil
 }
 
-func resolveApp(ctx context.Context, app *api.AppCompact, appName string) (*api.AppCompact, error) {
+func resolveApp(ctx context.Context, app *fly.AppCompact, appName string) (*fly.AppCompact, error) {
 	var err error
 	if app == nil {
-		apiClient := api.ClientFromContext(ctx)
+		apiClient := fly.ClientFromContext(ctx)
 		app, err = apiClient.GetAppCompact(ctx, appName)
 	}
 	return app, err
@@ -130,7 +130,7 @@ type wireguardConnectionParams struct {
 	tokens      *tokens.Tokens
 }
 
-func newWithUsermodeWireguard(ctx context.Context, params wireguardConnectionParams, logger api.Logger) (*Client, error) {
+func newWithUsermodeWireguard(ctx context.Context, params wireguardConnectionParams, logger fly.Logger) (*Client, error) {
 	transport := &http.Transport{
 		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
 			return params.dialContext(ctx, network, addr)
@@ -138,7 +138,7 @@ func newWithUsermodeWireguard(ctx context.Context, params wireguardConnectionPar
 	}
 	instrumentedTransport := otelhttp.NewTransport(transport)
 
-	httpClient, err := api.NewHTTPClient(logger, instrumentedTransport)
+	httpClient, err := fly.NewHTTPClient(logger, instrumentedTransport)
 	if err != nil {
 		return nil, fmt.Errorf("flaps: can't setup HTTP client for %s: %w", params.orgSlug, err)
 	}
