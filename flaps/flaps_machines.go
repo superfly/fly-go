@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/cenkalti/backoff/v4"
@@ -337,7 +336,6 @@ func (f *Client) AcquireLease(ctx context.Context, machineID string, ttl *int) (
 	if err != nil {
 		return nil, fmt.Errorf("failed to get lease on VM %s: %w", machineID, err)
 	}
-	fmt.Fprintf(os.Stderr, "got lease on machine %s: %v\n", machineID, out)
 	return out, nil
 }
 
@@ -356,7 +354,6 @@ func (f *Client) RefreshLease(ctx context.Context, machineID string, ttl *int, n
 	if err != nil {
 		return nil, fmt.Errorf("failed to get lease on VM %s: %w", machineID, err)
 	}
-	fmt.Fprintf(os.Stderr, "got lease on machine %s: %v\n", machineID, out)
 	return out, nil
 }
 
@@ -404,7 +401,7 @@ func (f *Client) GetProcesses(ctx context.Context, machineID string) (fly.Machin
 	return out, nil
 }
 
-func (f *Client) Cordon(ctx context.Context, machineID string) (err error) {
+func (f *Client) Cordon(ctx context.Context, machineID string, nonce string) (err error) {
 	//metrics.Started(ctx, "machine_cordon")
 	//sendUpdateMetrics := metrics.StartTiming(ctx, "machine_cordon/duration")
 	//defer func() {
@@ -413,17 +410,22 @@ func (f *Client) Cordon(ctx context.Context, machineID string) (err error) {
 	//		sendUpdateMetrics()
 	//	}
 	//}()
+	headers := make(map[string][]string)
+	if nonce != "" {
+		headers[NonceHeader] = []string{nonce}
+	}
+
 	ctx = contextWithAction(ctx, machineCordon)
 	ctx = contextWithMachineID(ctx, machineID)
 
-	if err := f.sendRequestMachines(ctx, http.MethodPost, fmt.Sprintf("/%s/cordon", machineID), nil, nil, nil); err != nil {
+	if err := f.sendRequestMachines(ctx, http.MethodPost, fmt.Sprintf("/%s/cordon", machineID), nil, nil, headers); err != nil {
 		return fmt.Errorf("failed to cordon VM: %w", err)
 	}
 
 	return nil
 }
 
-func (f *Client) Uncordon(ctx context.Context, machineID string) (err error) {
+func (f *Client) Uncordon(ctx context.Context, machineID string, nonce string) (err error) {
 	//metrics.Started(ctx, "machine_uncordon")
 	//sendUpdateMetrics := metrics.StartTiming(ctx, "machine_uncordon/duration")
 	//defer func() {
@@ -432,10 +434,15 @@ func (f *Client) Uncordon(ctx context.Context, machineID string) (err error) {
 	//		sendUpdateMetrics()
 	//	}
 	//}()
+	headers := make(map[string][]string)
+	if nonce != "" {
+		headers[NonceHeader] = []string{nonce}
+	}
+
 	ctx = contextWithAction(ctx, machineUncordon)
 	ctx = contextWithMachineID(ctx, machineID)
 
-	if err := f.sendRequestMachines(ctx, http.MethodPost, fmt.Sprintf("/%s/uncordon", machineID), nil, nil, nil); err != nil {
+	if err := f.sendRequestMachines(ctx, http.MethodPost, fmt.Sprintf("/%s/uncordon", machineID), nil, nil, headers); err != nil {
 		return fmt.Errorf("failed to uncordon VM: %w", err)
 	}
 
