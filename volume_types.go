@@ -30,6 +30,10 @@ type CreateVolumeRequest struct {
 	MachinesOnly      *bool  `json:"machines_only"`
 	SnapshotRetention *int   `json:"snapshot_retention"`
 
+	// FSType sets the filesystem of this volume. The valid values are "ext4" and "raw".
+	// Not setting the value results "ext4".
+	FSType string `json:"fstype"`
+
 	// restore from snapshot
 	SnapshotID *string `json:"snapshot_id"`
 	// fork from remote volume
