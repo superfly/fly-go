@@ -337,7 +337,6 @@ func (f *Client) AcquireLease(ctx context.Context, machineID string, ttl *int) (
 	if err != nil {
 		return nil, fmt.Errorf("failed to get lease on VM %s: %w", machineID, err)
 	}
-	fmt.Fprintf(os.Stderr, "got lease on machine %s: %v\n", machineID, out)
 	return out, nil
 }
 
@@ -356,7 +355,6 @@ func (f *Client) RefreshLease(ctx context.Context, machineID string, ttl *int, n
 	if err != nil {
 		return nil, fmt.Errorf("failed to get lease on VM %s: %w", machineID, err)
 	}
-	fmt.Fprintf(os.Stderr, "got lease on machine %s: %v\n", machineID, out)
 	return out, nil
 }
 
