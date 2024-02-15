@@ -442,6 +442,8 @@ func (f *Client) Uncordon(ctx context.Context, machineID string) (err error) {
 func (f *Client) SetMetadata(ctx context.Context, machineID, key, value string) error {
 	endpoint := fmt.Sprintf("/%s/metadata/%s", machineID, key)
 
+	ctx = contextWithAction(ctx, metadataSet)
+	ctx = contextWithMachineID(ctx, machineID)
 	in := map[string]interface{}{
 		"value": value,
 	}
@@ -457,6 +459,8 @@ func (f *Client) SetMetadata(ctx context.Context, machineID, key, value string) 
 func (f *Client) GetMetadata(ctx context.Context, machineID string) (map[string]string, error) {
 	endpoint := fmt.Sprintf("/%s/metadata", machineID)
 
+	ctx = contextWithAction(ctx, metadataGet)
+	ctx = contextWithMachineID(ctx, machineID)
 	out := map[string]string{}
 
 	err := f.sendRequestMachines(ctx, http.MethodGet, endpoint, nil, &out, nil)
@@ -468,6 +472,8 @@ func (f *Client) GetMetadata(ctx context.Context, machineID string) (map[string]
 }
 
 func (f *Client) DeleteMetadata(ctx context.Context, machineID, key string) error {
+	ctx = contextWithAction(ctx, metadataDel)
+	ctx = contextWithMachineID(ctx, machineID)
 	endpoint := fmt.Sprintf("/%s/metadata/%s", machineID, key)
 
 	err := f.sendRequestMachines(ctx, http.MethodDelete, endpoint, nil, nil, nil)
