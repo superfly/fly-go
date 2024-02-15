@@ -34,4 +34,7 @@ const (
 	volumeSnapshotList
 	volumeExtend
 	volumeDelete
+	metadataSet
+	metadataGet
+	metadataDel
 )

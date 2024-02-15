@@ -15,6 +15,7 @@ const (
 	MachineConfigMetadataKeyFlyProcessGroup    = "fly_process_group"
 	MachineConfigMetadataKeyFlyPreviousAlloc   = "fly_previous_alloc"
 	MachineConfigMetadataKeyFlyctlVersion      = "fly_flyctl_version"
+	MachineConfigMetadataKeyFlyctlBGTag        = "fly_bluegreen_deployment_tag"
 	MachineFlyPlatformVersion2                 = "v2"
 	MachineProcessGroupApp                     = "app"
 	MachineProcessGroupFlyAppReleaseCommand    = "fly_app_release_command"
