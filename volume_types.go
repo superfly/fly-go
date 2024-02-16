@@ -34,7 +34,7 @@ type CreateVolumeRequest struct {
 
 	// FSType sets the filesystem of this volume. The valid values are "ext4" and "raw".
 	// Not setting the value results "ext4".
-	FSType string `json:"fstype"`
+	FSType *string `json:"fstype"`
 
 	// restore from snapshot
 	SnapshotID *string `json:"snapshot_id"`
