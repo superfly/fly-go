@@ -15,6 +15,7 @@ type Volume struct {
 	CreatedAt          time.Time `json:"created_at"`
 	HostDedicationID   string    `json:"host_dedication_id"`
 	SnapshotRetention  int       `json:"snapshot_retention"`
+	AutoBackupEnabled  bool      `json:"auto_backup_enabled"`
 }
 
 func (v Volume) IsAttached() bool {
@@ -29,6 +30,7 @@ type CreateVolumeRequest struct {
 	RequireUniqueZone *bool  `json:"require_unique_zone"`
 	MachinesOnly      *bool  `json:"machines_only"`
 	SnapshotRetention *int   `json:"snapshot_retention"`
+	AutoBackupEnabled *bool  `json:"auto_backup_enabled"`
 
 	// FSType sets the filesystem of this volume. The valid values are "ext4" and "raw".
 	// Not setting the value results "ext4".
@@ -43,7 +45,8 @@ type CreateVolumeRequest struct {
 }
 
 type UpdateVolumeRequest struct {
-	SnapshotRetention *int `json:"snapshot_retention"`
+	SnapshotRetention *int  `json:"snapshot_retention"`
+	AutoBackupEnabled *bool `json:"auto_backup_enabled"`
 }
 
 type VolumeSnapshot struct {
