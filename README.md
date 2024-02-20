@@ -25,7 +25,7 @@ add your project directories so that `flyctl` can use your local `fly-go`:
 
 ```sh
 go work init
-go work add ./flyctl
+go work use ./flyctl
 go work use ./fly-go
 ```
 
