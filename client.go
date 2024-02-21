@@ -273,9 +273,16 @@ type Transport struct {
 	Token               string // deprecated
 	Tokens              *tokens.Tokens
 	EnableDebugTrace    bool
+	CustomHeaders       map[string]string
 }
 
 func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
+	if t.CustomHeaders != nil {
+		for k, v := range t.CustomHeaders {
+			req.Header.Set(k, v)
+		}
+	}
+
 	t.addAuthorization(req)
 
 	req.Header.Set("User-Agent", t.UserAgent)
