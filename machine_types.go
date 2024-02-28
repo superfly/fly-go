@@ -731,6 +731,21 @@ type MachineProcess struct {
 	CmdOverride        []string          `json:"cmd,omitempty"`
 	UserOverride       string            `json:"user,omitempty"`
 	ExtraEnv           map[string]string `json:"env,omitempty"`
+	Secrets            []MachineSecret   `json:"secrets,omitempty"`
+}
+
+// @description A Secret needing to be set in the environment of the Machine. env_var is required
+// and name can be used to reference a secret name where the environment variable is different
+// from what was set originally using the API. NOTE: When secrets are provided on any process, it
+// will override the secrets provided at the machine level.
+type MachineSecret struct {
+	// EnvVar is required and is the name of the environment variable that will be set from the
+	// secret. It must be a valid environment variable name.
+	EnvVar string `json:"env_var"`
+
+	// Name is optional and when provided is used to reference a secret name where the EnvVar is
+	// different from what was set as the secret name.
+	Name string `json:"name"`
 }
 
 type MachineExecRequest struct {
