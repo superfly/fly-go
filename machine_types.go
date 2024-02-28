@@ -731,7 +731,13 @@ type MachineProcess struct {
 	CmdOverride        []string          `json:"cmd,omitempty"`
 	UserOverride       string            `json:"user,omitempty"`
 	ExtraEnv           map[string]string `json:"env,omitempty"`
-	Secrets            []MachineSecret   `json:"secrets,omitempty"`
+	// Secrets can be provided at the process level to explicitly indicate which secrets should be
+	// used for the process. If not provided, the secrets provided at the machine level will be used.
+	Secrets []MachineSecret `json:"secrets,omitempty"`
+	// IgnoreAppSecrets can be set to true to ignore the secrets for the App the Machine belongs to
+	// and only use the secrets provided at the process level. The default/legacy behavior is to use
+	// the secrets provided at the App level.
+	IgnoreAppSecrets bool `json:"ignore_app_secrets,omitempty"`
 }
 
 // @description A Secret needing to be set in the environment of the Machine. env_var is required
