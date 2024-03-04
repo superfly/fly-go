@@ -159,7 +159,7 @@ func (f *Client) Restart(ctx context.Context, in fly.RestartMachineInput, nonce 
 	restartEndpoint := fmt.Sprintf("/%s/restart?force_stop=%t", in.ID, in.ForceStop)
 
 	if in.Timeout != 0 {
-		restartEndpoint += fmt.Sprintf("&timeout=%d", in.Timeout)
+		restartEndpoint += fmt.Sprintf("&timeout=%s", in.Timeout)
 	}
 
 	if in.Signal != "" {
