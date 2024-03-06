@@ -738,6 +738,9 @@ type MachineProcess struct {
 	// and only use the secrets provided at the process level. The default/legacy behavior is to use
 	// the secrets provided at the App level.
 	IgnoreAppSecrets bool `json:"ignore_app_secrets,omitempty"`
+
+	// EnvFrom can be provided to set environment variables from machine fields.
+	EnvFrom []EnvFrom `json:"env_from,omitempty"`
 }
 
 // @description A Secret needing to be set in the environment of the Machine. env_var is required
@@ -752,6 +755,17 @@ type MachineSecret struct {
 	// Name is optional and when provided is used to reference a secret name where the EnvVar is
 	// different from what was set as the secret name.
 	Name string `json:"name"`
+}
+
+// @description EnvVar defines an environment variable to be populated from a machine field, env_var
+// and field_ref are required.
+type EnvFrom struct {
+	// EnvVar is required and is the name of the environment variable that will be set from the
+	// secret. It must be a valid environment variable name.
+	EnvVar string `json:"env_var"`
+
+	// FieldRef selects a field of the Machine: supports id, version, app_name, private_ip, region, image.
+	FieldRef string `json:"field_ref" enums:"id,version,app_name,private_ip,region,image"`
 }
 
 type MachineExecRequest struct {
