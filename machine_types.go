@@ -764,9 +764,8 @@ type EnvFrom struct {
 	// secret. It must be a valid environment variable name.
 	EnvVar string `json:"env_var"`
 
-	// FieldRef selects a field of the Machine: supports id, version, app_name, `metadata.<KEY>`,
-	// private_ip, region, image.
-	FieldRef string `json:"field_ref"`
+	// FieldRef selects a field of the Machine: supports id, version, app_name, private_ip, region, image.
+	FieldRef string `json:"field_ref" enums:"id,version,app_name,private_ip,region,image"`
 }
 
 type MachineExecRequest struct {
