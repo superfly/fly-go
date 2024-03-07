@@ -659,10 +659,16 @@ type MachineInit struct {
 }
 
 type DNSConfig struct {
-	SkipRegistration bool        `json:"skip_registration,omitempty"`
-	Nameservers      []string    `json:"nameservers,omitempty"`
-	Searches         []string    `json:"searches,omitempty"`
-	Options          []dnsOption `json:"options,omitempty"`
+	SkipRegistration bool             `json:"skip_registration,omitempty"`
+	Nameservers      []string         `json:"nameservers,omitempty"`
+	Searches         []string         `json:"searches,omitempty"`
+	Options          []dnsOption      `json:"options,omitempty"`
+	DNSForwardRules  []dnsForwardRule `json:"dns_forward_rules,omitempty"`
+}
+
+type dnsForwardRule struct {
+	Basename string `json:"basename,omitempty"`
+	Addr     string `json:"addr,omitempty"`
 }
 
 type dnsOption struct {
