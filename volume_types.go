@@ -41,7 +41,9 @@ type CreateVolumeRequest struct {
 	// fork from remote volume
 	SourceVolumeID *string `json:"source_volume_id"`
 
+	// If the volume is going to be attached to a new machine, make the placement logic aware of it
 	ComputeRequirements *MachineGuest `json:"compute"`
+	ComputeImage        string        `json:"compute_image,omitempty"`
 }
 
 type UpdateVolumeRequest struct {
