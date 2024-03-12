@@ -42,12 +42,8 @@ type CreateVolumeRequest struct {
 	SourceVolumeID *string `json:"source_volume_id"`
 
 	// If the volume is going to be attached to a new machine, make the placement logic aware of it
-	ComputeRequirements *ComputeRequirements `json:"compute"`
-}
-
-type ComputeRequirements struct {
-	*MachineGuest
-	Image string `json:"image,omitempty"`
+	ComputeRequirements *MachineGuest `json:"compute"`
+	ComputeImage        string        `json:"compute_image,omitempty"`
 }
 
 type UpdateVolumeRequest struct {
