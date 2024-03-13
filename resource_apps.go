@@ -209,10 +209,6 @@ func (client *Client) GetAppCompact(ctx context.Context, appName string) (*AppCo
 				postgresAppRole: role {
 					name
 				}
-				imageDetails {
-					repository
-					version
-				}
 			}
 		}
 	`
