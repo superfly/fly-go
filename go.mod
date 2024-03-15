@@ -5,7 +5,6 @@ go 1.21
 require (
 	github.com/Khan/genqlient v0.6.0
 	github.com/PuerkitoBio/rehttp v1.3.0
-	github.com/stretchr/testify v1.8.4
 	github.com/superfly/graphql v0.2.4
 	github.com/superfly/macaroon v0.2.10
 	go.opentelemetry.io/otel v1.23.1
@@ -14,13 +13,7 @@ require (
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9
 )
 
-require (
-	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/felixge/httpsnoop v1.0.4 // indirect
-	github.com/kr/pretty v0.3.1 // indirect
-	github.com/pmezard/go-difflib v1.0.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
-)
+require github.com/felixge/httpsnoop v1.0.4 // indirect
 
 require (
 	github.com/cenkalti/backoff/v4 v4.2.1

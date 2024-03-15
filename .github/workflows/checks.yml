@@ -64,4 +64,4 @@ jobs:
       - name: generate command strings
         run: go generate ./... && git diff --exit-code
       - name: Run tests
-        run: go test .
+        run: go test ./...
