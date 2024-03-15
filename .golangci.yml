@@ -46,18 +46,17 @@ linters-settings:
   gomodguard:
     allowed:
       modules:
+        - github.com/cenkalti/backoff/v4
         - github.com/Khan/genqlient
+        - github.com/google/go-querystring
         - github.com/PuerkitoBio/rehttp
         - github.com/superfly/graphql
         - github.com/superfly/macaroon
         - github.com/superfly/macaroon/flyio
         - github.com/superfly/macaroon/tp
-        - go.opentelemetry.io/otel
-        - go.opentelemetry.io/otel/attribute
-        - go.opentelemetry.io/otel/codes
-        - go.opentelemetry.io/otel/trace
       domains:
         - golang.org
+        - go.opentelemetry.io
 
     blocked:
       modules:

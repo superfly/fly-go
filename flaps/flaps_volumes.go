@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"slices"
 
-	"github.com/samber/lo"
 	fly "github.com/superfly/fly-go"
 )
 
@@ -35,9 +34,12 @@ func (f *Client) GetVolumes(ctx context.Context) ([]fly.Volume, error) {
 	if err != nil {
 		return nil, err
 	}
-	return lo.Filter(volumes, func(v fly.Volume, _ int) bool {
-		return !slices.Contains(destroyedVolumeStates, v.State)
-	}), nil
+
+	volumes = slices.DeleteFunc(volumes, func(v fly.Volume) bool {
+		return slices.Contains(destroyedVolumeStates, v.State)
+	})
+
+	return volumes, nil
 }
 
 func (f *Client) CreateVolume(ctx context.Context, req fly.CreateVolumeRequest) (*fly.Volume, error) {

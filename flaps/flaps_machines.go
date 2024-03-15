@@ -5,11 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"time"
 
 	"github.com/cenkalti/backoff/v4"
 	"github.com/google/go-querystring/query"
-	"github.com/samber/lo"
 	fly "github.com/superfly/fly-go"
 )
 
@@ -233,8 +233,8 @@ func (f *Client) ListActive(ctx context.Context) ([]*fly.Machine, error) {
 		return nil, fmt.Errorf("failed to list active VMs: %w", err)
 	}
 
-	machines = lo.Filter(machines, func(m *fly.Machine, _ int) bool {
-		return !m.IsReleaseCommandMachine() && !m.IsFlyAppsConsole() && m.IsActive()
+	machines = slices.DeleteFunc(machines, func(m *fly.Machine) bool {
+		return m.IsReleaseCommandMachine() || m.IsFlyAppsConsole() || !m.IsActive()
 	})
 
 	return machines, nil

@@ -1,0 +1,67 @@
+name: Checks
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: ${{ github.workflow }}-$${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  precommit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: "go.mod"
+          check-latest: true
+      - uses: pre-commit/action@v3.0.1
+        with:
+          extra_args: --all-files --hook-stage=manual
+
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: "go.mod"
+          # check-latest: true
+      - uses: golangci/golangci-lint-action@v4
+        with:
+          version: v1.54
+          working-directory: .
+          skip-pkg-cache: true
+
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest-m, macos-latest-xl, windows-latest-l ]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: "go.mod"
+          check-latest: true
+      - name: Get go version
+        id: go-version
+        run: echo "name=version::$(go env GOVERSION)" >> $GITHUB_OUTPUT
+      - name: go mod download
+        run: go mod download
+      - name: go mod verify
+        run: go mod verify
+      - name: generate command strings
+        run: go generate ./... && git diff --exit-code
+      - name: Run tests
+        run: go test ./...
