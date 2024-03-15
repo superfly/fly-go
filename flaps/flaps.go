@@ -15,7 +15,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/azazeal/pause"
 	"github.com/jpillora/backoff"
 	fly "github.com/superfly/fly-go"
 	"github.com/superfly/fly-go/internal/tracing"
@@ -183,7 +182,10 @@ waiting:
 		if ferr, ok := err.(*FlapsError); ok {
 			switch ferr.ResponseStatusCode {
 			case 404, 401:
-				pause.For(ctx, bo.Duration())
+				// Wait until context is done or timeout expires
+				dl, cancel := context.WithTimeout(ctx, bo.Duration())
+				<-dl.Done()
+				cancel()
 				continue waiting
 			}
 		}

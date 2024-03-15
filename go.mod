@@ -5,7 +5,6 @@ go 1.21
 require (
 	github.com/Khan/genqlient v0.6.0
 	github.com/PuerkitoBio/rehttp v1.3.0
-	github.com/azazeal/pause v1.3.0
 	github.com/jpillora/backoff v1.0.0
 	github.com/stretchr/testify v1.8.4
 	github.com/superfly/graphql v0.2.4
