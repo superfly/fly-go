@@ -1,6 +1,6 @@
 package flaps
 
-//go:generate go run golang.org/x/tools/cmd/stringer -type=flapsAction
+//go:generate go run golang.org/x/tools/cmd/stringer@latest -type=flapsAction
 
 // flapsAction is used to record actions in traces' attributes.
 type flapsAction int
