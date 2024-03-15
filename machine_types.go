@@ -363,6 +363,7 @@ func (mg *MachineGuest) SetSize(size string) error {
 	mg.CPUKind = guest.CPUKind
 	mg.MemoryMB = guest.MemoryMB
 	mg.GPUKind = guest.GPUKind
+	mg.GPUs = guest.GPUs
 	return nil
 }
 
