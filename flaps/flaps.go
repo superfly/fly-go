@@ -12,10 +12,11 @@ import (
 	"net/url"
 	"os"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
-	"github.com/jpillora/backoff"
+	"github.com/cenkalti/backoff/v4"
 	fly "github.com/superfly/fly-go"
 	"github.com/superfly/fly-go/internal/tracing"
 	"github.com/superfly/fly-go/tokens"
@@ -164,34 +165,27 @@ func (f *Client) CreateApp(ctx context.Context, name string, org string) (err er
 }
 
 func (f *Client) WaitForApp(ctx context.Context, name string) error {
-	bo := &backoff.Backoff{
-		Min:    100 * time.Millisecond,
-		Max:    500 * time.Millisecond,
-		Jitter: true,
-	}
-
 	ctx = contextWithAction(ctx, machineGet)
 
-waiting:
-	for {
+	bo := backoff.NewExponentialBackOff()
+	bo.InitialInterval = 100 * time.Millisecond
+	bo.MaxInterval = 500 * time.Millisecond
+	bo.MaxElapsedTime = 0 // no stop
+	bo.RandomizationFactor = 0.5
+	bo.Multiplier = 2
+
+	var op backoff.Operation = func() error {
 		err := f._sendRequest(ctx, http.MethodGet, "/apps/"+url.PathEscape(name), nil, nil, nil)
 		if err == nil {
 			return nil
 		}
-
-		if ferr, ok := err.(*FlapsError); ok {
-			switch ferr.ResponseStatusCode {
-			case 404, 401:
-				// Wait until context is done or timeout expires
-				dl, cancel := context.WithTimeout(ctx, bo.Duration())
-				<-dl.Done()
-				cancel()
-				continue waiting
-			}
+		if ferr, ok := err.(*FlapsError); ok && slices.Contains([]int{404, 401}, ferr.ResponseStatusCode) {
+			return err
 		}
-
-		return err
+		return backoff.Permanent(err)
 	}
+
+	return backoff.Retry(op, bo)
 }
 
 var snakeCasePattern = regexp.MustCompile("[A-Z]")
