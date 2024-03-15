@@ -49,6 +49,7 @@ linters-settings:
         - github.com/cenkalti/backoff/v4
         - github.com/Khan/genqlient
         - github.com/PuerkitoBio/rehttp
+        - github.com/samber/lo
         - github.com/superfly/graphql
         - github.com/superfly/macaroon
         - github.com/superfly/macaroon/flyio
