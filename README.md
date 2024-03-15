@@ -10,7 +10,7 @@ it can be used by any project that wants to automate its [Fly.io] deployment.
 
 ## Development
 
-If you are making changes in another project and need to test `fly-go` changes 
+If you are making changes in another project and need to test `fly-go` changes
 locally, you can enable a [Go workspace][]. For example, if you have a directory
 structure like this:
 
