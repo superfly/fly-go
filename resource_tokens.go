@@ -13,6 +13,9 @@ func (c *Client) GetAppLimitedAccessTokens(ctx context.Context, appName string) 
 						id
 						name
 						expiresAt
+						user {
+							email
+						}
 					}
 				}
 			}

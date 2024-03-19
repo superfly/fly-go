@@ -255,6 +255,7 @@ type LimitedAccessToken struct {
 	Id        string
 	Name      string
 	ExpiresAt time.Time
+	User      User
 }
 
 type AppCertsCompact struct {
