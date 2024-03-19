@@ -21,15 +21,6 @@ func (f *Client) sendRequestMachines(ctx context.Context, method, endpoint strin
 }
 
 func (f *Client) Launch(ctx context.Context, builder fly.LaunchMachineInput) (out *fly.Machine, err error) {
-	//metrics.Started(ctx, "machine_launch")
-	//sendUpdateMetrics := metrics.StartTiming(ctx, "machine_launch/duration")
-	//defer func() {
-	//	metrics.Status(ctx, "machine_launch", err == nil)
-	//	if err == nil {
-	//		sendUpdateMetrics()
-	//	}
-	//}()
-
 	ctx = contextWithAction(ctx, machineLaunch)
 
 	out = new(fly.Machine)
@@ -45,15 +36,6 @@ func (f *Client) Update(ctx context.Context, builder fly.LaunchMachineInput, non
 	if nonce != "" {
 		headers[NonceHeader] = []string{nonce}
 	}
-
-	//metrics.Started(ctx, "machine_update")
-	//sendUpdateMetrics := metrics.StartTiming(ctx, "machine_update/duration")
-	//defer func() {
-	//	metrics.Status(ctx, "machine_update", err == nil)
-	//	if err == nil {
-	//		sendUpdateMetrics()
-	//	}
-	//}()
 
 	ctx = contextWithAction(ctx, machineUpdate)
 	ctx = contextWithMachineID(ctx, builder.ID)
@@ -75,11 +57,6 @@ func (f *Client) Start(ctx context.Context, machineID string, nonce string) (out
 	}
 
 	out = new(fly.MachineStartResponse)
-
-	//metrics.Started(ctx, "machine_start")
-	//defer func() {
-	//	metrics.Status(ctx, "machine_start", err == nil)
-	//}()
 
 	ctx = contextWithAction(ctx, machineStart)
 	ctx = contextWithMachineID(ctx, machineID)
@@ -402,14 +379,6 @@ func (f *Client) GetProcesses(ctx context.Context, machineID string) (fly.Machin
 }
 
 func (f *Client) Cordon(ctx context.Context, machineID string, nonce string) (err error) {
-	//metrics.Started(ctx, "machine_cordon")
-	//sendUpdateMetrics := metrics.StartTiming(ctx, "machine_cordon/duration")
-	//defer func() {
-	//	metrics.Status(ctx, "machine_cordon", err == nil)
-	//	if err == nil {
-	//		sendUpdateMetrics()
-	//	}
-	//}()
 	headers := make(map[string][]string)
 	if nonce != "" {
 		headers[NonceHeader] = []string{nonce}
@@ -426,14 +395,6 @@ func (f *Client) Cordon(ctx context.Context, machineID string, nonce string) (er
 }
 
 func (f *Client) Uncordon(ctx context.Context, machineID string, nonce string) (err error) {
-	//metrics.Started(ctx, "machine_uncordon")
-	//sendUpdateMetrics := metrics.StartTiming(ctx, "machine_uncordon/duration")
-	//defer func() {
-	//	metrics.Status(ctx, "machine_uncordon", err == nil)
-	//	if err == nil {
-	//		sendUpdateMetrics()
-	//	}
-	//}()
 	headers := make(map[string][]string)
 	if nonce != "" {
 		headers[NonceHeader] = []string{nonce}
