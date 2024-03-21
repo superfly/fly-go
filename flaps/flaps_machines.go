@@ -181,15 +181,22 @@ func (f *Client) GetMany(ctx context.Context, machineIDs []string) ([]*fly.Machi
 	return machines, nil
 }
 
-func (f *Client) List(ctx context.Context, state string) ([]*fly.Machine, error) {
-	getEndpoint := ""
+func (f *Client) List(ctx context.Context, state string, metadata map[string]any) ([]*fly.Machine, error) {
+	ctx = contextWithAction(ctx, machineList)
+
+	var params string
 
 	if state != "" {
-		getEndpoint = fmt.Sprintf("?%s", state)
+		params = fmt.Sprintf("%s&", state)
 	}
 
+	for k, v := range metadata {
+		params += fmt.Sprintf("metadata.%s=%s", k, v)
+	}
+
+	var getEndpoint = fmt.Sprintf("?%s", params)
+
 	out := make([]*fly.Machine, 0)
-	ctx = contextWithAction(ctx, machineList)
 
 	err := f.sendRequestMachines(ctx, http.MethodGet, getEndpoint, nil, &out, nil)
 	if err != nil {
