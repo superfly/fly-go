@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"slices"
 	"time"
 
@@ -184,17 +185,15 @@ func (f *Client) GetMany(ctx context.Context, machineIDs []string) ([]*fly.Machi
 func (f *Client) List(ctx context.Context, state string, metadata map[string]any) ([]*fly.Machine, error) {
 	ctx = contextWithAction(ctx, machineList)
 
-	var params string
-
-	if state != "" {
-		params = fmt.Sprintf("%s&", state)
-	}
-
+	q := make(url.Values)
 	for k, v := range metadata {
-		params += fmt.Sprintf("metadata.%s=%s", k, v)
+		q.Set("metadata."+k, fmt.Sprintf("%v", v))
 	}
 
-	var getEndpoint = fmt.Sprintf("?%s", params)
+	var getEndpoint = ""
+	if len(q) > 0 {
+		getEndpoint = "?" + q.Encode()
+	}
 
 	out := make([]*fly.Machine, 0)
 
