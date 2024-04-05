@@ -162,6 +162,15 @@ func (m *Machine) AllHealthChecks() *HealthCheckStatus {
 	return res
 }
 
+func (m *Machine) GetLatestEventOfType(eventType string) *MachineEvent {
+	for _, event := range m.Events {
+		if event.Type == eventType {
+			return event
+		}
+	}
+	return nil
+}
+
 // Finds the latest event of type latestEventType, which happened after the most recent event of type firstEventType
 func (m *Machine) GetLatestEventOfTypeAfterType(latestEventType, firstEventType string) *MachineEvent {
 	firstIndex := 0
