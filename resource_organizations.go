@@ -37,6 +37,7 @@ func (client *Client) GetOrganizations(ctx context.Context, filters ...Organizat
 					paidPlan
 					billable
 					viewerRole
+					internalNumericId
 				}
 			}
 		}
