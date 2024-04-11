@@ -395,6 +395,7 @@ func (client *Client) GetAppCompact(ctx context.Context, appName string) (*AppCo
 				platformVersion
 				organization {
 					id
+					internalNumericId
 					slug
 					paidPlan
 				}
@@ -426,6 +427,7 @@ func (client *Client) GetAppBasic(ctx context.Context, appName string) (*AppBasi
 				platformVersion
 				organization {
 					id
+					internalNumericId
 					slug
 					rawSlug
 					paidPlan
