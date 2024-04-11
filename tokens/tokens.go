@@ -22,10 +22,10 @@ import (
 // macaroons and OAuth tokens in the same request. For other service, macaroons
 // are preferred.
 type Tokens struct {
-	MacaroonTokens []string
-	UserTokens     []string
-	FromConfigFile string
-	m              sync.RWMutex
+	macaroons []string
+	oauths    []string
+	fromFile  string
+	m         sync.RWMutex
 }
 
 // Parse extracts individual tokens from a token string. The input token may
@@ -39,22 +39,144 @@ func Parse(token string) *Tokens {
 		tok = strings.TrimSpace(tok)
 		switch pfx, _, _ := strings.Cut(tok, "_"); pfx {
 		case "fm1r", "fm1a", "fm2":
-			ret.MacaroonTokens = append(ret.MacaroonTokens, tok)
+			ret.macaroons = append(ret.macaroons, tok)
 		default:
-			ret.UserTokens = append(ret.UserTokens, tok)
+			ret.oauths = append(ret.oauths, tok)
 		}
 	}
 
 	return ret
 }
 
+// ParseFromFile is like Parse but also records the file path that the tokens
+// came from.
+func ParseFromFile(token, fromFile string) *Tokens {
+	ret := Parse(token)
+	ret.fromFile = fromFile
+	return ret
+
+}
+
+// FromFile returns the file path that was provided to ParseFromFile().
+func (t *Tokens) FromFile() string {
+	t.m.RLock()
+	defer t.m.RUnlock()
+
+	return t.fromFile
+}
+
+// Copy returns a deep copy of t.
+func (t *Tokens) Copy() *Tokens {
+	t.m.RLock()
+	defer t.m.RUnlock()
+
+	return &Tokens{
+		macaroons: append([]string(nil), t.macaroons...),
+		oauths:    append([]string(nil), t.oauths...),
+		fromFile:  t.fromFile,
+	}
+}
+
+// MacaroonsOnly returns a copy of t with only macaroon tokens.
+func (t *Tokens) MacaroonsOnly() *Tokens {
+	t.m.RLock()
+	defer t.m.RUnlock()
+
+	return &Tokens{
+		macaroons: append([]string(nil), t.macaroons...),
+		fromFile:  t.fromFile,
+	}
+}
+
+// UserTokenOnly returns a copy of t with only user tokens.
+func (t *Tokens) UserTokenOnly() *Tokens {
+	t.m.RLock()
+	defer t.m.RUnlock()
+
+	return &Tokens{
+		oauths:   append([]string(nil), t.oauths...),
+		fromFile: t.fromFile,
+	}
+}
+
+// GetMacaroonTokens returns the macaroon tokens.
+func (t *Tokens) GetMacaroonTokens() []string {
+	t.m.RLock()
+	defer t.m.RUnlock()
+
+	return append([]string(nil), t.macaroons...)
+}
+
+// GetUserTokens returns the user tokens.
+func (t *Tokens) GetUserTokens() []string {
+	t.m.RLock()
+	defer t.m.RUnlock()
+
+	return append([]string(nil), t.oauths...)
+}
+
+// AddTokens adds one or more tokens to t.
+func (t *Tokens) AddTokens(toks ...string) *Tokens {
+	t.m.Lock()
+	defer t.m.Unlock()
+
+	for _, tok := range toks {
+		tok = strings.TrimSpace(tok)
+		switch pfx, _, _ := strings.Cut(tok, "_"); pfx {
+		case "fm1r", "fm1a", "fm2":
+			t.macaroons = append(t.macaroons, tok)
+		default:
+			t.oauths = append(t.oauths, tok)
+		}
+	}
+
+	return t
+}
+
+// Replace replaces t with other.
 func (t *Tokens) Replace(other *Tokens) {
 	t.m.Lock()
 	defer t.m.Unlock()
 
-	t.MacaroonTokens = other.MacaroonTokens
-	t.UserTokens = other.UserTokens
-	t.FromConfigFile = other.FromConfigFile
+	other.m.Lock()
+	defer other.m.Unlock()
+
+	if t.equalUnlocked(other) {
+		return
+	}
+
+	t.macaroons = append([]string(nil), other.macaroons...)
+	t.oauths = append([]string(nil), other.oauths...)
+	t.fromFile = other.fromFile
+}
+
+// ReplaceMacaroonTokens replaces the macaroon tokens with macs.
+func (t *Tokens) ReplaceMacaroonTokens(macs []string) {
+	t.m.Lock()
+	defer t.m.Unlock()
+
+	t.macaroons = append([]string(nil), macs...)
+}
+
+// Equal returns true if t and other are equal.
+func (t *Tokens) Equal(other *Tokens) bool {
+	t.m.RLock()
+	defer t.m.RUnlock()
+
+	other.m.RLock()
+	defer other.m.RUnlock()
+
+	return t.equalUnlocked(other)
+}
+
+func (t *Tokens) equalUnlocked(other *Tokens) bool {
+
+	return slices.Equal(t.macaroons, other.macaroons) && slices.Equal(t.oauths, other.oauths) && t.fromFile == other.fromFile
+}
+
+// Empty returns true if t has no tokens.
+func (t *Tokens) Empty() bool {
+	return len(t.macaroons)+len(t.oauths) == 0
 }
 
 // Update prunes any invalid/expired macaroons and fetches needed third party
@@ -102,13 +224,6 @@ func (t *Tokens) All() string {
 	return t.normalized(true, false)
 }
 
-func (t *Tokens) Macaroons() string {
-	t.m.RLock()
-	defer t.m.RUnlock()
-
-	return strings.Join(t.MacaroonTokens, ",")
-}
-
 func (t *Tokens) normalized(macaroonsAndUserTokens, includeScheme bool) string {
 	t.m.RLock()
 	defer t.m.RUnlock()
@@ -116,18 +231,18 @@ func (t *Tokens) normalized(macaroonsAndUserTokens, includeScheme bool) string {
 	scheme := ""
 	if includeScheme {
 		scheme = "Bearer "
-		if len(t.MacaroonTokens) > 0 {
+		if len(t.macaroons) > 0 {
 			scheme = "FlyV1 "
 		}
 	}
 
 	if macaroonsAndUserTokens {
-		return scheme + strings.Join(append(t.MacaroonTokens, t.UserTokens...), ",")
+		return scheme + strings.Join(append(t.macaroons, t.oauths...), ",")
 	}
-	if len(t.MacaroonTokens) == 0 {
-		return scheme + strings.Join(t.UserTokens, ",")
+	if len(t.macaroons) == 0 {
+		return scheme + strings.Join(t.oauths, ",")
 	}
-	return scheme + t.Macaroons()
+	return scheme + strings.Join(t.macaroons, ",")
 }
 
 // pruneBadMacaroons removes expired and invalid macaroon tokens as well as
@@ -142,7 +257,7 @@ func (t *Tokens) pruneBadMacaroons() bool {
 		parsed    = make(map[string]*macaroon.Macaroon)
 	)
 
-	for _, tok := range t.MacaroonTokens {
+	for _, tok := range t.macaroons {
 		raws, err := macaroon.Parse(tok)
 		if err != nil {
 			continue
@@ -168,7 +283,7 @@ func (t *Tokens) pruneBadMacaroons() bool {
 		}
 	}
 
-	t.MacaroonTokens = slices.DeleteFunc(t.MacaroonTokens, func(tok string) bool {
+	t.macaroons = slices.DeleteFunc(t.macaroons, func(tok string) bool {
 		m, ok := parsed[tok]
 		if !ok {
 			updated = true
@@ -206,8 +321,8 @@ func (t *Tokens) pruneBadMacaroons() bool {
 // See https://github.com/superfly/macaroon/blob/main/tp/README.md
 func (t *Tokens) dischargeThirdPartyCaveats(ctx context.Context, opts []UpdateOption) (bool, error) {
 	t.m.RLock()
-	macaroons := strings.Join(t.MacaroonTokens, ",")
-	oauths := strings.Join(t.UserTokens, ",")
+	macaroons := strings.Join(t.macaroons, ",")
+	oauths := strings.Join(t.oauths, ",")
 	t.m.RUnlock()
 
 	if macaroons == "" {
@@ -260,7 +375,7 @@ func (t *Tokens) dischargeThirdPartyCaveats(ctx context.Context, opts []UpdateOp
 		t.m.Lock()
 		defer t.m.Unlock()
 
-		t.MacaroonTokens = Parse(withDischarges).MacaroonTokens
+		t.macaroons = Parse(withDischarges).macaroons
 		return true, err
 	}
 
