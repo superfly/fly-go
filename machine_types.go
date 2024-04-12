@@ -558,7 +558,8 @@ type HTTPOptions struct {
 }
 
 type HTTPResponseOptions struct {
-	Headers map[string]any `json:"headers,omitempty" toml:"headers,omitempty"`
+	Headers  map[string]any `json:"headers,omitempty" toml:"headers,omitempty"`
+	Pristine *bool          `json:"pristine,omitempty" toml:"pristine,omitempty"`
 }
 
 type MachineService struct {
