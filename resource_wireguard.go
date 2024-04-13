@@ -60,7 +60,7 @@ query($slug: String!) {
 	return *data.Organization.WireGuardPeers.Nodes, nil
 }
 
-func (c *Client) CreateWireGuardPeer(ctx context.Context, org *Organization, region, name, pubkey string) (*CreatedWireGuardPeer, error) {
+func (c *Client) CreateWireGuardPeer(ctx context.Context, org *Organization, region, name, pubkey, network string) (*CreatedWireGuardPeer, error) {
 	req := c.NewRequest(`
 mutation($input: AddWireGuardPeerInput!) {
   addWireGuardPeer(input: $input) {
@@ -83,6 +83,10 @@ mutation($input: AddWireGuardPeerInput!) {
 		"name":           name,
 		"pubkey":         pubkey,
 		"nats":           nats,
+	}
+
+	if network != "" {
+		inputs["network"] = network
 	}
 
 	if region != "" {

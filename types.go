@@ -219,6 +219,7 @@ type App struct {
 	AppURL    string
 	Version   int
 	NetworkID int
+	Network   string
 
 	Release        *Release
 	Organization   Organization

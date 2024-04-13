@@ -190,6 +190,27 @@ func (client *Client) GetApp(ctx context.Context, appName string) (*App, error) 
 	return &data.App, nil
 }
 
+func (client *Client) GetAppNetwork(ctx context.Context, appName string) (*string, error) {
+	query := `
+		query ($appName: String!) {
+			app(name: $appName) {
+				network
+			}
+		}
+	`
+
+	req := client.NewRequest(query)
+	req.Var("appName", appName)
+	ctx = ctxWithAction(ctx, "get_app_network")
+
+	data, err := client.RunWithContext(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	return &data.App.Network, nil
+}
+
 func (client *Client) GetAppCompact(ctx context.Context, appName string) (*AppCompact, error) {
 	query := `
 		query ($appName: String!) {
