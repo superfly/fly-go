@@ -27,6 +27,7 @@ type FlapsError struct {
 	ResponseStatusCode int
 	ResponseBody       []byte
 	FlyRequestId       string
+	TraceID            string
 }
 
 func (fe *FlapsError) Error() string {
@@ -79,6 +80,18 @@ func GetErrorRequestID(err error) string {
 	return ""
 }
 
+type ErrorTraceID interface {
+	ErrTraceID() string
+}
+
+func GetErrorTraceID(err error) string {
+	var ferr ErrorTraceID
+	if errors.As(err, &ferr) {
+		return ferr.ErrTraceID()
+	}
+	return ""
+}
+
 func (fe *FlapsError) StatusCode() *StatusCode {
 	var errResp errorResponse
 	unmarshalErr := json.Unmarshal(fe.ResponseBody, &errResp)
@@ -92,6 +105,10 @@ func (fe *FlapsError) StatusCode() *StatusCode {
 
 func (fe *FlapsError) ErrRequestID() string {
 	return fe.FlyRequestId
+}
+
+func (fe *FlapsError) ErrTraceID() string {
+	return fe.TraceID
 }
 
 func (fe *FlapsError) Is(target error) bool {

@@ -244,6 +244,7 @@ func (f *Client) _sendRequest(ctx context.Context, method, endpoint string, in, 
 			ResponseStatusCode: resp.StatusCode,
 			ResponseBody:       responseBody,
 			FlyRequestId:       resp.Header.Get(headerFlyRequestId),
+			TraceID:            span.SpanContext().TraceID().String(),
 		}
 	}
 	if out != nil {
