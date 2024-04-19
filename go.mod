@@ -7,8 +7,8 @@ require (
 	github.com/PuerkitoBio/rehttp v1.4.0
 	github.com/superfly/graphql v0.2.4
 	github.com/superfly/macaroon v0.2.12
-	go.opentelemetry.io/otel v1.23.1
-	go.opentelemetry.io/otel/trace v1.23.1
+	go.opentelemetry.io/otel v1.25.0
+	go.opentelemetry.io/otel/trace v1.25.0
 	golang.org/x/crypto v0.19.0
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9
 )
@@ -27,8 +27,8 @@ require (
 	github.com/vektah/gqlparser/v2 v2.5.1 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.3.5 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
-	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.48.0
-	go.opentelemetry.io/otel/metric v1.23.1 // indirect
+	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.50.0
+	go.opentelemetry.io/otel/metric v1.25.0 // indirect
 	golang.org/x/net v0.19.0 // indirect
 	golang.org/x/sys v0.17.0 // indirect
 )
