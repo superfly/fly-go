@@ -229,10 +229,10 @@ func (f *Client) _sendRequest(ctx context.Context, method, endpoint string, in, 
 		}
 	}()
 
-	span.SetAttributes(attribute.String("remote.trace_id", resp.Header.Get(tracing.HeaderFlyTraceId)))
-	span.SetAttributes(attribute.String("remote.span_id", resp.Header.Get(tracing.HeaderFlySpanId)))
 	span.SetAttributes(attribute.Int("request.status_code", resp.StatusCode))
 	span.SetAttributes(attribute.String("request.id", resp.Header.Get(headerFlyRequestId)))
+
+	span.AddLink(trace.Link{SpanContext: tracing.SpanContextFromHeaders(resp)})
 
 	if resp.StatusCode > 299 {
 		responseBody, err := io.ReadAll(resp.Body)
