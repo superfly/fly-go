@@ -16,6 +16,7 @@ type Volume struct {
 	HostDedicationID   string    `json:"host_dedication_id"`
 	SnapshotRetention  int       `json:"snapshot_retention"`
 	AutoBackupEnabled  bool      `json:"auto_backup_enabled"`
+	WorkerStatus       string    `json:"worker_status,omitempty"`
 }
 
 func (v Volume) IsAttached() bool {
