@@ -32,7 +32,7 @@ type Tokens struct {
 // include an authorization scheme (`Bearer` or `FlyV1`) and/or a set of
 // comma-separated macaroon and user tokens.
 func Parse(token string) *Tokens {
-	token = stripAuthorizationScheme(token)
+	token = StripAuthorizationScheme(token)
 	ret := &Tokens{}
 
 	for _, tok := range strings.Split(token, ",") {
@@ -419,8 +419,8 @@ func (d debugTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	return d.t.RoundTrip(req)
 }
 
-// stripAuthorizationScheme strips any FlyV1/Bearer schemes from token.
-func stripAuthorizationScheme(token string) string {
+// StripAuthorizationScheme strips any FlyV1/Bearer schemes from token.
+func StripAuthorizationScheme(token string) string {
 	token = strings.TrimSpace(token)
 
 	pfx, rest, found := strings.Cut(token, " ")
@@ -429,7 +429,7 @@ func stripAuthorizationScheme(token string) string {
 	}
 
 	if pfx = strings.TrimSpace(pfx); strings.EqualFold(pfx, "Bearer") || strings.EqualFold(pfx, "FlyV1") {
-		return stripAuthorizationScheme(rest)
+		return StripAuthorizationScheme(rest)
 	}
 
 	return token
