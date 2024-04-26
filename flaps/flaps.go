@@ -55,6 +55,9 @@ type NewClientOpts struct {
 
 	// optional:
 	Logger fly.Logger
+
+	// optional, used to construct the underlying HTTP client
+	Transport http.RoundTripper
 }
 
 func NewWithOptions(ctx context.Context, opts NewClientOpts) (*Client, error) {
@@ -84,8 +87,13 @@ func NewWithOptions(ctx context.Context, opts NewClientOpts) (*Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("invalid FLY_FLAPS_BASE_URL '%s' with error: %w", flapsBaseURL, err)
 	}
-	transport := otelhttp.NewTransport(http.DefaultTransport)
-	httpClient, err := fly.NewHTTPClient(opts.Logger, transport)
+
+	transport := http.DefaultTransport
+	if opts.Transport != nil {
+		transport = opts.Transport
+	}
+	otelTransport := otelhttp.NewTransport(transport)
+	httpClient, err := fly.NewHTTPClient(opts.Logger, otelTransport)
 	if err != nil {
 		return nil, fmt.Errorf("flaps: can't setup HTTP client to %s: %w", flapsUrl.String(), err)
 	}
