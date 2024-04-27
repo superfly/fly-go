@@ -30,3 +30,15 @@ go work use ./fly-go
 ```
 
 [Go workspace]: https://go.dev/blog/get-familiar-with-workspaces
+
+## Cutting a Release
+
+If you have write access to this repo, you can ship a release with:
+
+`scripts/bump_version.sh`
+
+Or a prerelease with:
+
+`scripts/bump_version.sh prerel`
+
+The release and notes will be created automatically via Github Actions. Follow along in: https://github.com/superfly/fly-go/actions/workflows/release.yml

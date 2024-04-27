@@ -1,0 +1,18 @@
+name: Create release
+on:
+  push:
+    tags:
+      - v*
+permissions:
+  contents: write
+jobs:
+  release:
+    name: Release pushed tag
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ github.ref_name }}
+        run: ./scripts/gh_release.sh
