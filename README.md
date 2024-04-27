@@ -41,9 +41,4 @@ Or a prerelease with:
 
 `scripts/bump_version.sh prerel`
 
-Then:
-* Go to the Releases page https://github.com/superfly/fly-go/releases
-* Click "Draft a New Release"
-* Go to "Choose a tag", type the new tag (from the `script/bump_version.sh` output above)
-* Click "Generate Release Notes"
-* Click "Publish release" at the bottom
+The release and notes will be created automatically via Github Actions.
