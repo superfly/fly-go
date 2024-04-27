@@ -10,6 +10,7 @@ jobs:
     name: Release pushed tag
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - name: Create release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
