@@ -41,4 +41,4 @@ Or a prerelease with:
 
 `scripts/bump_version.sh prerel`
 
-The release and notes will be created automatically via Github Actions.
+The release and notes will be created automatically via Github Actions. Follow along in: https://github.com/superfly/fly-go/actions/workflows/release.yml
