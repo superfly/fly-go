@@ -1,6 +1,9 @@
 package fly
 
-import "time"
+import (
+	"strconv"
+	"time"
+)
 
 type Volume struct {
 	ID                 string    `json:"id"`
@@ -58,4 +61,23 @@ type VolumeSnapshot struct {
 	Digest    string    `json:"digest"`
 	CreatedAt time.Time `json:"created_at"`
 	Status    string    `json:"status"`
+}
+
+type VolumeSnapshotGql struct {
+	ID        string    `json:"id"`
+	Size      string    `json:"size"`
+	Digest    string    `json:"digest"`
+	CreatedAt time.Time `json:"createdAt"`
+	Status    string    `json:"status"`
+}
+
+func NewVolumeSnapshotFrom(v VolumeSnapshotGql) VolumeSnapshot {
+	size, _ := strconv.Atoi(v.Size)
+	return VolumeSnapshot{
+		ID:        v.ID,
+		Size:      size,
+		Digest:    v.Digest,
+		CreatedAt: v.CreatedAt,
+		Status:    v.Status,
+	}
 }

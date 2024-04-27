@@ -32,6 +32,10 @@ type Query struct {
 		App struct {
 			Name string
 		}
+		State     string
+		Snapshots struct {
+			Nodes []VolumeSnapshotGql
+		}
 	}
 	Domain *Domain
 
