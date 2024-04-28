@@ -1,8 +1,11 @@
 package fly
 
-import "context"
+import (
+	"context"
+	"net/http"
+)
 
-func (client *Client) EnsureRemoteBuilder(ctx context.Context, orgID, appName string) (*GqlMachine, *App, error) {
+func (client *Client) EnsureRemoteBuilder(ctx context.Context, orgID, appName string) (*GqlMachine, *App, http.Header, error) {
 	query := `
 		mutation($input: EnsureMachineRemoteBuilderInput!) {
 			ensureMachineRemoteBuilder(input: $input) {
@@ -44,8 +47,8 @@ func (client *Client) EnsureRemoteBuilder(ctx context.Context, orgID, appName st
 
 	data, err := client.RunWithContext(ctx, req)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	return data.EnsureMachineRemoteBuilder.Machine, data.EnsureMachineRemoteBuilder.App, nil
+	return data.EnsureMachineRemoteBuilder.Machine, data.EnsureMachineRemoteBuilder.App, data.Header, nil
 }

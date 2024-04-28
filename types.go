@@ -2,12 +2,14 @@ package fly
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 )
 
 // Query - Master query which encapsulates all possible returned structures
 type Query struct {
 	Errors Errors
+	Header http.Header
 
 	Apps struct {
 		PageInfo struct {
@@ -150,6 +152,10 @@ type Query struct {
 	}
 
 	CanPerformBluegreenDeployment bool
+}
+
+func (q *Query) SetHeader(h http.Header) {
+	q.Header = h
 }
 
 type CreatedWireGuardPeer struct {
