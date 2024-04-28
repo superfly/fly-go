@@ -32,3 +32,5 @@ require (
 	golang.org/x/net v0.19.0 // indirect
 	golang.org/x/sys v0.17.0 // indirect
 )
+
+replace github.com/superfly/graphql => ../graphql

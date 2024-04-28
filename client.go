@@ -13,6 +13,7 @@ import (
 	"time"
 
 	genq "github.com/Khan/genqlient/graphql"
+	"github.com/superfly/fly-go/internal/tracing"
 	"github.com/superfly/fly-go/tokens"
 	"github.com/superfly/graphql"
 	"go.opentelemetry.io/otel"
@@ -206,6 +207,10 @@ func (c *Client) RunWithContext(ctx context.Context, req *graphql.Request) (Quer
 	if resp.Errors != nil && errorLog {
 		fmt.Fprintf(os.Stderr, "Error: %+v\n", resp.Errors)
 	}
+
+	span.AddLink(trace.Link{SpanContext: tracing.SpanContextFromHeaders(&http.Response{
+		Header: resp.Header,
+	})})
 
 	return resp, err
 }
