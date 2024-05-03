@@ -587,6 +587,7 @@ type MachineService struct {
 	Concurrency              *MachineServiceConcurrency `json:"concurrency,omitempty" toml:"concurrency"`
 	ForceInstanceKey         *string                    `json:"force_instance_key" toml:"force_instance_key"`
 	ForceInstanceDescription *string                    `json:"force_instance_description,omitempty" toml:"force_instance_description"`
+	IPv6Backend              *bool                      `json:"ipv6_backend,omitempty" toml:"ipv6_backend,omitempty"`
 }
 
 type MachineServiceConcurrency struct {
