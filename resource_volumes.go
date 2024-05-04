@@ -68,6 +68,7 @@ query GetSnapshotsFromVolume($id: ID!) {
 					size
 					digest
 					createdAt
+					retentionDays
 				}
 			}
 		}
@@ -86,6 +87,7 @@ query GetSnapshotsFromVolume($id: ID!) {
 	}
 	var snapshots []VolumeSnapshot
 	for _, snapshot := range data.Volume.Snapshots.Nodes {
+		snapshot.Status = "created"
 		snapshots = append(snapshots, NewVolumeSnapshotFrom(snapshot))
 	}
 	return snapshots, nil

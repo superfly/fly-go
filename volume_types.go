@@ -56,19 +56,21 @@ type UpdateVolumeRequest struct {
 }
 
 type VolumeSnapshot struct {
-	ID        string    `json:"id"`
-	Size      int       `json:"size"`
-	Digest    string    `json:"digest"`
-	CreatedAt time.Time `json:"created_at"`
-	Status    string    `json:"status"`
+	ID            string    `json:"id"`
+	Size          int       `json:"size"`
+	Digest        string    `json:"digest"`
+	CreatedAt     time.Time `json:"created_at"`
+	Status        string    `json:"status"`
+	RetentionDays *int      `json:"retention_days"`
 }
 
 type VolumeSnapshotGql struct {
-	ID        string    `json:"id"`
-	Size      string    `json:"size"`
-	Digest    string    `json:"digest"`
-	CreatedAt time.Time `json:"createdAt"`
-	Status    string    `json:"status"`
+	ID            string    `json:"id"`
+	Size          string    `json:"size"`
+	Digest        string    `json:"digest"`
+	CreatedAt     time.Time `json:"createdAt"`
+	Status        string    `json:"status"`
+	RetentionDays *int      `json:"retentionDays"`
 }
 
 func NewVolumeSnapshotFrom(v VolumeSnapshotGql) VolumeSnapshot {
