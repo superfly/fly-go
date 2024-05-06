@@ -150,6 +150,7 @@ type Query struct {
 	}
 
 	CanPerformBluegreenDeployment bool
+	AppNameAvailable              bool
 }
 
 type CreatedWireGuardPeer struct {
