@@ -742,6 +742,7 @@ type PostgresEnableConsulPayload struct {
 type EnsureRemoteBuilderInput struct {
 	AppName        *string `json:"appName"`
 	OrganizationID *string `json:"organizationId"`
+	Region         *string `json:"region"`
 }
 
 type PostgresClusterAttachment struct {
