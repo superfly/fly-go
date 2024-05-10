@@ -384,3 +384,23 @@ func (client *Client) ResolveImageForApp(ctx context.Context, appName, imageRef 
 
 	return data.App.Image, nil
 }
+
+func (client *Client) AppNameAvailable(ctx context.Context, appName string) (bool, error) {
+	query := `
+		query ($appName: String!) {
+			appNameAvailable(name: $appName)
+		}
+	`
+
+	req := client.NewRequest(query)
+
+	req.Var("appName", appName)
+	ctx = ctxWithAction(ctx, "app_name_available")
+
+	data, err := client.RunWithContext(ctx, req)
+	if err != nil {
+		return false, err
+	}
+
+	return data.AppNameAvailable, nil
+}
