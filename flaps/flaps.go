@@ -47,6 +47,7 @@ type NewClientOpts struct {
 
 	// optional, used to connect to machines API
 	DialContext func(ctx context.Context, network, address string) (net.Conn, error)
+	OrgSlug     string // required if DialContext set
 
 	// URL used when connecting via usermode wireguard.
 	BaseURL *url.URL
@@ -68,14 +69,9 @@ func NewWithOptions(ctx context.Context, opts NewClientOpts) (*Client, error) {
 	}
 
 	if opts.DialContext != nil {
-		orgSlug, err := resolveOrgSlugForApp(ctx, opts.AppCompact, opts.AppName)
-		if err != nil {
-			return nil, fmt.Errorf("failed to resolve org for app '%s': %w", opts.AppName, err)
-		}
-
 		return newWithUsermodeWireguard(ctx, wireguardConnectionParams{
 			appName:     opts.AppName,
-			orgSlug:     orgSlug,
+			orgSlug:     opts.OrgSlug,
 			dialContext: opts.DialContext,
 			baseURL:     opts.BaseURL,
 			userAgent:   opts.UserAgent,
@@ -110,23 +106,6 @@ func NewWithOptions(ctx context.Context, opts NewClientOpts) (*Client, error) {
 		httpClient: httpClient,
 		userAgent:  userAgent,
 	}, nil
-}
-
-func resolveOrgSlugForApp(ctx context.Context, app *fly.AppCompact, appName string) (string, error) {
-	app, err := resolveApp(ctx, app, appName)
-	if err != nil {
-		return "", err
-	}
-	return app.Organization.Slug, nil
-}
-
-func resolveApp(ctx context.Context, app *fly.AppCompact, appName string) (*fly.AppCompact, error) {
-	var err error
-	if app == nil {
-		apiClient := fly.ClientFromContext(ctx)
-		app, err = apiClient.GetAppCompact(ctx, appName)
-	}
-	return app, err
 }
 
 type wireguardConnectionParams struct {
