@@ -68,7 +68,7 @@ type InstrumentationService interface {
 type Client struct {
 	httpClient *http.Client
 	client     *graphql.Client
-	GenqClient genq.Client
+	genqClient genq.Client
 	tokens     *tokens.Tokens
 	logger     Logger
 }
@@ -76,6 +76,9 @@ type Client struct {
 func (c *Client) Authenticated() bool {
 	return c.tokens.GraphQL() != ""
 }
+
+func (c *Client) GenqClient() genq.Client          { return c.genqClient }
+func (c *Client) SetGenqClient(client genq.Client) { c.genqClient = client }
 
 // NewClient - creates a new Client, takes an access token
 func NewClient(accessToken, name, version string, logger Logger) *Client {
