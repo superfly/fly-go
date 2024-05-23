@@ -32,7 +32,7 @@ query($slug: String!) {
 	return data.Organization.LoggedCertificates.Nodes, nil
 }
 
-func (c *Client) IssueSSHCertificate(ctx context.Context, org OrganizationImpl, principals []string, appNames []string, valid_hours *int, publicKey ed25519.PublicKey, sourceAddress string) (*IssuedCertificate, error) {
+func (c *Client) IssueSSHCertificate(ctx context.Context, org OrganizationImpl, principals []string, appNames []string, valid_hours *int, publicKey ed25519.PublicKey) (*IssuedCertificate, error) {
 	req := c.NewRequest(`
 mutation($input: IssueCertificateInput!) {
   issueCertificate(input: $input) {
@@ -55,10 +55,6 @@ mutation($input: IssueCertificateInput!) {
 		"principals":     principals,
 		"appNames":       appNames,
 		"publicKey":      pubStr,
-	}
-
-	if sourceAddress != "" {
-		inputs["sourceAddress"] = sourceAddress
 	}
 
 	if valid_hours != nil {
