@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	_ "github.com/Khan/genqlient/generate"
 	genq "github.com/Khan/genqlient/graphql"
 	"github.com/superfly/fly-go/tokens"
 	"github.com/superfly/graphql"
