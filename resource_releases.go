@@ -77,3 +77,30 @@ func (c *Client) GetAppCurrentReleaseMachines(ctx context.Context, appName strin
 
 	return data.App.CurrentRelease, nil
 }
+
+func (c *Client) CreateRelease(ctx context.Context, input CreateReleaseInput) (*CreateReleaseResponse, error) {
+	_ = `# @genqlient
+	mutation CreateRelease($input:CreateReleaseInput!) {
+		createRelease(input:$input) {
+			release {
+				id
+				version
+			}
+		}
+	}
+	`
+	return CreateRelease(ctx, c.genqClient, input)
+}
+
+func (c *Client) UpdateRelease(ctx context.Context, input UpdateReleaseInput) (*UpdateReleaseResponse, error) {
+	_ = `# @genqlient
+	mutation UpdateRelease($input:UpdateReleaseInput!) {
+		updateRelease(input:$input) {
+			release {
+				id
+			}
+		}
+	}
+	`
+	return UpdateRelease(ctx, c.genqClient, input)
+}

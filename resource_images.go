@@ -1,6 +1,9 @@
 package fly
 
-import "context"
+import (
+	"context"
+	"fmt"
+)
 
 func (client *Client) GetLatestImageTag(ctx context.Context, repository string, snapshotId *string) (string, error) {
 	query := `
@@ -22,7 +25,6 @@ func (client *Client) GetLatestImageTag(ctx context.Context, repository string, 
 }
 
 func (client *Client) GetLatestImageDetails(ctx context.Context, image string) (*ImageVersion, error) {
-
 	query := `
 		query($image: String!) {
 			latestImageDetails(image: $image){
@@ -44,4 +46,26 @@ func (client *Client) GetLatestImageDetails(ctx context.Context, image string) (
 		return nil, err
 	}
 	return &data.LatestImageDetails, nil
+}
+
+func (c *Client) LatestImage(ctx context.Context, appName string) (string, error) {
+	_ = `# @genqlient
+	       query LatestImage($appName:String!) {
+	               app(name:$appName) {
+	                       currentReleaseUnprocessed {
+	                               id
+	                               version
+	                               imageRef
+	                       }
+	               }
+	       }
+	      `
+	resp, err := LatestImage(ctx, c.genqClient, appName)
+	if err != nil {
+		return "", err
+	}
+	if resp.App.CurrentReleaseUnprocessed.ImageRef == "" {
+		return "", fmt.Errorf("current release not found for app %s", appName)
+	}
+	return resp.App.CurrentReleaseUnprocessed.ImageRef, nil
 }

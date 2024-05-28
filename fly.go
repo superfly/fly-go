@@ -2,6 +2,8 @@ package fly
 
 import "slices"
 
+//go:generate go run github.com/Khan/genqlient
+
 // MergeFiles merges the files parsed from the command line or fly.toml into the machine configuration.
 func MergeFiles(machineConf *MachineConfig, files []*File) {
 	for _, f := range files {
