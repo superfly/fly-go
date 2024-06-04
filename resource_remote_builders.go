@@ -49,30 +49,3 @@ func (client *Client) EnsureRemoteBuilder(ctx context.Context, orgID, appName, r
 
 	return data.EnsureMachineRemoteBuilder.Machine, data.EnsureMachineRemoteBuilder.App, nil
 }
-
-func (client *Client) SetRemoteBuilder(ctx context.Context, appName string) error {
-	query := `
-		mutation($input: SetRemoteBuilderInput!) {
-			setRemoteBuilder(input: $input) {
-				app {
-					name
-					organization {
-						id
-						slug
-					}
-				}
-			}
-		}
-	`
-
-	req := client.NewRequest(query)
-	ctx = ctxWithAction(ctx, "set_remote_builder")
-
-	input := SetRemoteBuilderInput{
-		AppName: StringPointer(appName),
-	}
-	req.Var("input", input)
-
-	_, err := client.RunWithContext(ctx, req)
-	return err
-}

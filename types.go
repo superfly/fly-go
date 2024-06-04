@@ -746,10 +746,6 @@ type EnsureRemoteBuilderInput struct {
 	Region         *string `json:"region"`
 }
 
-type SetRemoteBuilderInput struct {
-	AppName *string `json:"appName"`
-}
-
 type PostgresClusterAttachment struct {
 	ID                      string
 	DatabaseName            string
