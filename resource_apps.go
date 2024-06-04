@@ -115,6 +115,77 @@ func (client *Client) GetApp(ctx context.Context, appName string) (*App, error) 
 					id
 					slug
 					paidPlan
+					remoteBuilderApp {
+						id
+						name
+						hostname
+						deployed
+						status
+						version
+						appUrl
+						platformVersion
+						currentRelease {
+							evaluationId
+							status
+							inProgress
+							version
+						}
+						ipAddresses {
+							nodes {
+								id
+								address
+								type
+								createdAt
+							}
+						}
+						organization {
+							id
+							slug
+							paidPlan
+						}
+						imageDetails {
+							registry
+							repository
+							tag
+							digest
+							version
+						}
+						machines{
+							nodes {
+								id
+								name
+								config
+								state
+								region
+								createdAt
+								app {
+									name
+								}
+								ips {
+									nodes {
+										family
+										kind
+										ip
+										maskSize
+									}
+								}
+								host {
+									id
+								}
+							}
+						}
+						postgresAppRole: role {
+							name
+						}
+						limitedAccessTokens {
+							nodes {
+								id
+								name
+								expiresAt
+							}
+						}
+					}
+
 				}
 				services {
 					description

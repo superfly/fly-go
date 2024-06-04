@@ -54,7 +54,13 @@ func (client *Client) SetRemoteBuilder(ctx context.Context, appName string) erro
 	query := `
 		mutation($input: SetRemoteBuilderInput!) {
 			setRemoteBuilder(input: $input) {
-				appName
+				app {
+					name
+					organization {
+						id
+						slug
+					}
+				}
 			}
 		}
 	`
