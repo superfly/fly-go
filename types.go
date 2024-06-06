@@ -51,6 +51,7 @@ type Query struct {
 
 	LatestImageTag     string
 	LatestImageDetails ImageVersion
+	AppHostIssues      AppHostIssues
 	// aliases & nodes
 
 	// mutations
@@ -790,4 +791,17 @@ type GqlMachine struct {
 type Logger interface {
 	Debug(v ...interface{})
 	Debugf(format string, v ...interface{})
+}
+
+type AppHostIssues struct {
+	HostIssues struct {
+		Nodes []HostIssue
+	}
+}
+
+type HostIssue struct {
+	InternalId string
+	Message    string
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
 }
