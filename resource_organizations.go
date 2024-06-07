@@ -61,7 +61,7 @@ func (client *Client) GetOrganizations(ctx context.Context, filters ...Organizat
 	return data.Organizations.Nodes, nil
 }
 
-func (client *Client) GetOrganizationBySlug(ctx context.Context, slug string) (*Organization, error) {
+func (client *Client) GetOrganizationRemoteBuilderBySlug(ctx context.Context, slug string) (*Organization, error) {
 	q := `
 		query($slug: String!) {
 			organization(slug: $slug) {
@@ -151,6 +151,42 @@ func (client *Client) GetOrganizationBySlug(ctx context.Context, slug string) (*
 						}
 					}
 				}
+			}
+		}
+	`
+
+	req := client.NewRequest(q)
+	ctx = ctxWithAction(ctx, "get_organization_by_slug")
+	req.Var("slug", slug)
+
+	data, err := client.RunWithContext(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	return data.Organization, nil
+}
+
+func (client *Client) GetOrganizationBySlug(ctx context.Context, slug string) (*Organization, error) {
+	q := `
+		query($slug: String!) {
+			organization(slug: $slug) {
+				id
+				internalNumericId
+				slug
+				name
+				type
+				billable
+                limitedAccessTokens {
+					nodes {
+					    id
+					    name
+					    expiresAt
+						user {
+							email
+						}
+					}
+                }
 			}
 		}
 	`

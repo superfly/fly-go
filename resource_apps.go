@@ -115,6 +115,106 @@ func (client *Client) GetApp(ctx context.Context, appName string) (*App, error) 
 					id
 					slug
 					paidPlan
+				}
+				services {
+					description
+					protocol
+					internalPort
+					ports {
+						port
+						handlers
+					}
+				}
+				ipAddresses {
+					nodes {
+						id
+						address
+						type
+						createdAt
+					}
+				}
+				imageDetails {
+					registry
+					repository
+					tag
+					digest
+					version
+				}
+				machines{
+					nodes {
+						id
+						name
+						config
+						state
+						region
+						createdAt
+						app {
+							name
+						}
+						ips {
+							nodes {
+								family
+								kind
+								ip
+								maskSize
+							}
+						}
+						host {
+							id
+						}
+					}
+				}
+				postgresAppRole: role {
+					name
+				}
+				limitedAccessTokens {
+					nodes {
+						id
+						name
+						expiresAt
+					}
+				}
+			}
+		}
+	`
+
+	req := client.NewRequest(query)
+	req.Var("appName", appName)
+	ctx = ctxWithAction(ctx, "get_app")
+
+	data, err := client.RunWithContext(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	return &data.App, nil
+}
+
+func (client *Client) GetAppRemoteBuilder(ctx context.Context, appName string) (*App, error) {
+	query := `
+		query ($appName: String!) {
+			app(name: $appName) {
+				id
+				name
+				hostname
+				deployed
+				status
+				version
+				appUrl
+				platformVersion
+				currentRelease {
+					evaluationId
+					status
+					inProgress
+					version
+				}
+				config {
+					definition
+				}
+				organization {
+					id
+					slug
+					paidPlan
 					remoteBuilderApp {
 						id
 						name
