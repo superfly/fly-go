@@ -24,6 +24,7 @@ import (
 
 var (
 	baseURL          string
+	elixirBaseURL    string
 	errorLog         bool
 	instrumenter     InstrumentationService
 	defaultTransport http.RoundTripper = http.DefaultTransport
@@ -46,6 +47,11 @@ func actionFromCtx(ctx context.Context) string {
 // SetBaseURL - Sets the base URL for the API
 func SetBaseURL(url string) {
 	baseURL = url
+}
+
+// SetElixirBaseURL - Sets the base URL for the Elixir API
+func SetElixirBaseURL(url string) {
+	elixirBaseURL = url
 }
 
 // SetErrorLog - Sets whether errors should be loddes

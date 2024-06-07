@@ -26,7 +26,7 @@ func StartCLISession(sessionName string, args map[string]interface{}) (CLISessio
 
 	postData, _ := json.Marshal(args)
 
-	url := fmt.Sprintf("%s/api/v1/cli_sessions", baseURL)
+	url := fmt.Sprintf("%s/api/v1/cli_sessions", elixirBaseURL)
 
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(postData))
 	if err != nil {
@@ -48,7 +48,7 @@ func GetCLISessionState(ctx context.Context, id string) (CLISession, error) {
 
 	var value CLISession
 
-	url := fmt.Sprintf("%s/api/v1/cli_sessions/%s", baseURL, id)
+	url := fmt.Sprintf("%s/api/v1/cli_sessions/%s", elixirBaseURL, id)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return value, err
