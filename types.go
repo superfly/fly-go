@@ -258,6 +258,21 @@ type App struct {
 		Nodes []LimitedAccessToken
 	}
 }
+
+func (app *App) Compact() *AppCompact {
+	return &AppCompact{
+		ID:              app.ID,
+		Name:            app.Name,
+		Status:          app.Status,
+		Deployed:        app.Deployed,
+		Hostname:        app.Hostname,
+		AppURL:          app.AppURL,
+		Organization:    app.Organization.Basic(),
+		PlatformVersion: app.PlatformVersion,
+		PostgresAppRole: app.PostgresAppRole,
+	}
+}
+
 type LimitedAccessToken struct {
 	Id        string
 	Name      string
@@ -362,6 +377,20 @@ type Organization struct {
 
 	LimitedAccessTokens *struct {
 		Nodes []LimitedAccessToken
+	}
+}
+
+func (o *Organization) Basic() *OrganizationBasic {
+	if o == nil {
+		return nil
+	}
+
+	return &OrganizationBasic{
+		ID:       o.ID,
+		Name:     o.Name,
+		Slug:     o.Slug,
+		RawSlug:  o.RawSlug,
+		PaidPlan: o.PaidPlan,
 	}
 }
 
