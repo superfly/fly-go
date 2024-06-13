@@ -26,6 +26,7 @@ const (
 	machinePs
 	machineCordon
 	machineUncordon
+	machineSuspend
 	volumeList
 	volumeCreate
 	volumetUpdate
