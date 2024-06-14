@@ -454,3 +454,21 @@ func (f *Client) DeleteMetadata(ctx context.Context, machineID, key string) erro
 
 	return nil
 }
+
+func (f *Client) Suspend(ctx context.Context, machineID, nonce string) error {
+	suspendEndpoint := fmt.Sprintf("/%s/suspend", machineID)
+
+	headers := make(map[string][]string)
+	if nonce != "" {
+		headers[NonceHeader] = []string{nonce}
+	}
+
+	ctx = contextWithAction(ctx, machineSuspend)
+	ctx = contextWithMachineID(ctx, machineID)
+
+	if err := f.sendRequestMachines(ctx, http.MethodPost, suspendEndpoint, nil, nil, headers); err != nil {
+		return fmt.Errorf("failed to suspend VM %s: %w", machineID, err)
+	}
+
+	return nil
+}
