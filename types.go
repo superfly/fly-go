@@ -815,6 +815,10 @@ type GqlMachine struct {
 	IPs struct {
 		Nodes []*MachineIP
 	}
+
+	Events struct {
+		Nodes []*GqlMachineEvent
+	}
 }
 
 type Logger interface {

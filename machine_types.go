@@ -244,6 +244,15 @@ type MachineEvent struct {
 	Timestamp int64           `json:"timestamp,omitempty"`
 }
 
+type GqlMachineEvent struct {
+	Kind           string                 `json:"kind,omitempty"`
+	Status         string                 `json:"status,omitempty"`
+	Source         string                 `json:"source,omitempty"`
+	Timestamp      time.Time              `json:"timestamp,omitempty"`
+	Body           map[string]interface{} `json:"body,omitempty"`
+	MachineVersion map[string]string      `json:"machineVersion,omitempty"`
+}
+
 func (e *MachineEvent) Time() time.Time {
 	return time.Unix(e.Timestamp/1000, e.Timestamp%1000*1000000)
 }
