@@ -38,7 +38,7 @@ func (client *Client) GetMachineWithEvents(ctx context.Context, machineId string
 				instanceId
 				events {
 					nodes {
-					    body
+						body
 						kind
 						machineVersion {
 							id
