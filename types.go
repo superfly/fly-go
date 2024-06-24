@@ -152,6 +152,18 @@ type Query struct {
 
 	CanPerformBluegreenDeployment bool
 	AppNameAvailable              bool
+
+	CurrentLock *AppLock
+}
+
+type AppLock struct {
+	ID         int `json:"lockId"`
+	Expiration time.Time
+}
+
+type AppLockInput struct {
+	AppID  string `json:"app_id"`
+	LockID string `json:"lock_id"`
 }
 
 type CreatedWireGuardPeer struct {

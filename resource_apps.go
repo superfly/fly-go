@@ -598,3 +598,50 @@ func (client *Client) AppNameAvailable(ctx context.Context, appName string) (boo
 
 	return data.AppNameAvailable, nil
 }
+
+func (client *Client) LockApp(ctx context.Context, input CreateAppInput) (*AppLock, error) {
+	query := `
+		mutation($input: AppLockInput!) {
+			lockApp(input: $input) {
+				lockId
+				expiration
+			}
+		}
+	`
+
+	req := client.NewRequest(query)
+
+	req.Var("input", input)
+	ctx = ctxWithAction(ctx, "lock_app")
+
+	data, err := client.RunWithContext(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	return data.CurrentLock, nil
+}
+
+func (client *Client) UnlockApp(ctx context.Context, input AppLockInput) (*App, error) {
+	query := `
+		mutation($input: AppLockInput!) {
+			lockApp(input: $input) {
+				app {
+					name
+				}
+			}
+		}
+	`
+
+	req := client.NewRequest(query)
+
+	req.Var("input", input)
+	ctx = ctxWithAction(ctx, "unlock_app")
+
+	data, err := client.RunWithContext(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	return &data.App, nil
+}
