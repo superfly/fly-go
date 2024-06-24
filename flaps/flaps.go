@@ -20,6 +20,7 @@ import (
 	fly "github.com/superfly/fly-go"
 	"github.com/superfly/fly-go/internal/tracing"
 	"github.com/superfly/fly-go/tokens"
+	"github.com/superfly/macaroon"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -185,12 +186,18 @@ func snakeCase(s string) string {
 
 func (f *Client) _sendRequest(ctx context.Context, method, endpoint string, in, out interface{}, headers map[string][]string) error {
 	actionName := snakeCase(actionFromContext(ctx).String())
+	var caveats []string
+	caveatNames, err := f.getCaveatNames()
+	if err == nil {
+		caveats = caveatNames
+	}
 
 	ctx, span := tracing.GetTracer().Start(ctx, fmt.Sprintf("flaps.%s", actionName), trace.WithAttributes(
 		attribute.String("request.action", actionName),
 		attribute.String("request.endpoint", endpoint),
 		attribute.String("request.method", method),
 		attribute.String("request.machine_id", machineIDFromContext(ctx)),
+		attribute.StringSlice("request.caveats", caveats),
 	))
 	defer span.End()
 
@@ -277,10 +284,31 @@ func (f *Client) NewRequest(ctx context.Context, method, path string, in interfa
 		return nil, fmt.Errorf("could not create new request, %w", err)
 	}
 	req.Header = headers
-
 	req.Header.Add("Authorization", f.tokens.FlapsHeader())
 
 	return req, nil
+}
+
+func (f *Client) getCaveatNames() ([]string, error) {
+	tok := f.tokens.MacaroonsOnly().All()
+	raws, err := macaroon.Parse(tok)
+	if err != nil {
+		return nil, err
+	}
+
+	m, err := macaroon.Decode(raws[0])
+	if err != nil {
+		return nil, err
+	}
+
+	caveats := m.UnsafeCaveats.Caveats
+	caveatNames := make([]string, len(caveats))
+
+	for i, c := range caveats {
+		caveatNames[i] = c.Name()
+	}
+
+	return caveatNames, nil
 }
 
 func handleAPIError(statusCode int, responseBody []byte) error {
