@@ -582,6 +582,7 @@ type MachineService struct {
 	Protocol                 string                     `json:"protocol,omitempty" toml:"protocol,omitempty"`
 	InternalPort             int                        `json:"internal_port,omitempty" toml:"internal_port,omitempty"`
 	Autostop                 *bool                      `json:"autostop,omitempty"`
+	Autosuspend              *bool                      `json:"autosuspend,omitempty"`
 	Autostart                *bool                      `json:"autostart,omitempty"`
 	MinMachinesRunning       *int                       `json:"min_machines_running,omitempty"`
 	Ports                    []MachinePort              `json:"ports,omitempty" toml:"ports,omitempty"`
