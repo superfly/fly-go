@@ -566,9 +566,11 @@ type TLSOptions struct {
 }
 
 type HTTPOptions struct {
-	Compress  *bool                `json:"compress,omitempty" toml:"compress,omitempty"`
-	Response  *HTTPResponseOptions `json:"response,omitempty" toml:"response,omitempty"`
-	H2Backend *bool                `json:"h2_backend,omitempty" toml:"h2_backend,omitempty"`
+	Compress           *bool                `json:"compress,omitempty" toml:"compress,omitempty"`
+	Response           *HTTPResponseOptions `json:"response,omitempty" toml:"response,omitempty"`
+	H2Backend          *bool                `json:"h2_backend,omitempty" toml:"h2_backend,omitempty"`
+	IdleTimeout        *uint32              `json:"idle_timeout,omitempty" toml:"idle_timeout,omitempty"`
+	HeadersReadTimeout *uint32              `json:"headers_read_timeout,omitempty" toml:"headers_read_timeout,omitempty"`
 }
 
 type HTTPResponseOptions struct {
