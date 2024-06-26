@@ -289,6 +289,40 @@ func (f *Client) NewRequest(ctx context.Context, method, path string, in interfa
 	return req, nil
 }
 
+func (f *Client) RetryFlapsCall(ctx context.Context, maxNumRetries int, flapsCallFn func() (any, error)) (returnValue any, err error) {
+	_, span := tracing.GetTracer().Start(ctx, "retry_flaps_call")
+	defer span.End()
+
+	numRetries := 0
+	for {
+		returnValue, err = flapsCallFn()
+		if err == nil {
+			return
+		}
+
+		var flapsErr *FlapsError
+		if errors.As(err, &flapsErr) {
+			span.AddEvent(fmt.Sprintf("server error %d", flapsErr.ResponseStatusCode))
+			if flapsErr.ResponseStatusCode >= 500 && flapsErr.ResponseStatusCode < 600 {
+				numRetries += 1
+
+				if numRetries >= maxNumRetries {
+					tracing.RecordError(span, err, "error retrying flaps call")
+					return nil, err
+				}
+				time.Sleep(1 * time.Second)
+				continue
+			} else {
+				span.AddEvent(fmt.Sprintf("non-server error %d", flapsErr.ResponseStatusCode))
+			}
+		}
+
+		tracing.RecordError(span, err, "error retrying flaps call")
+		return nil, err
+
+	}
+}
+
 func (f *Client) getCaveatNames() ([]string, error) {
 	tok := f.tokens.MacaroonsOnly().All()
 	raws, err := macaroon.Parse(tok)
