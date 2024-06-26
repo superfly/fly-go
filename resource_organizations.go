@@ -71,7 +71,7 @@ func (client *Client) GetOrganizationRemoteBuilderBySlug(ctx context.Context, sl
 				name
 				type
 				billable
-                limitedAccessTokens {
+				limitedAccessTokens {
 					nodes {
 					    id
 					    name
@@ -80,7 +80,8 @@ func (client *Client) GetOrganizationRemoteBuilderBySlug(ctx context.Context, sl
 							email
 						}
 					}
-                }
+				}
+				remoteBuilderImage
 				remoteBuilderApp {
 					id
 					name
@@ -206,12 +207,12 @@ func (client *Client) GetOrganizationBySlug(ctx context.Context, slug string) (*
 func (client *Client) GetDetailedOrganizationBySlug(ctx context.Context, slug string) (*OrganizationDetails, error) {
 	query := `query($slug: String!) {
 		organizationdetails: organization(slug: $slug) {
-		  id
-		  slug
-		  name
-		  type
-		  viewerRole
-		  internalNumericId
+			id
+			slug
+			name
+			type
+			viewerRole
+			internalNumericId
 			remoteBuilderImage
 			remoteBuilderApp {
 				name
@@ -227,9 +228,9 @@ func (client *Client) GetDetailedOrganizationBySlug(ctx context.Context, slug st
 					joinedAt
 					role
 				}
-		  }
+			}
 		}
-	  }
+	}
 	`
 
 	req := client.NewRequest(query)
@@ -373,6 +374,7 @@ func (client *Client) GetOrganizationByApp(ctx context.Context, appName string) 
 					id
 					slug
 					paidPlan
+					remoteBuilderImage
 					remoteBuilderApp {
 						id
 						name
