@@ -243,7 +243,7 @@ func (f *Client) _sendRequest(ctx context.Context, method, endpoint string, in, 
 	}
 	if out != nil {
 		if err := json.NewDecoder(resp.Body).Decode(out); err != nil {
-			return err
+			return fmt.Errorf("failed decoding response: %w", err)
 		}
 	}
 	return nil
