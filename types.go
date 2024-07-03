@@ -403,11 +403,12 @@ func (o *Organization) GetSlug() string {
 }
 
 type OrganizationBasic struct {
-	ID       string
-	Name     string
-	Slug     string
-	RawSlug  string
-	PaidPlan bool
+	ID                string
+	InternalNumericID string
+	Name              string
+	Slug              string
+	RawSlug           string
+	PaidPlan          bool
 }
 
 func (o *OrganizationBasic) GetID() string {
