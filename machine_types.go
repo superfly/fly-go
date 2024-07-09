@@ -25,6 +25,7 @@ const (
 	MachineStateDestroying                      = "destroying"
 	MachineStateStarted                         = "started"
 	MachineStateStopped                         = "stopped"
+	MachineStateSuspended                       = "suspended"
 	MachineStateCreated                         = "created"
 	DefaultVMSize                               = "shared-cpu-1x"
 	DefaultGPUVMSize                            = "performance-8x"
