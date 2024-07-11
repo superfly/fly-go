@@ -216,16 +216,17 @@ func (img *ImageVersion) FullImageRef() string {
 }
 
 type App struct {
-	ID        string
-	Name      string
-	State     string
-	Status    string
-	Deployed  bool
-	Hostname  string
-	AppURL    string
-	Version   int
-	NetworkID int
-	Network   string
+	ID                string
+	InternalNumericID uint64
+	Name              string
+	State             string
+	Status            string
+	Deployed          bool
+	Hostname          string
+	AppURL            string
+	Version           int
+	NetworkID         int
+	Network           string
 
 	Release        *Release
 	Organization   Organization
@@ -261,15 +262,16 @@ type App struct {
 
 func (app *App) Compact() *AppCompact {
 	return &AppCompact{
-		ID:              app.ID,
-		Name:            app.Name,
-		Status:          app.Status,
-		Deployed:        app.Deployed,
-		Hostname:        app.Hostname,
-		AppURL:          app.AppURL,
-		Organization:    app.Organization.Basic(),
-		PlatformVersion: app.PlatformVersion,
-		PostgresAppRole: app.PostgresAppRole,
+		ID:                app.ID,
+		InternalNumericID: app.InternalNumericID,
+		Name:              app.Name,
+		Status:            app.Status,
+		Deployed:          app.Deployed,
+		Hostname:          app.Hostname,
+		AppURL:            app.AppURL,
+		Organization:      app.Organization.Basic(),
+		PlatformVersion:   app.PlatformVersion,
+		PostgresAppRole:   app.PostgresAppRole,
 	}
 }
 
@@ -293,15 +295,16 @@ type AppCertificateCompact struct {
 }
 
 type AppCompact struct {
-	ID              string
-	Name            string
-	Status          string
-	Deployed        bool
-	Hostname        string
-	AppURL          string
-	Organization    *OrganizationBasic
-	PlatformVersion string
-	PostgresAppRole *struct {
+	ID                string
+	InternalNumericID uint64
+	Name              string
+	Status            string
+	Deployed          bool
+	Hostname          string
+	AppURL            string
+	Organization      *OrganizationBasic
+	PlatformVersion   string
+	PostgresAppRole   *struct {
 		Name string
 	}
 }
