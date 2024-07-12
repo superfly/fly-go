@@ -309,9 +309,18 @@ func (f *Client) AcquireLease(ctx context.Context, machineID string, ttl *int) (
 	ctx = contextWithAction(ctx, machineAcquireLease)
 	ctx = contextWithMachineID(ctx, machineID)
 
-	err := f.sendRequestMachines(ctx, http.MethodPost, endpoint, nil, out, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get lease on VM %s: %w", machineID, err)
+	var op func() error = func() error {
+		err := f.sendRequestMachines(ctx, http.MethodPost, endpoint, nil, out, nil)
+		if err != nil {
+			return fmt.Errorf("failed to get lease on VM %s: %w", machineID, err)
+		}
+		if ferr, ok := err.(*FlapsError); ok && slices.Contains([]int{409}, ferr.ResponseStatusCode) {
+			return err
+		}
+		return backoff.Permanent(err)
+	}
+	if err := Retry(op); err != nil {
+		return nil, err
 	}
 	return out, nil
 }
