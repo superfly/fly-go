@@ -14,7 +14,6 @@ import (
 	"regexp"
 	"slices"
 	"strings"
-	"time"
 
 	"github.com/cenkalti/backoff/v4"
 	fly "github.com/superfly/fly-go"
@@ -70,7 +69,7 @@ func NewWithOptions(ctx context.Context, opts NewClientOpts) (*Client, error) {
 	}
 
 	if opts.DialContext != nil {
-		return newWithUsermodeWireguard(ctx, wireguardConnectionParams{
+		return newWithUsermodeWireguard(wireguardConnectionParams{
 			appName:     opts.AppName,
 			orgSlug:     opts.OrgSlug,
 			dialContext: opts.DialContext,
@@ -118,7 +117,7 @@ type wireguardConnectionParams struct {
 	tokens      *tokens.Tokens
 }
 
-func newWithUsermodeWireguard(ctx context.Context, params wireguardConnectionParams, logger fly.Logger) (*Client, error) {
+func newWithUsermodeWireguard(params wireguardConnectionParams, logger fly.Logger) (*Client, error) {
 	transport := &http.Transport{
 		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
 			return params.dialContext(ctx, network, addr)
@@ -155,14 +154,7 @@ func (f *Client) CreateApp(ctx context.Context, name string, org string) (err er
 func (f *Client) WaitForApp(ctx context.Context, name string) error {
 	ctx = contextWithAction(ctx, machineGet)
 
-	bo := backoff.NewExponentialBackOff()
-	bo.InitialInterval = 100 * time.Millisecond
-	bo.MaxInterval = 500 * time.Millisecond
-	bo.MaxElapsedTime = 0 // no stop
-	bo.RandomizationFactor = 0.5
-	bo.Multiplier = 2
-
-	var op backoff.Operation = func() error {
+	var op = func() error {
 		err := f._sendRequest(ctx, http.MethodGet, "/apps/"+url.PathEscape(name), nil, nil, nil)
 		if err == nil {
 			return nil
@@ -172,8 +164,7 @@ func (f *Client) WaitForApp(ctx context.Context, name string) error {
 		}
 		return backoff.Permanent(err)
 	}
-
-	return backoff.Retry(op, bo)
+	return Retry(op)
 }
 
 var snakeCasePattern = regexp.MustCompile("[A-Z]")
