@@ -1,6 +1,9 @@
 package fly
 
 import (
+	"bytes"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -25,6 +28,7 @@ const (
 	MachineStateDestroying                      = "destroying"
 	MachineStateStarted                         = "started"
 	MachineStateStopped                         = "stopped"
+	MachineStateSuspended                       = "suspended"
 	MachineStateCreated                         = "created"
 	DefaultVMSize                               = "shared-cpu-1x"
 	DefaultGPUVMSize                            = "performance-8x"
@@ -581,7 +585,7 @@ type HTTPResponseOptions struct {
 type MachineService struct {
 	Protocol                 string                     `json:"protocol,omitempty" toml:"protocol,omitempty"`
 	InternalPort             int                        `json:"internal_port,omitempty" toml:"internal_port,omitempty"`
-	Autostop                 *bool                      `json:"autostop,omitempty"`
+	Autostop                 *MachineAutostop           `json:"autostop,omitempty"`
 	Autostart                *bool                      `json:"autostart,omitempty"`
 	MinMachinesRunning       *int                       `json:"min_machines_running,omitempty"`
 	Ports                    []MachinePort              `json:"ports,omitempty" toml:"ports,omitempty"`
@@ -820,4 +824,95 @@ type ProcessStat struct {
 type ListenSocket struct {
 	Proto   string `json:"proto"`
 	Address string `json:"address"`
+}
+
+type MachineAutostop int
+
+const (
+	MachineAutostopOff MachineAutostop = iota
+	MachineAutostopStop
+	MachineAutostopSuspend
+)
+
+func (s MachineAutostop) String() string {
+	switch s {
+	case MachineAutostopOff:
+		return "off"
+	case MachineAutostopStop:
+		return "stop"
+	case MachineAutostopSuspend:
+		return "suspend"
+	default:
+		return "off"
+	}
+}
+
+func (s *MachineAutostop) UnmarshalJSON(raw []byte) error {
+	if bytes.Equal(raw, []byte("null")) {
+		return nil
+	}
+
+	var asBool bool
+	if err := json.Unmarshal(raw, &asBool); err == nil {
+		if asBool {
+			*s = MachineAutostopStop
+		} else {
+			*s = MachineAutostopOff
+		}
+		return nil
+	}
+
+	var asString string
+	if err := json.Unmarshal(raw, &asString); err == nil {
+		switch asString {
+		case "off":
+			*s = MachineAutostopOff
+			return nil
+		case "stop":
+			*s = MachineAutostopStop
+			return nil
+		case "suspend":
+			*s = MachineAutostopSuspend
+			return nil
+		default:
+			return fmt.Errorf("invalid autostop string value \"%s\"", asString)
+		}
+	}
+
+	return errors.New("autostop value is not a valid bool or string")
+}
+
+func (s MachineAutostop) MarshalJSON() ([]byte, error) {
+	// For backward compatibility, we continue to serialize "off" and
+	// "stop" as booleans.
+	switch s {
+	case MachineAutostopOff:
+		return []byte("false"), nil
+	case MachineAutostopStop:
+		return []byte("true"), nil
+	case MachineAutostopSuspend:
+		return []byte(`"suspend"`), nil
+	default:
+		return []byte("false"), nil
+	}
+}
+
+func (s *MachineAutostop) UnmarshalText(raw []byte) error {
+	switch string(raw) {
+	case "false", "off":
+		*s = MachineAutostopOff
+		return nil
+	case "true", "stop":
+		*s = MachineAutostopStop
+		return nil
+	case "suspend":
+		*s = MachineAutostopSuspend
+		return nil
+	default:
+		return fmt.Errorf("invalid autostop value \"%s\"", string(raw))
+	}
+}
+
+func (s MachineAutostop) MarshalText() ([]byte, error) {
+	return []byte(s.String()), nil
 }
