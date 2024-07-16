@@ -343,6 +343,7 @@ var (
 	MachineRestartPolicyNo        MachineRestartPolicy = "no"
 	MachineRestartPolicyOnFailure MachineRestartPolicy = "on-failure"
 	MachineRestartPolicyAlways    MachineRestartPolicy = "always"
+	MachineRestartPolicySpotPrice MachineRestartPolicy = "spot-price"
 )
 
 // @description The Machine restart policy defines whether and how flyd restarts a Machine after its main process exits. See https://fly.io/docs/machines/guides-examples/machine-restart-policy/.
@@ -353,6 +354,8 @@ type MachineRestart struct {
 	Policy MachineRestartPolicy `json:"policy,omitempty" enums:"no,always,on-failure"`
 	// When policy is on-failure, the maximum number of times to attempt to restart the Machine before letting it stop.
 	MaxRetries int `json:"max_retries,omitempty"`
+	// GPU bid price for spot machines
+	GPUBidPrice float32 `json:"gpu_bid_price,omitempty"`
 }
 
 type MachineMount struct {
