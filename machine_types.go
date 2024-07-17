@@ -583,9 +583,13 @@ type HTTPResponseOptions struct {
 }
 
 type MachineService struct {
-	Protocol                 string                     `json:"protocol,omitempty" toml:"protocol,omitempty"`
-	InternalPort             int                        `json:"internal_port,omitempty" toml:"internal_port,omitempty"`
-	Autostop                 *MachineAutostop           `json:"autostop,omitempty"`
+	Protocol     string `json:"protocol,omitempty" toml:"protocol,omitempty"`
+	InternalPort int    `json:"internal_port,omitempty" toml:"internal_port,omitempty"`
+	// Accepts a string (new format) or a boolean (old format). For backward compatibility with older clients, the API continues to use booleans for "off" and "stop" in responses.
+	// * "off" or false - Do not autostop the Machine.
+	// * "stop" or true - Automatically stop the Machine.
+	// * "suspend" - Automatically suspend the Machine, falling back to a full stop if this is not possible.
+	Autostop                 *MachineAutostop           `json:"autostop,omitempty" swaggertype:"string" enums:"off,stop,suspend"`
 	Autostart                *bool                      `json:"autostart,omitempty"`
 	MinMachinesRunning       *int                       `json:"min_machines_running,omitempty"`
 	Ports                    []MachinePort              `json:"ports,omitempty" toml:"ports,omitempty"`
