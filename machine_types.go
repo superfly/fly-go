@@ -606,15 +606,17 @@ type MachineConfig struct {
 	// If you add anything here, ensure appconfig.Config.ToMachine() is updated
 
 	// An object filled with key/value pairs to be set as environment variables
-	Env      map[string]string       `json:"env,omitempty"`
-	Init     MachineInit             `json:"init,omitempty"`
-	Guest    *MachineGuest           `json:"guest,omitempty"`
-	Metadata map[string]string       `json:"metadata,omitempty"`
-	Mounts   []MachineMount          `json:"mounts,omitempty"`
-	Services []MachineService        `json:"services,omitempty"`
-	Metrics  *MachineMetrics         `json:"metrics,omitempty"`
-	Checks   map[string]MachineCheck `json:"checks,omitempty"`
-	Statics  []*Static               `json:"statics,omitempty"`
+	Env          map[string]string       `json:"env,omitempty"`
+	Init         MachineInit             `json:"init,omitempty"`
+	Guest        *MachineGuest           `json:"guest,omitempty"`
+	Hostname     string                  `json:"hostname,omitempty"`
+	HostnameFqdn string                  `json:"hostname_fqdn,omitempty"`
+	Metadata     map[string]string       `json:"metadata,omitempty"`
+	Mounts       []MachineMount          `json:"mounts,omitempty"`
+	Services     []MachineService        `json:"services,omitempty"`
+	Metrics      *MachineMetrics         `json:"metrics,omitempty"`
+	Checks       map[string]MachineCheck `json:"checks,omitempty"`
+	Statics      []*Static               `json:"statics,omitempty"`
 
 	// Set by fly deploy or fly machines commands
 
