@@ -49,3 +49,40 @@ func (client *Client) EnsureRemoteBuilder(ctx context.Context, orgID, appName, r
 
 	return data.EnsureMachineRemoteBuilder.Machine, data.EnsureMachineRemoteBuilder.App, nil
 }
+
+func (client *Client) EnsureDepotRemoteBuilder(ctx context.Context, input *EnsureDepotRemoteBuilderInput) (*EnsureDepotRemoteBuilderResponse, error) {
+	_ = `
+		# @genqlient(pointer: true)
+		mutation EnsureDepotRemoteBuilder($input: EnsureDepotRemoteBuilderInput!) {
+			ensureDepotRemoteBuilder(input:$input) {
+				buildId
+				buildToken
+			}
+		}
+	`
+
+	return EnsureDepotRemoteBuilder(ctx, client.genqClient, input)
+}
+
+/*
+func (client *Client) EnsureDepotRemoteBuilder(ctx context.Context, input EnsureDepotRemoteBuilderInput) (*EnsureDepotRemoteBuilderResponse, error) {
+	query := `
+		mutation($input: EnsureDepotRemoteBuilderInput!) {
+			ensureDepotRemoteBuilder(input: $input) {
+				depotToken
+			}
+		}
+	`
+
+	req := client.NewRequest(query)
+	ctx = ctxWithAction(ctx, "ensure_remote_builder")
+
+	req.Var("input", input)
+	_, err := client.RunWithContext(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	return nil, nil
+}
+*/
