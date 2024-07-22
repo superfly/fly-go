@@ -687,6 +687,8 @@ type DNSConfig struct {
 	Searches         []string         `json:"searches,omitempty"`
 	Options          []dnsOption      `json:"options,omitempty"`
 	DNSForwardRules  []dnsForwardRule `json:"dns_forward_rules,omitempty"`
+	Hostname         string           `json:"hostname,omitempty"`
+	HostnameFqdn     string           `json:"hostname_fqdn,omitempty"`
 }
 
 type dnsForwardRule struct {
