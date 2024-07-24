@@ -576,7 +576,7 @@ func (client *Client) AppNameAvailable(ctx context.Context, appName string) (boo
 	return data.AppNameAvailable, nil
 }
 
-func (client *Client) LockApp(ctx context.Context, input CreateAppInput) (*AppLock, error) {
+func (client *Client) LockApp(ctx context.Context, input AppLockInput) (*AppLock, error) {
 	query := `
 		mutation($input: AppLockInput!) {
 			lockApp(input: $input) {
@@ -602,7 +602,7 @@ func (client *Client) LockApp(ctx context.Context, input CreateAppInput) (*AppLo
 func (client *Client) UnlockApp(ctx context.Context, input AppLockInput) (*App, error) {
 	query := `
 		mutation($input: AppLockInput!) {
-			lockApp(input: $input) {
+			unlockApp(input: $input) {
 				app {
 					name
 				}

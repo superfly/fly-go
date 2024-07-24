@@ -157,7 +157,7 @@ type Query struct {
 }
 
 type AppLock struct {
-	ID         int `json:"lockId"`
+	LockID     string `json:"lockId"`
 	Expiration time.Time
 }
 
