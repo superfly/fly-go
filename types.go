@@ -582,10 +582,19 @@ type Release struct {
 	Description        string
 	Status             string
 	DeploymentStrategy string
+	Metadata           *ReleaseMetadata
 	User               User
 	EvaluationID       string
 	CreatedAt          time.Time
 	ImageRef           string
+}
+
+type PostDeploymentInfo struct {
+	FlyctlVersion string `json:"flyctl_version"`
+	Error         string `json:"error"`
+}
+type ReleaseMetadata struct {
+	PostDeploymentInfo PostDeploymentInfo `json:"post_deployment_info,omitempty"`
 }
 
 type SignedUrl struct {
