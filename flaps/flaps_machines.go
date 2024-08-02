@@ -225,6 +225,7 @@ func (f *Client) ListFlyAppsMachines(ctx context.Context) ([]*fly.Machine, *fly.
 	b := backoff.NewExponentialBackOff()
 	b.InitialInterval = 500 * time.Millisecond
 	b.MaxElapsedTime = 5 * time.Second
+	b.Reset()
 	ctx = contextWithAction(ctx, machineList)
 	err := backoff.Retry(func() error {
 		err := f.sendRequestMachines(ctx, http.MethodGet, "", nil, &allMachines, nil)
@@ -319,7 +320,7 @@ func (f *Client) AcquireLease(ctx context.Context, machineID string, ttl *int) (
 		}
 		return backoff.Permanent(err)
 	}
-	if err := Retry(op); err != nil {
+	if err := Retry(ctx, op); err != nil {
 		return nil, err
 	}
 	return out, nil
