@@ -164,7 +164,7 @@ func (f *Client) WaitForApp(ctx context.Context, name string) error {
 		}
 		return backoff.Permanent(err)
 	}
-	return Retry(op)
+	return Retry(ctx, op)
 }
 
 var snakeCasePattern = regexp.MustCompile("[A-Z]")
