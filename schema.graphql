@@ -358,6 +358,11 @@ enum AddOnType {
   enveloop
 
   """
+  A MySQL database
+  """
+  fly_mysql
+
+  """
   A Kubernetes cluster
   """
   kubernetes
@@ -3282,6 +3287,7 @@ input CreateOrganizationInput {
   Whether or not new apps in this org use Apps V2 by default
   """
   appsV2DefaultOn: Boolean
+  billingParentOrganizationId: ID
 
   """
   A unique identifier for the client performing the mutation.
@@ -3447,6 +3453,11 @@ input CreateReleaseInput {
   appId: ID!
 
   """
+  The build ID linked to the release
+  """
+  buildId: String
+
+  """
   A unique identifier for the client performing the mutation.
   """
   clientMutationId: String
@@ -3602,7 +3613,7 @@ input CreateUserSignupInput {
   clientMutationId: String
 
   """
-
+  
   """
   path: [String!]
 
@@ -3620,6 +3631,11 @@ input CreateUserSignupInput {
   Timestamp of when the user arrived at the website
   """
   startedAt: String!
+
+  """
+  UTM query string params
+  """
+  utmParams: JSON
 }
 
 """
