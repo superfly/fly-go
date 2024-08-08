@@ -275,6 +275,8 @@ func (v *CreateReleaseCreateReleaseCreateReleasePayloadRelease) GetVersion() int
 type CreateReleaseInput struct {
 	// The ID of the app
 	AppId string `json:"appId"`
+	// The build ID linked to the release
+	BuildId string `json:"buildId"`
 	// A unique identifier for the client performing the mutation.
 	ClientMutationId string `json:"clientMutationId"`
 	// app definition
@@ -289,6 +291,9 @@ type CreateReleaseInput struct {
 
 // GetAppId returns CreateReleaseInput.AppId, and is useful for accessing the field via an interface.
 func (v *CreateReleaseInput) GetAppId() string { return v.AppId }
+
+// GetBuildId returns CreateReleaseInput.BuildId, and is useful for accessing the field via an interface.
+func (v *CreateReleaseInput) GetBuildId() string { return v.BuildId }
 
 // GetClientMutationId returns CreateReleaseInput.ClientMutationId, and is useful for accessing the field via an interface.
 func (v *CreateReleaseInput) GetClientMutationId() string { return v.ClientMutationId }
