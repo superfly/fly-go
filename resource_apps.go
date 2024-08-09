@@ -2,6 +2,8 @@ package fly
 
 import (
 	"context"
+	"fmt"
+	"strings"
 )
 
 func (client *Client) GetApps(ctx context.Context, role *string) ([]App, error) {
@@ -359,6 +361,24 @@ func (client *Client) GetAppRemoteBuilder(ctx context.Context, appName string) (
 	}
 
 	return &data.App, nil
+}
+
+func (client *Client) GetDeployerAppByOrg(ctx context.Context, orgID string) (*App, error) {
+	apps, err := client.GetAppsForOrganization(ctx, orgID)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(apps) == 0 {
+		return nil, fmt.Errorf("no deployer found")
+	}
+
+	for _, app := range apps {
+		if strings.HasPrefix(app.Name, "fly-deployer-") {
+			return &app, nil
+		}
+	}
+	return nil, fmt.Errorf("no deployer found")
 }
 
 func (client *Client) GetAppNetwork(ctx context.Context, appName string) (*string, error) {
