@@ -111,6 +111,17 @@ func TestGetProcessGroup(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:     "machine with incomplete config and 'fly_process_group'",
+			expected: "web",
+			machine: &Machine{
+				IncompleteConfig: &MachineConfig{
+					Metadata: map[string]string{
+						"fly_process_group": "web",
+					},
+				},
+			},
+		},
 	}
 
 	for _, tc := range cases {
@@ -296,6 +307,56 @@ func TestMachineAutostopMarshalJSON(t *testing.T) {
 			t.Errorf("input %v: unexpected error: %v", testCase.input, err)
 		} else if !bytes.Equal(b, []byte(testCase.output)) {
 			t.Errorf("input %v: expected %v, got %s", testCase.input, testCase.output, string(b))
+		}
+	}
+}
+
+func TestIsAppV2(t *testing.T) {
+	type testcase struct {
+		name     string
+		machine  *Machine
+		expected bool
+	}
+
+	cases := []testcase{
+		{
+			name:     "machine with 'fly_platform_version=v2'",
+			expected: true,
+			machine: &Machine{
+				Config: &MachineConfig{
+					Metadata: map[string]string{"fly_platform_version": "v2"},
+				},
+			},
+		},
+		{
+			name:     "machine with non v2 'fly_platform_version'",
+			expected: false,
+			machine: &Machine{
+				Config: &MachineConfig{
+					Metadata: map[string]string{"fly_platform_version": "v1"},
+				},
+			},
+		},
+		{
+			name:     "machine without config",
+			expected: false,
+			machine:  &Machine{},
+		},
+		{
+			name:     "machine with 'fly_platform_version=v2' in incomplete config",
+			expected: true,
+			machine: &Machine{
+				IncompleteConfig: &MachineConfig{
+					Metadata: map[string]string{"fly_platform_version": "v2"},
+				},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		result := tc.machine.IsAppsV2()
+		if result != tc.expected {
+			t.Errorf("%s, got '%v', want '%v'", tc.name, result, tc.expected)
 		}
 	}
 }

@@ -92,8 +92,25 @@ func (m *Machine) ImageRefWithVersion() string {
 	return ref
 }
 
+// GetConfig returns `IncompleteConfig` if `Config` is unset which happens when
+// `HostStatus` isn't "ok"
+func (m *Machine) GetConfig() *MachineConfig {
+	if m.Config != nil {
+		return m.Config
+	}
+	return m.IncompleteConfig
+}
+
+func (m *Machine) GetMetadataByKey(key string) string {
+	c := m.GetConfig()
+	if c == nil || c.Metadata == nil {
+		return ""
+	}
+	return c.Metadata[key]
+}
+
 func (m *Machine) IsAppsV2() bool {
-	return m.Config != nil && m.Config.Metadata[MachineConfigMetadataKeyFlyPlatformVersion] == MachineFlyPlatformVersion2
+	return m.GetMetadataByKey(MachineConfigMetadataKeyFlyPlatformVersion) == MachineFlyPlatformVersion2
 }
 
 func (m *Machine) IsFlyAppsPlatform() bool {
@@ -113,14 +130,11 @@ func (m *Machine) IsActive() bool {
 }
 
 func (m *Machine) ProcessGroup() string {
-	if m.Config == nil {
-		return ""
-	}
-	return m.Config.ProcessGroup()
+	return m.GetConfig().ProcessGroup()
 }
 
 func (m *Machine) HasProcessGroup(desired string) bool {
-	return m.Config != nil && m.ProcessGroup() == desired
+	return m.ProcessGroup() == desired
 }
 
 func (m *Machine) ImageVersion() string {
@@ -241,7 +255,7 @@ func (m *Machine) MostRecentStartTimeAfterLaunch() (time.Time, error) {
 }
 
 func (m *Machine) IsReleaseCommandMachine() bool {
-	return m.HasProcessGroup(MachineProcessGroupFlyAppReleaseCommand) || m.Config.Metadata["process_group"] == "release_command"
+	return m.HasProcessGroup(MachineProcessGroupFlyAppReleaseCommand) || m.GetMetadataByKey("process_group") == "release_command"
 }
 
 type MachineImageRef struct {
@@ -668,8 +682,7 @@ func (c *MachineConfig) ProcessGroup() string {
 	// - machines with only 'process_group'
 	// - machines with both 'process_group' and 'fly_process_group'
 	// - machines with only 'fly_process_group'
-
-	if c.Metadata == nil {
+	if c == nil || c.Metadata == nil {
 		return ""
 	}
 
