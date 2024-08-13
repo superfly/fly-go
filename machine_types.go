@@ -92,8 +92,30 @@ func (m *Machine) ImageRefWithVersion() string {
 	return ref
 }
 
+// GetConfig returns `IncompleteConfig` if `Config` is unset which happens when
+// `HostStatus` isn't "ok"
+func (m *Machine) GetConfig() *MachineConfig {
+	if m.Config != nil {
+		return m.Config
+	}
+	return m.IncompleteConfig
+}
+
+func (m *Machine) GetMetadataByKey(key string) (string, bool) {
+	switch c := m.GetConfig(); {
+	case c == nil:
+		return "", false
+	case c.Metadata == nil:
+		return "", false
+	default:
+		v, ok := c.Metadata[key]
+		return v, ok
+	}
+}
+
 func (m *Machine) IsAppsV2() bool {
-	return m.Config != nil && m.Config.Metadata[MachineConfigMetadataKeyFlyPlatformVersion] == MachineFlyPlatformVersion2
+	v, ok := m.GetMetadataByKey(MachineConfigMetadataKeyFlyPlatformVersion)
+	return ok && v == MachineFlyPlatformVersion2
 }
 
 func (m *Machine) IsFlyAppsPlatform() bool {
@@ -113,14 +135,11 @@ func (m *Machine) IsActive() bool {
 }
 
 func (m *Machine) ProcessGroup() string {
-	if m.Config == nil {
-		return ""
-	}
-	return m.Config.ProcessGroup()
+	return m.GetConfig().ProcessGroup()
 }
 
 func (m *Machine) HasProcessGroup(desired string) bool {
-	return m.Config != nil && m.ProcessGroup() == desired
+	return m.ProcessGroup() == desired
 }
 
 func (m *Machine) ImageVersion() string {
@@ -241,7 +260,11 @@ func (m *Machine) MostRecentStartTimeAfterLaunch() (time.Time, error) {
 }
 
 func (m *Machine) IsReleaseCommandMachine() bool {
-	return m.HasProcessGroup(MachineProcessGroupFlyAppReleaseCommand) || m.Config.Metadata["process_group"] == "release_command"
+	if m.HasProcessGroup(MachineProcessGroupFlyAppReleaseCommand) {
+		return true
+	}
+	v, ok := m.GetMetadataByKey("process_group")
+	return ok && v == "release_command"
 }
 
 type MachineImageRef struct {
@@ -668,8 +691,7 @@ func (c *MachineConfig) ProcessGroup() string {
 	// - machines with only 'process_group'
 	// - machines with both 'process_group' and 'fly_process_group'
 	// - machines with only 'fly_process_group'
-
-	if c.Metadata == nil {
+	if c == nil || c.Metadata == nil {
 		return ""
 	}
 
