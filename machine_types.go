@@ -52,15 +52,18 @@ type Machine struct {
 	InstanceID string `json:"instance_id,omitempty"`
 	Version    string `json:"version,omitempty"`
 	// PrivateIP is the internal 6PN address of the machine.
-	PrivateIP        string                `json:"private_ip,omitempty"`
-	CreatedAt        string                `json:"created_at,omitempty"`
-	UpdatedAt        string                `json:"updated_at,omitempty"`
-	Config           *MachineConfig        `json:"config,omitempty"`
-	IncompleteConfig *MachineConfig        `json:"incomplete_config,omitempty"`
-	Events           []*MachineEvent       `json:"events,omitempty"`
-	Checks           []*MachineCheckStatus `json:"checks,omitempty"`
-	HostStatus       HostStatus            `json:"host_status,omitempty" enums:"ok,unknown,unreachable"`
-	LeaseNonce       string                `json:"nonce,omitempty"`
+	PrivateIP  string                `json:"private_ip,omitempty"`
+	CreatedAt  string                `json:"created_at,omitempty"`
+	UpdatedAt  string                `json:"updated_at,omitempty"`
+	Config     *MachineConfig        `json:"config,omitempty"`
+	Events     []*MachineEvent       `json:"events,omitempty"`
+	Checks     []*MachineCheckStatus `json:"checks,omitempty"`
+	LeaseNonce string                `json:"nonce,omitempty"`
+	HostStatus HostStatus            `json:"host_status,omitempty" enums:"ok,unknown,unreachable"`
+
+	// When `host_status` isn't "ok", the config can't be fully retrieved and has to be rebuilt from multiple sources
+	// to form an partial configuration, not suitable to clone or recreate the original machine
+	IncompleteConfig *MachineConfig `json:"incomplete_config,omitempty"`
 }
 
 func (m *Machine) FullImageRef() string {
