@@ -34,6 +34,14 @@ const (
 	DefaultGPUVMSize                            = "performance-8x"
 )
 
+type HostStatus string
+
+var (
+	HostStatusOk          HostStatus = "ok"
+	HostStatusUnknown     HostStatus = "unknown"
+	HostStatusUnreachable HostStatus = "unreachable"
+)
+
 type Machine struct {
 	ID       string          `json:"id,omitempty"`
 	Name     string          `json:"name,omitempty"`
@@ -50,7 +58,7 @@ type Machine struct {
 	Config     *MachineConfig        `json:"config,omitempty"`
 	Events     []*MachineEvent       `json:"events,omitempty"`
 	Checks     []*MachineCheckStatus `json:"checks,omitempty"`
-	HostStatus string                `json:"host_status,omitempty"`
+	HostStatus HostStatus            `json:"host_status,omitempty" enums:"ok,unknown,unreachable"`
 	LeaseNonce string                `json:"nonce,omitempty"`
 }
 
