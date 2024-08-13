@@ -101,21 +101,16 @@ func (m *Machine) GetConfig() *MachineConfig {
 	return m.IncompleteConfig
 }
 
-func (m *Machine) GetMetadataByKey(key string) (string, bool) {
-	switch c := m.GetConfig(); {
-	case c == nil:
-		return "", false
-	case c.Metadata == nil:
-		return "", false
-	default:
-		v, ok := c.Metadata[key]
-		return v, ok
+func (m *Machine) GetMetadataByKey(key string) string {
+	c := m.GetConfig()
+	if c == nil || c.Metadata == nil {
+		return ""
 	}
+	return c.Metadata[key]
 }
 
 func (m *Machine) IsAppsV2() bool {
-	v, ok := m.GetMetadataByKey(MachineConfigMetadataKeyFlyPlatformVersion)
-	return ok && v == MachineFlyPlatformVersion2
+	return m.GetMetadataByKey(MachineConfigMetadataKeyFlyPlatformVersion) == MachineFlyPlatformVersion2
 }
 
 func (m *Machine) IsFlyAppsPlatform() bool {
@@ -260,11 +255,7 @@ func (m *Machine) MostRecentStartTimeAfterLaunch() (time.Time, error) {
 }
 
 func (m *Machine) IsReleaseCommandMachine() bool {
-	if m.HasProcessGroup(MachineProcessGroupFlyAppReleaseCommand) {
-		return true
-	}
-	v, ok := m.GetMetadataByKey("process_group")
-	return ok && v == "release_command"
+	return m.HasProcessGroup(MachineProcessGroupFlyAppReleaseCommand) || m.GetMetadataByKey("process_group") == "release_command"
 }
 
 type MachineImageRef struct {
