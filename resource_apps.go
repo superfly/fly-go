@@ -95,6 +95,7 @@ func (client *Client) GetApp(ctx context.Context, appName string) (*App, error) 
 		query ($appName: String!) {
 			app(name: $appName) {
 				id
+				internalNumericId
 				name
 				hostname
 				deployed
