@@ -276,6 +276,7 @@ func (app *App) Compact() *AppCompact {
 type LimitedAccessToken struct {
 	Id        string
 	Name      string
+	Token     string
 	ExpiresAt time.Time
 	User      User
 }

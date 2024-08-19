@@ -12,6 +12,7 @@ func (c *Client) GetAppLimitedAccessTokens(ctx context.Context, appName string) 
 					nodes {
 						id
 						name
+						token
 						expiresAt
 						user {
 							email
