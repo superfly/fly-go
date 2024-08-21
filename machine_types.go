@@ -478,12 +478,25 @@ type MachineMetrics struct {
 	Path string `toml:"path" json:"path,omitempty"`
 }
 
+type MachineCheckKind string
+
+var (
+	// Informational check. Showed in status, but doesn't cause any actions.
+	// Default value for top-level check if kind is not specified.
+	MachineCheckKindInformational MachineCheckKind = "informational"
+	// Readiness check. Failed check causes the machine to be taken out of LB pool
+	MachineCheckKindReadiness MachineCheckKind = "readiness"
+	// TODO: liveness, startup
+)
+
 // @description An optional object that defines one or more named checks. The key for each check is the check name.
 type MachineCheck struct {
 	// The port to connect to, often the same as internal_port
 	Port *int `json:"port,omitempty"`
 	// tcp or http
 	Type *string `json:"type,omitempty"`
+	// Kind of the check (informational, readiness)
+	Kind *MachineCheckKind `json:"kind,omitempty" enums:"informational,readiness"`
 	// The time between connectivity checks
 	Interval *Duration `json:"interval,omitempty"`
 	// The maximum time a connection can take before being reported as failing its health check
