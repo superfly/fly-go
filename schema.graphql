@@ -2804,7 +2804,7 @@ input CreateBuildInput {
   appName: ID!
 
   """
-  Whether builder is remote or local
+  The kind of builder being used
   """
   builderType: String!
 
@@ -3455,7 +3455,7 @@ input CreateReleaseInput {
   """
   The build ID linked to the release
   """
-  buildId: String
+  buildId: ID
 
   """
   A unique identifier for the client performing the mutation.
@@ -5095,6 +5095,11 @@ input EnsureDepotRemoteBuilderInput {
   The unique application name
   """
   appName: String
+
+  """
+  The scope of the builder; either "app" or "organization"
+  """
+  builderScope: String
 
   """
   A unique identifier for the client performing the mutation.
