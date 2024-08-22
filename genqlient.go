@@ -155,6 +155,8 @@ type BuilderMetaInput struct {
 	BuilderType string `json:"builderType"`
 	// Whther or not buildkit is enabled on builder
 	BuildkitEnabled bool `json:"buildkitEnabled"`
+	// The build ID of the Depot build
+	DepotBuildId string `json:"depotBuildId"`
 	// Docker version reported by builder
 	DockerVersion string `json:"dockerVersion"`
 	// Platform reported by the builder
@@ -170,6 +172,9 @@ func (v *BuilderMetaInput) GetBuilderType() string { return v.BuilderType }
 
 // GetBuildkitEnabled returns BuilderMetaInput.BuildkitEnabled, and is useful for accessing the field via an interface.
 func (v *BuilderMetaInput) GetBuildkitEnabled() bool { return v.BuildkitEnabled }
+
+// GetDepotBuildId returns BuilderMetaInput.DepotBuildId, and is useful for accessing the field via an interface.
+func (v *BuilderMetaInput) GetDepotBuildId() string { return v.DepotBuildId }
 
 // GetDockerVersion returns BuilderMetaInput.DockerVersion, and is useful for accessing the field via an interface.
 func (v *BuilderMetaInput) GetDockerVersion() string { return v.DockerVersion }

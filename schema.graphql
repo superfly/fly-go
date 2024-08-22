@@ -1880,6 +1880,11 @@ input BuilderMetaInput {
   buildkitEnabled: Boolean
 
   """
+  The build ID of the Depot build
+  """
+  depotBuildId: String
+
+  """
   Docker version reported by builder
   """
   dockerVersion: String
@@ -3613,7 +3618,7 @@ input CreateUserSignupInput {
   clientMutationId: String
 
   """
-
+  
   """
   path: [String!]
 
