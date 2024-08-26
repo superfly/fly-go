@@ -362,6 +362,8 @@ type EnsureDepotRemoteBuilderInput struct {
 	AppName *string `json:"appName"`
 	// The scope of the builder; either "app" or "organization"
 	BuilderScope *string `json:"builderScope"`
+	// The size of the builder cache in bytes. Defaults to 50GB
+	BuilderSize *int `json:"builderSize"`
 	// A unique identifier for the client performing the mutation.
 	ClientMutationId *string `json:"clientMutationId"`
 	// The node ID of the organization
@@ -375,6 +377,9 @@ func (v *EnsureDepotRemoteBuilderInput) GetAppName() *string { return v.AppName 
 
 // GetBuilderScope returns EnsureDepotRemoteBuilderInput.BuilderScope, and is useful for accessing the field via an interface.
 func (v *EnsureDepotRemoteBuilderInput) GetBuilderScope() *string { return v.BuilderScope }
+
+// GetBuilderSize returns EnsureDepotRemoteBuilderInput.BuilderSize, and is useful for accessing the field via an interface.
+func (v *EnsureDepotRemoteBuilderInput) GetBuilderSize() *int { return v.BuilderSize }
 
 // GetClientMutationId returns EnsureDepotRemoteBuilderInput.ClientMutationId, and is useful for accessing the field via an interface.
 func (v *EnsureDepotRemoteBuilderInput) GetClientMutationId() *string { return v.ClientMutationId }

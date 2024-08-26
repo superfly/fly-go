@@ -1520,8 +1520,11 @@ scalar BigInt
 
 enum BillingStatus {
   CURRENT
+  DELINQUENT
   PAST_DUE
   SOURCE_REQUIRED
+  TRIAL_ACTIVE
+  TRIAL_ENDED
 }
 
 type Build implements Node {
@@ -5100,6 +5103,11 @@ input EnsureDepotRemoteBuilderInput {
   The scope of the builder; either "app" or "organization"
   """
   builderScope: String
+
+  """
+  The size of the builder cache in bytes. Defaults to 50GB
+  """
+  builderSize: Int
 
   """
   A unique identifier for the client performing the mutation.
