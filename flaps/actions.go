@@ -27,6 +27,9 @@ const (
 	machineCordon
 	machineUncordon
 	machineSuspend
+	secretCreate
+	secretDelete
+	secretsList
 	volumeList
 	volumeCreate
 	volumetUpdate

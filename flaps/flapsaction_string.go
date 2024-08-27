@@ -29,22 +29,25 @@ func _() {
 	_ = x[machineCordon-18]
 	_ = x[machineUncordon-19]
 	_ = x[machineSuspend-20]
-	_ = x[volumeList-21]
-	_ = x[volumeCreate-22]
-	_ = x[volumetUpdate-23]
-	_ = x[volumeGet-24]
-	_ = x[volumeSnapshotCreate-25]
-	_ = x[volumeSnapshotList-26]
-	_ = x[volumeExtend-27]
-	_ = x[volumeDelete-28]
-	_ = x[metadataSet-29]
-	_ = x[metadataGet-30]
-	_ = x[metadataDel-31]
+	_ = x[secretCreate-21]
+	_ = x[secretDelete-22]
+	_ = x[secretsList-23]
+	_ = x[volumeList-24]
+	_ = x[volumeCreate-25]
+	_ = x[volumetUpdate-26]
+	_ = x[volumeGet-27]
+	_ = x[volumeSnapshotCreate-28]
+	_ = x[volumeSnapshotList-29]
+	_ = x[volumeExtend-30]
+	_ = x[volumeDelete-31]
+	_ = x[metadataSet-32]
+	_ = x[metadataGet-33]
+	_ = x[metadataDel-34]
 }
 
-const _flapsAction_name = "noneappCreatemachineLaunchmachineUpdatemachineStartmachineWaitmachineStopmachineRestartmachineGetmachineListmachineDestroymachineKillmachineFindLeasemachineAcquireLeasemachineRefreshLeasemachineReleaseLeasemachineExecmachinePsmachineCordonmachineUncordonmachineSuspendvolumeListvolumeCreatevolumetUpdatevolumeGetvolumeSnapshotCreatevolumeSnapshotListvolumeExtendvolumeDeletemetadataSetmetadataGetmetadataDel"
+const _flapsAction_name = "noneappCreatemachineLaunchmachineUpdatemachineStartmachineWaitmachineStopmachineRestartmachineGetmachineListmachineDestroymachineKillmachineFindLeasemachineAcquireLeasemachineRefreshLeasemachineReleaseLeasemachineExecmachinePsmachineCordonmachineUncordonmachineSuspendsecretCreatesecretDeletesecretsListvolumeListvolumeCreatevolumetUpdatevolumeGetvolumeSnapshotCreatevolumeSnapshotListvolumeExtendvolumeDeletemetadataSetmetadataGetmetadataDel"
 
-var _flapsAction_index = [...]uint16{0, 4, 13, 26, 39, 51, 62, 73, 87, 97, 108, 122, 133, 149, 168, 187, 206, 217, 226, 239, 254, 268, 278, 290, 303, 312, 332, 350, 362, 374, 385, 396, 407}
+var _flapsAction_index = [...]uint16{0, 4, 13, 26, 39, 51, 62, 73, 87, 97, 108, 122, 133, 149, 168, 187, 206, 217, 226, 239, 254, 268, 280, 292, 303, 313, 325, 338, 347, 367, 385, 397, 409, 420, 431, 442}
 
 func (i flapsAction) String() string {
 	if i < 0 || i >= flapsAction(len(_flapsAction_index)-1) {
