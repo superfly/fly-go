@@ -363,13 +363,15 @@ type EnsureDepotRemoteBuilderInput struct {
 	// The scope of the builder; either "app" or "organization"
 	BuilderScope *string `json:"builderScope"`
 	// The size of the builder cache in bytes. Defaults to 50GB
-	BuilderSize *int `json:"builderSize"`
+	BuilderSize *int64 `json:"builderSize"`
 	// A unique identifier for the client performing the mutation.
 	ClientMutationId *string `json:"clientMutationId"`
 	// The node ID of the organization
 	OrganizationId *string `json:"organizationId"`
 	// Desired region for the remote builder
 	Region *string `json:"region"`
+	// Update the Depot builder, if it already exists
+	Update *bool `json:"update"`
 }
 
 // GetAppName returns EnsureDepotRemoteBuilderInput.AppName, and is useful for accessing the field via an interface.
@@ -379,7 +381,7 @@ func (v *EnsureDepotRemoteBuilderInput) GetAppName() *string { return v.AppName 
 func (v *EnsureDepotRemoteBuilderInput) GetBuilderScope() *string { return v.BuilderScope }
 
 // GetBuilderSize returns EnsureDepotRemoteBuilderInput.BuilderSize, and is useful for accessing the field via an interface.
-func (v *EnsureDepotRemoteBuilderInput) GetBuilderSize() *int { return v.BuilderSize }
+func (v *EnsureDepotRemoteBuilderInput) GetBuilderSize() *int64 { return v.BuilderSize }
 
 // GetClientMutationId returns EnsureDepotRemoteBuilderInput.ClientMutationId, and is useful for accessing the field via an interface.
 func (v *EnsureDepotRemoteBuilderInput) GetClientMutationId() *string { return v.ClientMutationId }
@@ -389,6 +391,9 @@ func (v *EnsureDepotRemoteBuilderInput) GetOrganizationId() *string { return v.O
 
 // GetRegion returns EnsureDepotRemoteBuilderInput.Region, and is useful for accessing the field via an interface.
 func (v *EnsureDepotRemoteBuilderInput) GetRegion() *string { return v.Region }
+
+// GetUpdate returns EnsureDepotRemoteBuilderInput.Update, and is useful for accessing the field via an interface.
+func (v *EnsureDepotRemoteBuilderInput) GetUpdate() *bool { return v.Update }
 
 // EnsureDepotRemoteBuilderResponse is returned by EnsureDepotRemoteBuilder on success.
 type EnsureDepotRemoteBuilderResponse struct {
