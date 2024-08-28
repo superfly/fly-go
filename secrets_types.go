@@ -20,7 +20,5 @@ type ListSecret struct {
 }
 
 type CreateSecretRequest struct {
-	Label string `json:"label"`
-	Type  string `json:"type"`
 	Value []byte `json:"value,omitempty"`
 }

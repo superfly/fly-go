@@ -24,10 +24,22 @@ func (f *Client) ListSecrets(ctx context.Context) ([]fly.ListSecret, error) {
 	return out, nil
 }
 
-func (f *Client) CreateSecret(ctx context.Context, in fly.CreateSecretRequest) error {
+func (f *Client) CreateSecret(ctx context.Context, sLabel, sType string, in fly.CreateSecretRequest) error {
 	ctx = contextWithAction(ctx, secretCreate)
 
-	if err := f.sendRequestSecrets(ctx, http.MethodPost, "", in, nil, nil); err != nil {
+	path := fmt.Sprintf("/%s/type/%s", sLabel, sType)
+	if err := f.sendRequestSecrets(ctx, http.MethodPost, path, in, nil, nil); err != nil {
+		return fmt.Errorf("failed to create secret: %w", err)
+	}
+
+	return nil
+}
+
+func (f *Client) GenerateSecret(ctx context.Context, sLabel, sType string) error {
+	ctx = contextWithAction(ctx, secretCreate)
+
+	path := fmt.Sprintf("/%s/type/%s/generate", sLabel, sType)
+	if err := f.sendRequestSecrets(ctx, http.MethodPost, path, nil, nil, nil); err != nil {
 		return fmt.Errorf("failed to create secret: %w", err)
 	}
 
