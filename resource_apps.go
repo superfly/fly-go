@@ -599,9 +599,9 @@ func (client *Client) AppNameAvailable(ctx context.Context, appName string) (boo
 	return data.AppNameAvailable, nil
 }
 
-func (client *Client) LockApp(ctx context.Context, input AppLockInput) (*AppLock, error) {
+func (client *Client) LockApp(ctx context.Context, input LockAppInput) (*LockApp, error) {
 	query := `
-		mutation($input: AppLockInput!) {
+		mutation($input: LockAppInput!) {
 			lockApp(input: $input) {
 				lockId
 				expiration
@@ -611,7 +611,9 @@ func (client *Client) LockApp(ctx context.Context, input AppLockInput) (*AppLock
 
 	req := client.NewRequest(query)
 
-	req.Var("input", input)
+	req.Var("input", map[string]string{
+		"appId": input.AppID,
+	})
 	ctx = ctxWithAction(ctx, "lock_app")
 
 	data, err := client.RunWithContext(ctx, req)
@@ -619,12 +621,12 @@ func (client *Client) LockApp(ctx context.Context, input AppLockInput) (*AppLock
 		return nil, err
 	}
 
-	return data.CurrentLock, nil
+	return data.LockApp, nil
 }
 
-func (client *Client) UnlockApp(ctx context.Context, input AppLockInput) (*App, error) {
+func (client *Client) UnlockApp(ctx context.Context, input UnlockAppInput) (*App, error) {
 	query := `
-		mutation($input: AppLockInput!) {
+		mutation($input: UnlockAppInput!) {
 			unlockApp(input: $input) {
 				app {
 					name
@@ -635,8 +637,35 @@ func (client *Client) UnlockApp(ctx context.Context, input AppLockInput) (*App, 
 
 	req := client.NewRequest(query)
 
-	req.Var("input", input)
+	req.Var("input", map[string]string{
+		"appId":  input.AppID,
+		"lockId": input.LockID,
+	})
 	ctx = ctxWithAction(ctx, "unlock_app")
+
+	data, err := client.RunWithContext(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	return &data.App, nil
+}
+
+func (client *Client) GetAppLock(ctx context.Context, name string) (*App, error) {
+	query := `
+	query($name: String!) {
+		app(name: $name) {
+		  currentLock {
+			lockId
+			expiration
+		  }
+		}
+	  }
+	`
+
+	req := client.NewRequest(query)
+	req.Var("name", name)
+	ctx = ctxWithAction(ctx, "get_app_lock")
 
 	data, err := client.RunWithContext(ctx, req)
 	if err != nil {

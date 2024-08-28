@@ -153,15 +153,20 @@ type Query struct {
 	CanPerformBluegreenDeployment bool
 	AppNameAvailable              bool
 
-	CurrentLock *AppLock
+	LockApp *LockApp
 }
 
-type AppLock struct {
+type LockApp struct {
 	LockID     string `json:"lockId"`
 	Expiration time.Time
 }
 
-type AppLockInput struct {
+type LockAppInput struct {
+	AppID  string `json:"app_id"`
+	LockID string `json:"lock_id"`
+}
+
+type UnlockAppInput struct {
 	AppID  string `json:"app_id"`
 	LockID string `json:"lock_id"`
 }
@@ -269,6 +274,11 @@ type App struct {
 	PlatformVersion     string
 	LimitedAccessTokens *struct {
 		Nodes []LimitedAccessToken
+	}
+
+	CurrentLock *struct {
+		LockID     string
+		Expiration string
 	}
 }
 
