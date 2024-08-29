@@ -152,6 +152,23 @@ type Query struct {
 
 	CanPerformBluegreenDeployment bool
 	AppNameAvailable              bool
+
+	LockApp *LockApp
+}
+
+type LockApp struct {
+	LockID     string `json:"lockId"`
+	Expiration time.Time
+}
+
+type LockAppInput struct {
+	AppID  string `json:"app_id"`
+	LockID string `json:"lock_id"`
+}
+
+type UnlockAppInput struct {
+	AppID  string `json:"app_id"`
+	LockID string `json:"lock_id"`
 }
 
 type CreatedWireGuardPeer struct {
@@ -257,6 +274,11 @@ type App struct {
 	PlatformVersion     string
 	LimitedAccessTokens *struct {
 		Nodes []LimitedAccessToken
+	}
+
+	CurrentLock *struct {
+		LockID     string
+		Expiration string
 	}
 }
 
