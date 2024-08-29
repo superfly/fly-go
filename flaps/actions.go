@@ -29,6 +29,7 @@ const (
 	machineSuspend
 	secretCreate
 	secretDelete
+	secretGenerate
 	secretsList
 	volumeList
 	volumeCreate

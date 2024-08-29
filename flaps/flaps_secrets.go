@@ -36,7 +36,7 @@ func (f *Client) CreateSecret(ctx context.Context, sLabel, sType string, in fly.
 }
 
 func (f *Client) GenerateSecret(ctx context.Context, sLabel, sType string) error {
-	ctx = contextWithAction(ctx, secretCreate)
+	ctx = contextWithAction(ctx, secretGenerate)
 
 	path := fmt.Sprintf("/%s/type/%s/generate", sLabel, sType)
 	if err := f.sendRequestSecrets(ctx, http.MethodPost, path, nil, nil, nil); err != nil {
