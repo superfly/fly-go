@@ -116,6 +116,28 @@ func (c *Client) AllocateSharedIPAddress(ctx context.Context, appName string) (n
 	return net.ParseIP(data.AllocateIPAddress.App.SharedIPAddress), nil
 }
 
+func (c *Client) AllocateEgressIPAddress(ctx context.Context, appName string, machineId string) (net.IP, net.IP, error) {
+	query := `
+		mutation($input: AllocateEgressIPAddressInput!) {
+			allocateEgressIpAddress(input: $input) {
+				v4,
+				v6
+			}
+		}
+	`
+
+	req := c.NewRequest(query)
+	ctx = ctxWithAction(ctx, "allocate_egress_ip_address")
+	req.Var("input", AllocateEgressIPAddressInput{AppID: appName, MachineID: machineId})
+
+	data, err := c.RunWithContext(ctx, req)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return net.ParseIP(data.AllocateEgressIPAddress.V4), net.ParseIP(data.AllocateEgressIPAddress.V6), nil
+}
+
 func (c *Client) ReleaseIPAddress(ctx context.Context, appName string, ip string) error {
 	query := `
 		mutation($input: ReleaseIPAddressInput!) {

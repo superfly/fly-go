@@ -97,6 +97,10 @@ type Query struct {
 		App       App
 		IPAddress IPAddress
 	}
+	AllocateEgressIPAddress struct {
+		V4 string
+		V6 string
+	}
 	ReleaseIPAddress struct {
 		App App
 	}
@@ -678,6 +682,11 @@ type AllocateIPAddressInput struct {
 	Region         string `json:"region"`
 	OrganizationID string `json:"organizationId,omitempty"`
 	Network        string `json:"network,omitempty"`
+}
+
+type AllocateEgressIPAddressInput struct {
+	AppID     string `json:"appId"`
+	MachineID string `json:"machineId"`
 }
 
 type ReleaseIPAddressInput struct {
