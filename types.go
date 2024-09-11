@@ -280,6 +280,10 @@ type App struct {
 		Nodes []LimitedAccessToken
 	}
 
+	Machines struct {
+		Nodes []GqlMachine
+	}
+
 	CurrentLock *struct {
 		LockID     string
 		Expiration string
@@ -864,6 +868,10 @@ type GqlMachine struct {
 
 	IPs struct {
 		Nodes []*MachineIP
+	}
+
+	EgressIpAddresses struct {
+		Nodes []*MachineEgressIP
 	}
 }
 

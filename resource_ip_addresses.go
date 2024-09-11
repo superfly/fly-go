@@ -138,6 +138,52 @@ func (c *Client) AllocateEgressIPAddress(ctx context.Context, appName string, ma
 	return net.ParseIP(data.AllocateEgressIPAddress.V4), net.ParseIP(data.AllocateEgressIPAddress.V6), nil
 }
 
+func (c *Client) GetEgressIPAddresses(ctx context.Context, appName string) (map[string][]net.IP, error) {
+	query := `
+		query ($appName: String!) {
+			app(name: $appName) {
+				machines {
+					nodes {
+						id
+						egressIpAddresses {
+							nodes {
+								id
+								ip
+								version
+								region
+							}
+						}
+					}
+				}
+			}
+		}
+	`
+
+	req := c.NewRequest(query)
+	ctx = ctxWithAction(ctx, "get_egress_ip_addresses")
+	req.Var("appName", appName)
+
+	data, err := c.RunWithContext(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	ret := make(map[string][]net.IP)
+	for _, m := range data.App.Machines.Nodes {
+		if m.EgressIpAddresses.Nodes == nil || len(m.EgressIpAddresses.Nodes) == 0 {
+			continue
+		}
+
+		ret[m.ID] = make([]net.IP, len(m.EgressIpAddresses.Nodes))
+
+		for i, ip := range m.EgressIpAddresses.Nodes {
+			ret[m.ID][i] = net.ParseIP(ip.IP)
+		}
+	}
+
+	return ret, nil
+}
+
 func (c *Client) ReleaseIPAddress(ctx context.Context, appName string, ip string) error {
 	query := `
 		mutation($input: ReleaseIPAddressInput!) {
