@@ -332,13 +332,6 @@ type MachineIP struct {
 	MaskSize int
 }
 
-type MachineEgressIP struct {
-	ID      string
-	IP      string
-	Version int
-	Region  string
-}
-
 type RemoveMachineInput struct {
 	ID   string `json:"id,omitempty"`
 	Kill bool   `json:"kill,omitempty"`

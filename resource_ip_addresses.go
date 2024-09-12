@@ -138,7 +138,7 @@ func (c *Client) AllocateEgressIPAddress(ctx context.Context, appName string, ma
 	return net.ParseIP(data.AllocateEgressIPAddress.V4), net.ParseIP(data.AllocateEgressIPAddress.V6), nil
 }
 
-func (c *Client) GetEgressIPAddresses(ctx context.Context, appName string) (map[string][]net.IP, error) {
+func (c *Client) GetEgressIPAddresses(ctx context.Context, appName string) (map[string][]EgressIPAddress, error) {
 	query := `
 		query ($appName: String!) {
 			app(name: $appName) {
@@ -168,16 +168,16 @@ func (c *Client) GetEgressIPAddresses(ctx context.Context, appName string) (map[
 		return nil, err
 	}
 
-	ret := make(map[string][]net.IP)
+	ret := make(map[string][]EgressIPAddress)
 	for _, m := range data.App.Machines.Nodes {
 		if m.EgressIpAddresses.Nodes == nil || len(m.EgressIpAddresses.Nodes) == 0 {
 			continue
 		}
 
-		ret[m.ID] = make([]net.IP, len(m.EgressIpAddresses.Nodes))
+		ret[m.ID] = make([]EgressIPAddress, len(m.EgressIpAddresses.Nodes))
 
 		for i, ip := range m.EgressIpAddresses.Nodes {
-			ret[m.ID][i] = net.ParseIP(ip.IP)
+			ret[m.ID][i] = *ip
 		}
 	}
 

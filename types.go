@@ -517,6 +517,13 @@ type IPAddress struct {
 	}
 }
 
+type EgressIPAddress struct {
+	ID      string
+	IP      string
+	Version int
+	Region  string
+}
+
 type VMSize struct {
 	Name        string
 	CPUCores    float32
@@ -871,7 +878,7 @@ type GqlMachine struct {
 	}
 
 	EgressIpAddresses struct {
-		Nodes []*MachineEgressIP
+		Nodes []*EgressIPAddress
 	}
 }
 
