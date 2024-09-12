@@ -335,7 +335,7 @@ type MachineIP struct {
 type MachineEgressIP struct {
 	ID      string
 	IP      string
-	Version string
+	Version int
 	Region  string
 }
 
