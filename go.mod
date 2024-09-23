@@ -3,7 +3,7 @@ module github.com/superfly/fly-go
 go 1.21
 
 require (
-	github.com/Khan/genqlient v0.7.0
+	github.com/Khan/genqlient v0.7.1-0.20240819060157-4466fc10e4f3
 	github.com/PuerkitoBio/rehttp v1.4.0
 	github.com/superfly/graphql v0.2.4
 	github.com/superfly/macaroon v0.2.13
@@ -17,6 +17,7 @@ require (
 	github.com/agnivade/levenshtein v1.1.1 // indirect
 	github.com/alexflint/go-arg v1.4.2 // indirect
 	github.com/alexflint/go-scalar v1.0.0 // indirect
+	github.com/bmatcuk/doublestar/v4 v4.6.1 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
@@ -39,7 +40,7 @@ require (
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
-	github.com/vektah/gqlparser/v2 v2.5.14 // indirect
+	github.com/vektah/gqlparser/v2 v2.5.16 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.52.0

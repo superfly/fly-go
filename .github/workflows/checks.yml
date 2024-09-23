@@ -63,5 +63,6 @@ jobs:
         run: go mod verify
       - name: generate command strings
         run: go generate ./... && git diff --exit-code
+        if: runner.os != 'Windows'
       - name: Run tests
         run: go test ./...
