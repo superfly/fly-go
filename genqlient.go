@@ -337,6 +337,15 @@ const (
 	DeploymentStrategySimple DeploymentStrategy = "SIMPLE"
 )
 
+var AllDeploymentStrategy = []DeploymentStrategy{
+	DeploymentStrategyBluegreen,
+	DeploymentStrategyCanary,
+	DeploymentStrategyImmediate,
+	DeploymentStrategyRolling,
+	DeploymentStrategyRollingOne,
+	DeploymentStrategySimple,
+}
+
 // EnsureDepotRemoteBuilderEnsureDepotRemoteBuilderEnsureDepotRemoteBuilderPayload includes the requested fields of the GraphQL type EnsureDepotRemoteBuilderPayload.
 // The GraphQL type's documentation follows.
 //
@@ -626,7 +635,7 @@ type __UpdateReleaseInput struct {
 // GetInput returns __UpdateReleaseInput.Input, and is useful for accessing the field via an interface.
 func (v *__UpdateReleaseInput) GetInput() UpdateReleaseInput { return v.Input }
 
-// The query or mutation executed by CreateBuild.
+// The mutation executed by CreateBuild.
 const CreateBuild_Operation = `
 mutation CreateBuild ($input: CreateBuildInput!) {
 	createBuild(input: $input) {
@@ -640,7 +649,7 @@ func CreateBuild(
 	ctx_ context.Context,
 	client_ graphql.Client,
 	input CreateBuildInput,
-) (*CreateBuildResponse, error) {
+) (data_ *CreateBuildResponse, err_ error) {
 	req_ := &graphql.Request{
 		OpName: "CreateBuild",
 		Query:  CreateBuild_Operation,
@@ -648,10 +657,9 @@ func CreateBuild(
 			Input: input,
 		},
 	}
-	var err_ error
 
-	var data_ CreateBuildResponse
-	resp_ := &graphql.Response{Data: &data_}
+	data_ = &CreateBuildResponse{}
+	resp_ := &graphql.Response{Data: data_}
 
 	err_ = client_.MakeRequest(
 		ctx_,
@@ -659,10 +667,10 @@ func CreateBuild(
 		resp_,
 	)
 
-	return &data_, err_
+	return data_, err_
 }
 
-// The query or mutation executed by CreateRelease.
+// The mutation executed by CreateRelease.
 const CreateRelease_Operation = `
 mutation CreateRelease ($input: CreateReleaseInput!) {
 	createRelease(input: $input) {
@@ -678,7 +686,7 @@ func CreateRelease(
 	ctx_ context.Context,
 	client_ graphql.Client,
 	input CreateReleaseInput,
-) (*CreateReleaseResponse, error) {
+) (data_ *CreateReleaseResponse, err_ error) {
 	req_ := &graphql.Request{
 		OpName: "CreateRelease",
 		Query:  CreateRelease_Operation,
@@ -686,10 +694,9 @@ func CreateRelease(
 			Input: input,
 		},
 	}
-	var err_ error
 
-	var data_ CreateReleaseResponse
-	resp_ := &graphql.Response{Data: &data_}
+	data_ = &CreateReleaseResponse{}
+	resp_ := &graphql.Response{Data: data_}
 
 	err_ = client_.MakeRequest(
 		ctx_,
@@ -697,10 +704,10 @@ func CreateRelease(
 		resp_,
 	)
 
-	return &data_, err_
+	return data_, err_
 }
 
-// The query or mutation executed by EnsureDepotRemoteBuilder.
+// The mutation executed by EnsureDepotRemoteBuilder.
 const EnsureDepotRemoteBuilder_Operation = `
 mutation EnsureDepotRemoteBuilder ($input: EnsureDepotRemoteBuilderInput!) {
 	ensureDepotRemoteBuilder(input: $input) {
@@ -714,7 +721,7 @@ func EnsureDepotRemoteBuilder(
 	ctx_ context.Context,
 	client_ graphql.Client,
 	input *EnsureDepotRemoteBuilderInput,
-) (*EnsureDepotRemoteBuilderResponse, error) {
+) (data_ *EnsureDepotRemoteBuilderResponse, err_ error) {
 	req_ := &graphql.Request{
 		OpName: "EnsureDepotRemoteBuilder",
 		Query:  EnsureDepotRemoteBuilder_Operation,
@@ -722,10 +729,9 @@ func EnsureDepotRemoteBuilder(
 			Input: input,
 		},
 	}
-	var err_ error
 
-	var data_ EnsureDepotRemoteBuilderResponse
-	resp_ := &graphql.Response{Data: &data_}
+	data_ = &EnsureDepotRemoteBuilderResponse{}
+	resp_ := &graphql.Response{Data: data_}
 
 	err_ = client_.MakeRequest(
 		ctx_,
@@ -733,10 +739,10 @@ func EnsureDepotRemoteBuilder(
 		resp_,
 	)
 
-	return &data_, err_
+	return data_, err_
 }
 
-// The query or mutation executed by FinishBuild.
+// The mutation executed by FinishBuild.
 const FinishBuild_Operation = `
 mutation FinishBuild ($input: FinishBuildInput!) {
 	finishBuild(input: $input) {
@@ -751,7 +757,7 @@ func FinishBuild(
 	ctx_ context.Context,
 	client_ graphql.Client,
 	input FinishBuildInput,
-) (*FinishBuildResponse, error) {
+) (data_ *FinishBuildResponse, err_ error) {
 	req_ := &graphql.Request{
 		OpName: "FinishBuild",
 		Query:  FinishBuild_Operation,
@@ -759,10 +765,9 @@ func FinishBuild(
 			Input: input,
 		},
 	}
-	var err_ error
 
-	var data_ FinishBuildResponse
-	resp_ := &graphql.Response{Data: &data_}
+	data_ = &FinishBuildResponse{}
+	resp_ := &graphql.Response{Data: data_}
 
 	err_ = client_.MakeRequest(
 		ctx_,
@@ -770,10 +775,10 @@ func FinishBuild(
 		resp_,
 	)
 
-	return &data_, err_
+	return data_, err_
 }
 
-// The query or mutation executed by LatestImage.
+// The query executed by LatestImage.
 const LatestImage_Operation = `
 query LatestImage ($appName: String!) {
 	app(name: $appName) {
@@ -790,7 +795,7 @@ func LatestImage(
 	ctx_ context.Context,
 	client_ graphql.Client,
 	appName string,
-) (*LatestImageResponse, error) {
+) (data_ *LatestImageResponse, err_ error) {
 	req_ := &graphql.Request{
 		OpName: "LatestImage",
 		Query:  LatestImage_Operation,
@@ -798,10 +803,9 @@ func LatestImage(
 			AppName: appName,
 		},
 	}
-	var err_ error
 
-	var data_ LatestImageResponse
-	resp_ := &graphql.Response{Data: &data_}
+	data_ = &LatestImageResponse{}
+	resp_ := &graphql.Response{Data: data_}
 
 	err_ = client_.MakeRequest(
 		ctx_,
@@ -809,10 +813,10 @@ func LatestImage(
 		resp_,
 	)
 
-	return &data_, err_
+	return data_, err_
 }
 
-// The query or mutation executed by UpdateRelease.
+// The mutation executed by UpdateRelease.
 const UpdateRelease_Operation = `
 mutation UpdateRelease ($input: UpdateReleaseInput!) {
 	updateRelease(input: $input) {
@@ -827,7 +831,7 @@ func UpdateRelease(
 	ctx_ context.Context,
 	client_ graphql.Client,
 	input UpdateReleaseInput,
-) (*UpdateReleaseResponse, error) {
+) (data_ *UpdateReleaseResponse, err_ error) {
 	req_ := &graphql.Request{
 		OpName: "UpdateRelease",
 		Query:  UpdateRelease_Operation,
@@ -835,10 +839,9 @@ func UpdateRelease(
 			Input: input,
 		},
 	}
-	var err_ error
 
-	var data_ UpdateReleaseResponse
-	resp_ := &graphql.Response{Data: &data_}
+	data_ = &UpdateReleaseResponse{}
+	resp_ := &graphql.Response{Data: data_}
 
 	err_ = client_.MakeRequest(
 		ctx_,
@@ -846,5 +849,5 @@ func UpdateRelease(
 		resp_,
 	)
 
-	return &data_, err_
+	return data_, err_
 }
