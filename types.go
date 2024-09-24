@@ -97,6 +97,10 @@ type Query struct {
 		App       App
 		IPAddress IPAddress
 	}
+	AllocateEgressIPAddress struct {
+		V4 string
+		V6 string
+	}
 	ReleaseIPAddress struct {
 		App App
 	}
@@ -274,6 +278,10 @@ type App struct {
 	PlatformVersion     string
 	LimitedAccessTokens *struct {
 		Nodes []LimitedAccessToken
+	}
+
+	Machines struct {
+		Nodes []GqlMachine
 	}
 
 	CurrentLock *struct {
@@ -509,6 +517,13 @@ type IPAddress struct {
 	}
 }
 
+type EgressIPAddress struct {
+	ID      string
+	IP      string
+	Version int
+	Region  string
+}
+
 type VMSize struct {
 	Name        string
 	CPUCores    float32
@@ -678,6 +693,11 @@ type AllocateIPAddressInput struct {
 	Region         string `json:"region"`
 	OrganizationID string `json:"organizationId,omitempty"`
 	Network        string `json:"network,omitempty"`
+}
+
+type AllocateEgressIPAddressInput struct {
+	AppID     string `json:"appId"`
+	MachineID string `json:"machineId"`
 }
 
 type ReleaseIPAddressInput struct {
@@ -855,6 +875,10 @@ type GqlMachine struct {
 
 	IPs struct {
 		Nodes []*MachineIP
+	}
+
+	EgressIpAddresses struct {
+		Nodes []*EgressIPAddress
 	}
 }
 
