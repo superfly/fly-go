@@ -184,6 +184,29 @@ func (c *Client) GetEgressIPAddresses(ctx context.Context, appName string) (map[
 	return ret, nil
 }
 
+func (c *Client) ReleaseEgressIPAddress(ctx context.Context, appName, machineID string) (net.IP, net.IP, error) {
+	query := `
+		mutation($input: ReleaseEgressIPAddressInput!) {
+			releaseEgressIpAddress(input: $input) {
+				v4
+				v6
+				clientMutationId
+			}
+		}
+	`
+
+	req := c.NewRequest(query)
+	ctx = ctxWithAction(ctx, "release_egress_ip_address")
+	req.Var("input", ReleaseEgressIPAddressInput{AppID: appName, MachineID: machineID})
+
+	data, err := c.RunWithContext(ctx, req)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return net.ParseIP(data.ReleaseEgressIPAddress.V4), net.ParseIP(data.ReleaseEgressIPAddress.V6), nil
+}
+
 func (c *Client) ReleaseIPAddress(ctx context.Context, appName string, ip string) error {
 	query := `
 		mutation($input: ReleaseIPAddressInput!) {

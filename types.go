@@ -101,6 +101,10 @@ type Query struct {
 		V4 string
 		V6 string
 	}
+	ReleaseEgressIPAddress struct {
+		V4 string
+		V6 string
+	}
 	ReleaseIPAddress struct {
 		App App
 	}
@@ -696,6 +700,11 @@ type AllocateIPAddressInput struct {
 }
 
 type AllocateEgressIPAddressInput struct {
+	AppID     string `json:"appId"`
+	MachineID string `json:"machineId"`
+}
+
+type ReleaseEgressIPAddressInput struct {
 	AppID     string `json:"appId"`
 	MachineID string `json:"machineId"`
 }
