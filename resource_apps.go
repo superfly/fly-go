@@ -136,6 +136,7 @@ func (client *Client) GetApp(ctx context.Context, appName string) (*App, error) 
 						createdAt
 					}
 				}
+				sharedIpAddress
 				imageDetails {
 					registry
 					repository
