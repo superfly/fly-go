@@ -14,6 +14,7 @@ func (c *Client) GetAppLimitedAccessTokens(ctx context.Context, appName string) 
 						name
 						token
 						expiresAt
+						revokedAt
 						user {
 							email
 						}
