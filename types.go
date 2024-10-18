@@ -313,7 +313,7 @@ type LimitedAccessToken struct {
 	Name      string
 	Token     string
 	ExpiresAt time.Time
-	RevokedAt time.Time
+	RevokedAt *time.Time
 	User      User
 }
 
