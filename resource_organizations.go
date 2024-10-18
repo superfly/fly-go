@@ -183,6 +183,7 @@ func (client *Client) GetOrganizationBySlug(ctx context.Context, slug string) (*
 					    id
 					    name
 					    expiresAt
+						revokedAt
 						user {
 							email
 						}
