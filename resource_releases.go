@@ -78,6 +78,44 @@ func (c *Client) GetAppCurrentReleaseMachines(ctx context.Context, appName strin
 	return data.App.CurrentRelease, nil
 }
 
+// Adds metadata to the release
+// TODO: combine with GetAppReleasesMachines
+func (c *Client) GetAppCurrentRelease(ctx context.Context, appName string) (*Release, error) {
+	query := `
+		query ($appName: String!) {
+			app(name: $appName) {
+				currentRelease {
+					id
+					version
+					description
+					reason
+					status
+					imageRef
+					stable
+					user {
+						id
+						email
+						name
+					}
+					metadata
+					createdAt
+				}
+			}
+		}
+	`
+
+	req := c.NewRequest(query)
+	req.Var("appName", appName)
+	ctx = ctxWithAction(ctx, "get_app_current_release")
+
+	data, err := c.RunWithContext(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	return data.App.CurrentRelease, nil
+}
+
 func (c *Client) CreateRelease(ctx context.Context, input CreateReleaseInput) (*CreateReleaseResponse, error) {
 	_ = `# @genqlient
 	mutation CreateRelease($input:CreateReleaseInput!) {
