@@ -478,8 +478,9 @@ var MachinePresets map[string]*MachineGuest = map[string]*MachineGuest{
 }
 
 type MachineMetrics struct {
-	Port int    `toml:"port" json:"port,omitempty"`
-	Path string `toml:"path" json:"path,omitempty"`
+	Port  int    `toml:"port" json:"port,omitempty"`
+	Path  string `toml:"path" json:"path,omitempty"`
+	Https bool   `toml:"https" json:"https,omitempty"`
 }
 
 type MachineCheckKind string
