@@ -302,6 +302,7 @@ func (f *Client) getCaveatNames() ([]string, error) {
 	return caveatNames, nil
 }
 
+// handleAPIError returns an error based on the status code and response body.
 func handleAPIError(statusCode int, responseBody []byte) error {
 	switch statusCode / 100 {
 	case 1, 3:
@@ -311,10 +312,10 @@ func handleAPIError(statusCode int, responseBody []byte) error {
 			Error   string `json:"error"`
 			Message string `json:"message,omitempty"`
 		}{}
-		if err := json.Unmarshal(responseBody, &apiErr); err != nil {
-			return fmt.Errorf("request returned non-2xx status, %d", statusCode)
-		}
-		if apiErr.Message != "" {
+		jsonErr := json.Unmarshal(responseBody, &apiErr)
+		if jsonErr != nil {
+			return fmt.Errorf("request returned non-2xx status: %d: %s", statusCode, string(responseBody))
+		} else if apiErr.Message != "" {
 			return fmt.Errorf("%s", apiErr.Message)
 		}
 		return errors.New(apiErr.Error)
