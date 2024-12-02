@@ -686,6 +686,10 @@ type MachineConfig struct {
 
 	StopConfig *StopConfig `json:"stop_config,omitempty"`
 
+	// Containers are a list of containers that will run in the machine. Currently restricted to
+	// only specific organizations.
+	Containers []*ContainerConfig `json:"containers,omitempty"`
+
 	// Deprecated: use Guest instead
 	VMSize string `json:"size,omitempty"`
 	// Deprecated: use Service.Autostart instead
@@ -768,6 +772,61 @@ type File struct {
 	// Mode bits used to set permissions on this file as accepted by chmod(2).
 	Mode uint32 `json:"mode,omitempty"`
 }
+
+type ContainerConfig struct {
+	// Name is used to identify the container in the machine.
+	Name string `json:"name"`
+
+	// Image is the docker image to run.
+	Image string `json:"image"`
+
+	// Image Config overrides - these fields are used to override the image configuration.
+	// If not provided, the image configuration will be used.
+	// ExecOverride is used to override the default command of the image.
+	ExecOverride []string `json:"exec,omitempty"`
+	// EntrypointOverride is used to override the default entrypoint of the image.
+	EntrypointOverride []string `json:"entrypoint,omitempty"`
+	// CmdOverride is used to override the default command of the image.
+	CmdOverride []string `json:"cmd,omitempty"`
+	// UserOverride is used to override the default user of the image.
+	UserOverride string `json:"user,omitempty"`
+	// ExtraEnv is used to add additional environment variables to the container.
+	ExtraEnv map[string]string `json:"env,omitempty"`
+
+	// Secrets can be provided at the process level to explicitly indicate which secrets should be
+	// used for the process. If not provided, the secrets provided at the machine level will be used.
+	Secrets []MachineSecret `json:"secrets,omitempty"`
+
+	// EnvFrom can be provided to set environment variables from machine fields.
+	EnvFrom []EnvFrom `json:"env_from,omitempty"`
+
+	// Files are files that will be written to the container file system.
+	Files []*File `json:"files,omitempty"`
+
+	// Restart is used to define the restart policy for the container. NOTE: spot-price is not
+	// supported for containers.
+	Restart *MachineRestart `json:"restart,omitempty"`
+
+	// Stop is used to define the signal and timeout for stopping the container.
+	Stop *StopConfig `json:"stop,omitempty"`
+
+	// DependsOn can be used to define dependencies between containers. The container will only be
+	// started after all of its dependent conditions have been satisfied.
+	DependsOn []ContainerDependency `json:"depends_on,omitempty"`
+}
+
+type ContainerDependency struct {
+	Name      string                       `json:"name"`
+	Condition ContainerDependencyCondition `json:"condition" enums:"exited_successfully,healthy,started"`
+}
+
+type ContainerDependencyCondition string
+
+const (
+	ExitedSuccessfully ContainerDependencyCondition = "exited_successfully"
+	Healthy            ContainerDependencyCondition = "healthy"
+	Started            ContainerDependencyCondition = "started"
+)
 
 type MachineLease struct {
 	Status  string            `json:"status,omitempty"`
