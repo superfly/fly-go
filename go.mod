@@ -1,14 +1,15 @@
 module github.com/superfly/fly-go
 
 go 1.21
+toolchain go1.22.5
 
 require (
 	github.com/Khan/genqlient v0.7.1-0.20240819060157-4466fc10e4f3
 	github.com/PuerkitoBio/rehttp v1.4.0
 	github.com/superfly/graphql v0.2.4
 	github.com/superfly/macaroon v0.2.13
-	go.opentelemetry.io/otel v1.27.0
-	go.opentelemetry.io/otel/trace v1.27.0
+	go.opentelemetry.io/otel v1.32.0
+	go.opentelemetry.io/otel/trace v1.32.0
 	golang.org/x/crypto v0.29.0
 	golang.org/x/exp v0.0.0-20240416160154-fe59bbe5cc7f
 )
@@ -43,7 +44,7 @@ require (
 	github.com/vektah/gqlparser/v2 v2.5.16 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
-	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.52.0
-	go.opentelemetry.io/otel/metric v1.27.0 // indirect
+	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.57.0
+	go.opentelemetry.io/otel/metric v1.32.0 // indirect
 	golang.org/x/sys v0.27.0 // indirect
 )
