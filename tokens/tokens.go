@@ -304,7 +304,8 @@ func (t *Tokens) pruneBadMacaroons() bool {
 		// so requests don't fail.
 		//
 		// TODO: this is hacky
-		if m.Location == flyio.LocationAuthentication && time.Now().Add(time.Minute).After(m.Expiration()) {
+		if (m.Location == flyio.LocationAuthentication || m.Location == flyio.LocationNewAuthentication) &&
+			time.Now().Add(time.Minute).After(m.Expiration()) {
 			updated = true
 			return true
 		}
