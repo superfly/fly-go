@@ -85,8 +85,6 @@ github.com/stretchr/testify v1.9.0 h1:HtqpIVDClZ4nwg75+f6Lvsy/wHu+3BoSGCbBAcpTsT
 github.com/stretchr/testify v1.9.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8C91i36aY=
 github.com/superfly/graphql v0.2.4 h1:Av8hSk4x8WvKJ6MTnEwrLknSVSGPc7DWpgT3z/kt3PU=
 github.com/superfly/graphql v0.2.4/go.mod h1:CVfDl31srm8HnJ9udwLu6hFNUW/P6GUM2dKcG1YQ8jc=
-github.com/superfly/macaroon v0.2.14-0.20240913214036-07f7fc87c538 h1:Lk2pY3ezKn8tNmrwJaX1pnooKhq+4Xm8pEZDUy8nctM=
-github.com/superfly/macaroon v0.2.14-0.20240913214036-07f7fc87c538/go.mod h1:ZAmlRD/Hmp/ddTxE8IonZ7NdTny2DcOffRvZhapQwJw=
 github.com/superfly/macaroon v0.2.14-0.20241217173013-cc1420df8b5f h1:zlkkoTM5foCSQUA30ettNnvF3PaK5VmV2bYa0F1gxu4=
 github.com/superfly/macaroon v0.2.14-0.20241217173013-cc1420df8b5f/go.mod h1:ZAmlRD/Hmp/ddTxE8IonZ7NdTny2DcOffRvZhapQwJw=
 github.com/vektah/gqlparser/v2 v2.5.16 h1:1gcmLTvs3JLKXckwCwlUagVn/IlV2bwqle0vJ0vy5p8=
