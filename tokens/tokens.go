@@ -182,8 +182,13 @@ func (t *Tokens) Empty() bool {
 // Update prunes any invalid/expired macaroons and fetches needed third party
 // discharges
 func (t *Tokens) Update(ctx context.Context, opts ...UpdateOption) (bool, error) {
-	pruned := t.pruneBadMacaroons()
-	discharged, err := t.dischargeThirdPartyCaveats(ctx, opts)
+	options := &updateOptions{debugger: noopDebugger{}, advancePrune: 1 * time.Minute}
+	for _, o := range opts {
+		o(options)
+	}
+
+	pruned := t.pruneBadMacaroons(options)
+	discharged, err := t.dischargeThirdPartyCaveats(ctx, options)
 
 	return pruned || discharged, err
 }
@@ -247,7 +252,7 @@ func (t *Tokens) normalized(macaroonsAndUserTokens, includeScheme bool) string {
 
 // pruneBadMacaroons removes expired and invalid macaroon tokens as well as
 // discharge tokens that are no longer needed.
-func (t *Tokens) pruneBadMacaroons() bool {
+func (t *Tokens) pruneBadMacaroons(options *updateOptions) bool {
 	t.m.Lock()
 	defer t.m.Unlock()
 
@@ -299,12 +304,13 @@ func (t *Tokens) pruneBadMacaroons() bool {
 			return true
 		}
 
-		// preemptively prune auth tokens that will expire in the next minute.
+		// preemptively prune auth tokens according to the advancePrune option.
 		// The hope is that we can replace discharge tokens *before* they expire
 		// so requests don't fail.
 		//
 		// TODO: this is hacky
-		if m.Location == flyio.LocationAuthentication && time.Now().Add(time.Minute).After(m.Expiration()) {
+		if (m.Location == flyio.LocationAuthentication || m.Location == flyio.LocationNewAuthentication) &&
+			time.Now().Add(options.advancePrune).After(m.Expiration()) {
 			updated = true
 			return true
 		}
@@ -319,7 +325,7 @@ func (t *Tokens) pruneBadMacaroons() bool {
 // for 3rd party caveats found within macaroon tokens.
 //
 // See https://github.com/superfly/macaroon/blob/main/tp/README.md
-func (t *Tokens) dischargeThirdPartyCaveats(ctx context.Context, opts []UpdateOption) (bool, error) {
+func (t *Tokens) dischargeThirdPartyCaveats(ctx context.Context, options *updateOptions) (bool, error) {
 	t.m.RLock()
 	macaroons := strings.Join(t.macaroons, ",")
 	oauths := strings.Join(t.oauths, ",")
@@ -327,11 +333,6 @@ func (t *Tokens) dischargeThirdPartyCaveats(ctx context.Context, opts []UpdateOp
 
 	if macaroons == "" {
 		return false, nil
-	}
-
-	options := &updateOptions{debugger: noopDebugger{}}
-	for _, o := range opts {
-		o(options)
 	}
 
 	jar, err := cookiejar.New(nil)
@@ -387,6 +388,7 @@ type UpdateOption func(*updateOptions)
 type updateOptions struct {
 	clientOptions []tp.ClientOption
 	debugger      Debugger
+	advancePrune  time.Duration
 }
 
 func WithUserURLCallback(cb func(ctx context.Context, url string) error) UpdateOption {
@@ -408,6 +410,12 @@ type Debugger interface {
 type noopDebugger struct{}
 
 func (noopDebugger) Debug(...any) {}
+
+func WithAdvancePrune(advancePrune time.Duration) UpdateOption {
+	return func(o *updateOptions) {
+		o.advancePrune = advancePrune
+	}
+}
 
 type debugTransport struct {
 	d Debugger
