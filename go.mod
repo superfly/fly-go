@@ -5,7 +5,7 @@ go 1.21
 require (
 	github.com/Khan/genqlient v0.7.1-0.20240819060157-4466fc10e4f3
 	github.com/PuerkitoBio/rehttp v1.4.0
-	github.com/superfly/graphql v0.2.4
+	github.com/superfly/graphql v0.2.5
 	github.com/superfly/macaroon v0.2.13
 	go.opentelemetry.io/otel v1.27.0
 	go.opentelemetry.io/otel/trace v1.27.0
