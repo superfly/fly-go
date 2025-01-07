@@ -813,7 +813,34 @@ type ContainerConfig struct {
 	// DependsOn can be used to define dependencies between containers. The container will only be
 	// started after all of its dependent conditions have been satisfied.
 	DependsOn []ContainerDependency `json:"depends_on,omitempty"`
+
+	// Healthchecks determine the health of your containers. Healthchecks can use HTTP, TCP or an Exec command.
+	Healthchecks []ContainerHealthchecks `json:"healthchecks,omitempty"`
+
+	// Set of mounts added to the container. These can be volume mounts or shared mounts.
+	Mounts []ContainerMount `json:"mounts,omitempty"`
 }
+
+type ContainerMount struct {
+	SharedMount []SharedMount `json:"shared_mounts,omitempty"`
+}
+
+// A shared mount is a folder that can be shared between multiple containers. This is often used
+// as scratch space, to communicate between containers and so on. It is deleted entirely when
+// a Machine exits or is restarted
+type SharedMount struct {
+	Name        string      `json:"name"`
+	Path        string      `json:"path"`
+	StorageType StorageType `json:"storage_type"`
+	SizeMB      uint64      `json:"size_mb,omitempty"`
+}
+
+type StorageType string
+
+const (
+	StorageTypeDisk   = "disk"
+	StorageTypeMemory = "memory"
+)
 
 type ContainerDependency struct {
 	Name      string                       `json:"name"`
@@ -827,6 +854,86 @@ const (
 	Healthy            ContainerDependencyCondition = "healthy"
 	Started            ContainerDependencyCondition = "started"
 )
+
+type ContainerHealthcheckKind string
+
+const (
+	// Readiness checks ensure your container is ready to receive traffic.
+	Readiness ContainerHealthcheckKind = "readiness"
+	// Liveness checks ensure your container is reachable and functional. When a liveness check
+	// fails, a policy is used to determine what action to perform such as restarting the container.
+	Liveness ContainerHealthcheckKind = "liveness"
+)
+
+type ContainerHealthcheckScheme string
+
+const (
+	HTTP  ContainerHealthcheckScheme = "http"
+	HTTPS ContainerHealthcheckScheme = "https"
+)
+
+type UnhealthyPolicy string
+
+const (
+	// When a container becomes unhealthy, stop it. If there is a restart policy set on
+	// the container, it will be applied
+	UnhealthyPolicyStop UnhealthyPolicy = "stop"
+)
+
+type ContainerHealthchecks struct {
+	HTTP []HttpHealthcheck `json:"http_healthchecks,omitempty"`
+	TCP  []TcpHealthcheck  `json:"tcp_healthchecks,omitempty"`
+	Exec []ExecHealthcheck `json:"exec_healthchecks,omitempty"`
+}
+
+type ContainerHealthcheck struct {
+	// The name of the check. Must be unique within the container.
+	Name string `json:"name"`
+	// The time in seconds between executing the defined check.
+	Interval int64 `json:"interval,omitempty"`
+	// The time in seconds to wait after a container starts before checking its health.
+	GracePeriod int64 `json:"grace_period,omitempty"`
+	// The number of times the check must succeeed before considering the container healthy.
+	SuccessThreshold int32 `json:"success_threshold,omitempty"`
+	// The number of times the check must fail before considering the container unhealthy.
+	FailureThreshold int32 `json:"failure_threshold,omitempty"`
+	// The time in seconds to wait for the check to complete.
+	Timeout int64 `json:"timeout,omitempty"`
+	// Kind of healthcheck (readiness, liveness)
+	Kind ContainerHealthcheckKind `json:"kind,omitempty"`
+	// Unhealthy policy that determines what action to take if a container is deemed unhealthy
+	Unhealthy UnhealthyPolicy `json:"unhealthy,omitempty"`
+}
+
+type HttpHealthcheck struct {
+	ContainerHealthcheck
+	// The port to connect to, often the same as internal_port
+	Port int32 `json:"port"`
+	// The HTTP method to use to when making the request
+	Method string `json:"method,omitempty"`
+	// The path to send the request to
+	Path string `json:"path,omitempty"`
+	// Additional headers to send with the request
+	Headers []MachineHTTPHeader `json:"headers,omitempty"`
+	// Whether to use http or https
+	Scheme ContainerHealthcheckScheme `json:"scheme,omitempty"`
+	// If the protocol is https, whether or not to verify the TLS certificate
+	TLSSkipVerify *bool `json:"tls_skip_verify,omitempty"`
+	// If the protocol is https, the hostname to use for TLS certificate validation
+	TLSServerName string `json:"tls_server_name,omitempty"`
+}
+
+type TcpHealthcheck struct {
+	ContainerHealthcheck
+	// The port to connect to, often the same as internal_port
+	Port int32 `json:"port"`
+}
+
+type ExecHealthcheck struct {
+	ContainerHealthcheck
+	// The command to run to check the health of the container (e.g. ["cat", "/tmp/healthy"])
+	Command []string `json:"command"`
+}
 
 type MachineLease struct {
 	Status  string            `json:"status,omitempty"`
