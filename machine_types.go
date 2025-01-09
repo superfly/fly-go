@@ -881,8 +881,8 @@ const (
 )
 
 type ContainerHealthchecks struct {
-	HTTP []HttpHealthcheck `json:"http_healthchecks,omitempty"`
-	TCP  []TcpHealthcheck  `json:"tcp_healthchecks,omitempty"`
+	HTTP []HTTPHealthcheck `json:"http_healthchecks,omitempty"`
+	TCP  []TCPHealthcheck  `json:"tcp_healthchecks,omitempty"`
 	Exec []ExecHealthcheck `json:"exec_healthchecks,omitempty"`
 }
 
@@ -905,7 +905,7 @@ type ContainerHealthcheck struct {
 	Unhealthy UnhealthyPolicy `json:"unhealthy,omitempty"`
 }
 
-type HttpHealthcheck struct {
+type HTTPHealthcheck struct {
 	ContainerHealthcheck
 	// The port to connect to, often the same as internal_port
 	Port int32 `json:"port"`
@@ -923,7 +923,7 @@ type HttpHealthcheck struct {
 	TLSServerName string `json:"tls_server_name,omitempty"`
 }
 
-type TcpHealthcheck struct {
+type TCPHealthcheck struct {
 	ContainerHealthcheck
 	// The port to connect to, often the same as internal_port
 	Port int32 `json:"port"`
