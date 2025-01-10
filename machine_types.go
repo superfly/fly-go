@@ -815,7 +815,7 @@ type ContainerConfig struct {
 	DependsOn []ContainerDependency `json:"depends_on,omitempty"`
 
 	// Healthchecks determine the health of your containers. Healthchecks can use HTTP, TCP or an Exec command.
-	Healthchecks []ContainerHealthchecks `json:"healthchecks,omitempty"`
+	Healthchecks []ContainerHealthcheck `json:"healthchecks,omitempty"`
 
 	// Set of mounts added to the container. These can be volume mounts or shared mounts.
 	Mounts []ContainerMount `json:"mounts,omitempty"`
@@ -881,10 +881,10 @@ const (
 	UnhealthyPolicyStop UnhealthyPolicy = "stop"
 )
 
-type ContainerHealthchecks struct {
-	HTTP []HTTPHealthcheck `json:"http_healthchecks,omitempty"`
-	TCP  []TCPHealthcheck  `json:"tcp_healthchecks,omitempty"`
-	Exec []ExecHealthcheck `json:"exec_healthchecks,omitempty"`
+type ContainerHealthcheckType struct {
+	HTTP *HTTPHealthcheck `json:"http,omitempty"`
+	TCP  *TCPHealthcheck  `json:"tcp,omitempty"`
+	Exec *ExecHealthcheck `json:"exec,omitempty"`
 }
 
 type ContainerHealthcheck struct {
@@ -904,10 +904,11 @@ type ContainerHealthcheck struct {
 	Kind ContainerHealthcheckKind `json:"kind,omitempty"`
 	// Unhealthy policy that determines what action to take if a container is deemed unhealthy
 	Unhealthy UnhealthyPolicy `json:"unhealthy,omitempty"`
+	// The type of healthcheck
+	ContainerHealthcheckType
 }
 
 type HTTPHealthcheck struct {
-	ContainerHealthcheck
 	// The port to connect to, often the same as internal_port
 	Port int32 `json:"port"`
 	// The HTTP method to use to when making the request
@@ -925,13 +926,11 @@ type HTTPHealthcheck struct {
 }
 
 type TCPHealthcheck struct {
-	ContainerHealthcheck
 	// The port to connect to, often the same as internal_port
 	Port int32 `json:"port"`
 }
 
 type ExecHealthcheck struct {
-	ContainerHealthcheck
 	// The command to run to check the health of the container (e.g. ["cat", "/tmp/healthy"])
 	Command []string `json:"command"`
 }
