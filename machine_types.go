@@ -821,8 +821,9 @@ type ContainerConfig struct {
 	Mounts []ContainerMount `json:"mounts,omitempty"`
 }
 
+// TODO: Add volume mount when supported
 type ContainerMount struct {
-	SharedMount []SharedMount `json:"shared_mounts,omitempty"`
+	SharedMount *SharedMount `json:"shared_mount,omitempty"`
 }
 
 // A shared mount is a folder that can be shared between multiple containers. This is often used
