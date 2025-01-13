@@ -690,6 +690,10 @@ type MachineConfig struct {
 	// only specific organizations.
 	Containers []*ContainerConfig `json:"containers,omitempty"`
 
+	// Volumes describe the set of volumes that can be attached to the machine. Used in conjuction
+	// with containers
+	Volumes []*VolumeConfig `json:"volumes,omitempty"`
+
 	// Deprecated: use Guest instead
 	VMSize string `json:"size,omitempty"`
 	// Deprecated: use Service.Autostart instead
@@ -817,23 +821,15 @@ type ContainerConfig struct {
 	// Healthchecks determine the health of your containers. Healthchecks can use HTTP, TCP or an Exec command.
 	Healthchecks []ContainerHealthcheck `json:"healthchecks,omitempty"`
 
-	// Set of mounts added to the container. These can be volume mounts or shared mounts.
+	// Set of mounts added to the container. These must reference a volume in the machine config via its name.
 	Mounts []ContainerMount `json:"mounts,omitempty"`
 }
 
-// TODO: Add volume mount when supported
 type ContainerMount struct {
-	SharedMount *SharedMount `json:"shared_mount,omitempty"`
-}
-
-// A shared mount is a folder that can be shared between multiple containers. This is often used
-// as scratch space, to communicate between containers and so on. It is deleted entirely when
-// a Machine exits or is restarted
-type SharedMount struct {
-	Name        string      `json:"name"`
-	Path        string      `json:"path"`
-	StorageType StorageType `json:"storage_type"`
-	SizeMB      uint64      `json:"size_mb,omitempty"`
+	// The name of the volume. Must exist in the volumes field in the machine configuration
+	Name string `json:"name"`
+	// The path to mount the volume within the container
+	Path string `json:"path"`
 }
 
 type StorageType string
@@ -933,6 +929,26 @@ type TCPHealthcheck struct {
 type ExecHealthcheck struct {
 	// The command to run to check the health of the container (e.g. ["cat", "/tmp/healthy"])
 	Command []string `json:"command"`
+}
+
+type VolumeConfig struct {
+	// The name of the volume. A volume must have a unique name within an app
+	Name string `json:"name"`
+	// The volume resource, provides configuration for the volume
+	VolumeResource
+}
+
+type VolumeResource struct {
+	TempDir *TempDirVolume `json:"temp_dir,omitempty"`
+}
+
+// A TempDir is an ephemeral directory tied to the lifecycle of a Machine. It
+// is often used as scratch space, to communicate between containers and so on.
+type TempDirVolume struct {
+	// The type of storage used to back the temp dir. Either disk or memory.
+	StorageType StorageType `json:"storage_type"`
+	// The size limit of the temp dir, only applicable when using disk backed storage.
+	SizeMB uint64 `json:"size_mb,omitempty"`
 }
 
 type MachineLease struct {
