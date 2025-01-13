@@ -690,6 +690,10 @@ type MachineConfig struct {
 	// only specific organizations.
 	Containers []*ContainerConfig `json:"containers,omitempty"`
 
+	// Volumes describe the set of volumes that can be attached to the machine. Used in conjuction
+	// with containers
+	Volumes []*VolumeConfig `json:"volumes,omitempty"`
+
 	// Deprecated: use Guest instead
 	VMSize string `json:"size,omitempty"`
 	// Deprecated: use Service.Autostart instead
@@ -813,6 +817,19 @@ type ContainerConfig struct {
 	// DependsOn can be used to define dependencies between containers. The container will only be
 	// started after all of its dependent conditions have been satisfied.
 	DependsOn []ContainerDependency `json:"depends_on,omitempty"`
+
+	// Healthchecks determine the health of your containers. Healthchecks can use HTTP, TCP or an Exec command.
+	Healthchecks []ContainerHealthcheck `json:"healthchecks,omitempty"`
+
+	// Set of mounts added to the container. These must reference a volume in the machine config via its name.
+	Mounts []ContainerMount `json:"mounts,omitempty"`
+}
+
+type ContainerMount struct {
+	// The name of the volume. Must exist in the volumes field in the machine configuration
+	Name string `json:"name"`
+	// The path to mount the volume within the container
+	Path string `json:"path"`
 }
 
 type ContainerDependency struct {
@@ -827,6 +844,112 @@ const (
 	Healthy            ContainerDependencyCondition = "healthy"
 	Started            ContainerDependencyCondition = "started"
 )
+
+type ContainerHealthcheckKind string
+
+const (
+	// Readiness checks ensure your container is ready to receive traffic.
+	Readiness ContainerHealthcheckKind = "readiness"
+	// Liveness checks ensure your container is reachable and functional. When a liveness check
+	// fails, a policy is used to determine what action to perform such as restarting the container.
+	Liveness ContainerHealthcheckKind = "liveness"
+)
+
+type ContainerHealthcheckScheme string
+
+const (
+	HTTP  ContainerHealthcheckScheme = "http"
+	HTTPS ContainerHealthcheckScheme = "https"
+)
+
+type UnhealthyPolicy string
+
+const (
+	// When a container becomes unhealthy, stop it. If there is a restart policy set on
+	// the container, it will be applied
+	UnhealthyPolicyStop UnhealthyPolicy = "stop"
+)
+
+type ContainerHealthcheckType struct {
+	HTTP *HTTPHealthcheck `json:"http,omitempty"`
+	TCP  *TCPHealthcheck  `json:"tcp,omitempty"`
+	Exec *ExecHealthcheck `json:"exec,omitempty"`
+}
+
+type ContainerHealthcheck struct {
+	// The name of the check. Must be unique within the container.
+	Name string `json:"name"`
+	// The time in seconds between executing the defined check.
+	Interval int64 `json:"interval,omitempty"`
+	// The time in seconds to wait after a container starts before checking its health.
+	GracePeriod int64 `json:"grace_period,omitempty"`
+	// The number of times the check must succeeed before considering the container healthy.
+	SuccessThreshold int32 `json:"success_threshold,omitempty"`
+	// The number of times the check must fail before considering the container unhealthy.
+	FailureThreshold int32 `json:"failure_threshold,omitempty"`
+	// The time in seconds to wait for the check to complete.
+	Timeout int64 `json:"timeout,omitempty"`
+	// Kind of healthcheck (readiness, liveness)
+	Kind ContainerHealthcheckKind `json:"kind,omitempty"`
+	// Unhealthy policy that determines what action to take if a container is deemed unhealthy
+	Unhealthy UnhealthyPolicy `json:"unhealthy,omitempty"`
+	// The type of healthcheck
+	ContainerHealthcheckType
+}
+
+type HTTPHealthcheck struct {
+	// The port to connect to, often the same as internal_port
+	Port int32 `json:"port"`
+	// The HTTP method to use to when making the request
+	Method string `json:"method,omitempty"`
+	// The path to send the request to
+	Path string `json:"path,omitempty"`
+	// Additional headers to send with the request
+	Headers []MachineHTTPHeader `json:"headers,omitempty"`
+	// Whether to use http or https
+	Scheme ContainerHealthcheckScheme `json:"scheme,omitempty"`
+	// If the protocol is https, whether or not to verify the TLS certificate
+	TLSSkipVerify *bool `json:"tls_skip_verify,omitempty"`
+	// If the protocol is https, the hostname to use for TLS certificate validation
+	TLSServerName string `json:"tls_server_name,omitempty"`
+}
+
+type TCPHealthcheck struct {
+	// The port to connect to, often the same as internal_port
+	Port int32 `json:"port"`
+}
+
+type ExecHealthcheck struct {
+	// The command to run to check the health of the container (e.g. ["cat", "/tmp/healthy"])
+	Command []string `json:"command"`
+}
+
+type VolumeConfig struct {
+	// The name of the volume. A volume must have a unique name within an app
+	Name string `json:"name"`
+	// The volume resource, provides configuration for the volume
+	VolumeResource
+}
+
+type VolumeResource struct {
+	TempDir *TempDirVolume `json:"temp_dir,omitempty"`
+}
+
+type StorageType string
+
+const (
+	StorageTypeDisk   = "disk"
+	StorageTypeMemory = "memory"
+)
+
+// A TempDir is an ephemeral directory tied to the lifecycle of a Machine. It
+// is often used as scratch space, to communicate between containers and so on.
+type TempDirVolume struct {
+	// The type of storage used to back the temp dir. Either disk or memory.
+	StorageType StorageType `json:"storage_type"`
+	// The size limit of the temp dir, only applicable when using disk backed storage.
+	SizeMB uint64 `json:"size_mb,omitempty"`
+}
 
 type MachineLease struct {
 	Status  string            `json:"status,omitempty"`
