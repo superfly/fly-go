@@ -832,13 +832,6 @@ type ContainerMount struct {
 	Path string `json:"path"`
 }
 
-type StorageType string
-
-const (
-	StorageTypeDisk   = "disk"
-	StorageTypeMemory = "memory"
-)
-
 type ContainerDependency struct {
 	Name      string                       `json:"name"`
 	Condition ContainerDependencyCondition `json:"condition" enums:"exited_successfully,healthy,started"`
@@ -941,6 +934,13 @@ type VolumeConfig struct {
 type VolumeResource struct {
 	TempDir *TempDirVolume `json:"temp_dir,omitempty"`
 }
+
+type StorageType string
+
+const (
+	StorageTypeDisk   = "disk"
+	StorageTypeMemory = "memory"
+)
 
 // A TempDir is an ephemeral directory tied to the lifecycle of a Machine. It
 // is often used as scratch space, to communicate between containers and so on.
