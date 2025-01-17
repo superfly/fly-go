@@ -781,6 +781,9 @@ type ContainerConfig struct {
 	// Name is used to identify the container in the machine.
 	Name string `json:"name"`
 
+	// Hostname is used to set the hostname for the container
+	Hostname string `json:"hostname,omitempty"`
+
 	// Image is the docker image to run.
 	Image string `json:"image"`
 
