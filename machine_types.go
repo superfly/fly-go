@@ -1032,8 +1032,10 @@ type EnvFrom struct {
 }
 
 type MachineExecRequest struct {
-	Cmd     string `json:"cmd,omitempty"`
-	Timeout int    `json:"timeout,omitempty"`
+	Container string `json:"container,omitempty"`
+	Cmd       string `json:"cmd,omitempty"`
+	Stdin     string `json:"stdin,omitempty"`
+	Timeout   int    `json:"timeout,omitempty"`
 }
 
 type MachineExecResponse struct {
