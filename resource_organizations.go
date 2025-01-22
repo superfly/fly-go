@@ -61,6 +61,113 @@ func (client *Client) GetOrganizations(ctx context.Context, filters ...Organizat
 	return data.Organizations.Nodes, nil
 }
 
+func (client *Client) GetOrganizationRemoteBuilderBySlug(ctx context.Context, slug string) (*Organization, error) {
+	q := `
+		query($slug: String!) {
+			organization(slug: $slug) {
+				id
+				internalNumericId
+				slug
+				name
+				type
+				billable
+				limitedAccessTokens {
+					nodes {
+					    id
+					    name
+					    expiresAt
+						user {
+							email
+						}
+					}
+				}
+				remoteBuilderImage
+				remoteBuilderApp {
+					id
+					name
+					hostname
+					deployed
+					status
+					version
+					appUrl
+					platformVersion
+					currentRelease {
+						evaluationId
+						status
+						inProgress
+						version
+					}
+					ipAddresses {
+						nodes {
+							id
+							address
+							type
+							createdAt
+						}
+					}
+					organization {
+						id
+						slug
+						paidPlan
+					}
+					imageDetails {
+						registry
+						repository
+						tag
+						digest
+						version
+					}
+					machines{
+						nodes {
+							id
+							name
+							config
+							state
+							region
+							createdAt
+							app {
+								name
+							}
+							ips {
+								nodes {
+									family
+									kind
+									ip
+									maskSize
+								}
+							}
+							host {
+								id
+							}
+						}
+					}
+					postgresAppRole: role {
+						name
+					}
+					limitedAccessTokens {
+						nodes {
+							id
+							name
+							expiresAt
+						}
+					}
+				}
+			}
+		}
+	`
+
+	req := client.NewRequest(q)
+	ctx = ctxWithAction(ctx, "get_organization_by_slug")
+	req.Var("slug", slug)
+
+	data, err := client.RunWithContext(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	return data.Organization, nil
+}
+
 func (client *Client) GetOrganizationBySlug(ctx context.Context, slug string) (*Organization, error) {
 	q := `
 		query($slug: String!) {
@@ -76,6 +183,7 @@ func (client *Client) GetOrganizationBySlug(ctx context.Context, slug string) (*
 					    id
 					    name
 					    expiresAt
+						revokedAt
 						user {
 							email
 						}
@@ -100,12 +208,12 @@ func (client *Client) GetOrganizationBySlug(ctx context.Context, slug string) (*
 func (client *Client) GetDetailedOrganizationBySlug(ctx context.Context, slug string) (*OrganizationDetails, error) {
 	query := `query($slug: String!) {
 		organizationdetails: organization(slug: $slug) {
-		  id
-		  slug
-		  name
-		  type
-		  viewerRole
-		  internalNumericId
+			id
+			slug
+			name
+			type
+			viewerRole
+			internalNumericId
 			remoteBuilderImage
 			remoteBuilderApp {
 				name
@@ -121,9 +229,9 @@ func (client *Client) GetDetailedOrganizationBySlug(ctx context.Context, slug st
 					joinedAt
 					role
 				}
-		  }
+			}
 		}
-	  }
+	}
 	`
 
 	req := client.NewRequest(query)
@@ -255,4 +363,105 @@ func (c *Client) DeleteOrganizationMembership(ctx context.Context, orgId, userId
 	}
 
 	return data.DeleteOrganizationMembership.Organization.Name, data.DeleteOrganizationMembership.User.Email, nil
+}
+
+func (client *Client) GetOrganizationByApp(ctx context.Context, appName string) (*Organization, error) {
+	q := `
+		query ($appName: String!) {
+			app(name: $appName) {
+				id
+				name
+				organization {
+					id
+					slug
+					paidPlan
+					remoteBuilderImage
+					remoteBuilderApp {
+						id
+						name
+						hostname
+						deployed
+						status
+						version
+						appUrl
+						platformVersion
+						currentRelease {
+							evaluationId
+							status
+							inProgress
+							version
+						}
+						ipAddresses {
+							nodes {
+								id
+								address
+								type
+								createdAt
+							}
+						}
+						organization {
+							id
+							slug
+							paidPlan
+						}
+						imageDetails {
+							registry
+							repository
+							tag
+							digest
+							version
+						}
+						machines{
+							nodes {
+								id
+								name
+								config
+								state
+								region
+								createdAt
+								app {
+									name
+								}
+								ips {
+									nodes {
+										family
+										kind
+										ip
+										maskSize
+									}
+								}
+								host {
+									id
+								}
+							}
+						}
+						postgresAppRole: role {
+							name
+						}
+						limitedAccessTokens {
+							nodes {
+								id
+								name
+								expiresAt
+							}
+						}
+					}
+
+				}
+
+			}
+		}
+	`
+
+	req := client.NewRequest(q)
+	req.Var("appName", appName)
+
+	ctx = ctxWithAction(ctx, "get_organization_by_app")
+
+	data, err := client.RunWithContext(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	return &data.App.Organization, nil
 }

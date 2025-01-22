@@ -51,6 +51,7 @@ type Query struct {
 
 	LatestImageTag     string
 	LatestImageDetails ImageVersion
+	AppHostIssues      AppHostIssues
 	// aliases & nodes
 
 	// mutations
@@ -95,6 +96,14 @@ type Query struct {
 	AllocateIPAddress struct {
 		App       App
 		IPAddress IPAddress
+	}
+	AllocateEgressIPAddress struct {
+		V4 string
+		V6 string
+	}
+	ReleaseEgressIPAddress struct {
+		V4 string
+		V6 string
 	}
 	ReleaseIPAddress struct {
 		App App
@@ -151,6 +160,23 @@ type Query struct {
 
 	CanPerformBluegreenDeployment bool
 	AppNameAvailable              bool
+
+	LockApp *LockApp
+}
+
+type LockApp struct {
+	LockID     string `json:"lockId"`
+	Expiration time.Time
+}
+
+type LockAppInput struct {
+	AppID  string `json:"app_id"`
+	LockID string `json:"lock_id"`
+}
+
+type UnlockAppInput struct {
+	AppID  string `json:"app_id"`
+	LockID string `json:"lock_id"`
 }
 
 type CreatedWireGuardPeer struct {
@@ -215,16 +241,17 @@ func (img *ImageVersion) FullImageRef() string {
 }
 
 type App struct {
-	ID        string
-	Name      string
-	State     string
-	Status    string
-	Deployed  bool
-	Hostname  string
-	AppURL    string
-	Version   int
-	NetworkID int
-	Network   string
+	ID                string
+	InternalNumericID int32
+	Name              string
+	State             string
+	Status            string
+	Deployed          bool
+	Hostname          string
+	AppURL            string
+	Version           int
+	NetworkID         int
+	Network           string
 
 	Release        *Release
 	Organization   Organization
@@ -256,11 +283,37 @@ type App struct {
 	LimitedAccessTokens *struct {
 		Nodes []LimitedAccessToken
 	}
+
+	Machines struct {
+		Nodes []GqlMachine
+	}
+
+	CurrentLock *struct {
+		LockID     string
+		Expiration string
+	}
 }
+
+func (app *App) Compact() *AppCompact {
+	return &AppCompact{
+		ID:              app.ID,
+		Name:            app.Name,
+		Status:          app.Status,
+		Deployed:        app.Deployed,
+		Hostname:        app.Hostname,
+		AppURL:          app.AppURL,
+		Organization:    app.Organization.Basic(),
+		PlatformVersion: app.PlatformVersion,
+		PostgresAppRole: app.PostgresAppRole,
+	}
+}
+
 type LimitedAccessToken struct {
 	Id        string
 	Name      string
+	Token     string
 	ExpiresAt time.Time
+	RevokedAt *time.Time
 	User      User
 }
 
@@ -364,6 +417,20 @@ type Organization struct {
 	}
 }
 
+func (o *Organization) Basic() *OrganizationBasic {
+	if o == nil {
+		return nil
+	}
+
+	return &OrganizationBasic{
+		ID:       o.ID,
+		Name:     o.Name,
+		Slug:     o.Slug,
+		RawSlug:  o.RawSlug,
+		PaidPlan: o.PaidPlan,
+	}
+}
+
 func (o *Organization) GetID() string {
 	return o.ID
 }
@@ -373,11 +440,12 @@ func (o *Organization) GetSlug() string {
 }
 
 type OrganizationBasic struct {
-	ID       string
-	Name     string
-	Slug     string
-	RawSlug  string
-	PaidPlan bool
+	ID                string
+	InternalNumericID string
+	Name              string
+	Slug              string
+	RawSlug           string
+	PaidPlan          bool
 }
 
 func (o *OrganizationBasic) GetID() string {
@@ -440,11 +508,25 @@ type DNSRecords struct {
 }
 
 type IPAddress struct {
-	ID        string
-	Address   string
-	Type      string
-	Region    string
-	CreatedAt time.Time
+	ID          string
+	Address     string
+	Type        string
+	Region      string
+	CreatedAt   time.Time
+	ServiceName string
+	Network     *struct {
+		Name         string
+		Organization *struct {
+			Slug string
+		}
+	}
+}
+
+type EgressIPAddress struct {
+	ID      string
+	IP      string
+	Version int
+	Region  string
 }
 
 type VMSize struct {
@@ -544,10 +626,19 @@ type Release struct {
 	Description        string
 	Status             string
 	DeploymentStrategy string
+	Metadata           *ReleaseMetadata
 	User               User
 	EvaluationID       string
 	CreatedAt          time.Time
 	ImageRef           string
+}
+
+type PostDeploymentInfo struct {
+	FlyctlVersion string `json:"flyctl_version"`
+	Error         string `json:"error"`
+}
+type ReleaseMetadata struct {
+	PostDeploymentInfo PostDeploymentInfo `json:"post_deployment_info,omitempty"`
 }
 
 type SignedUrl struct {
@@ -607,6 +698,16 @@ type AllocateIPAddressInput struct {
 	Region         string `json:"region"`
 	OrganizationID string `json:"organizationId,omitempty"`
 	Network        string `json:"network,omitempty"`
+}
+
+type AllocateEgressIPAddressInput struct {
+	AppID     string `json:"appId"`
+	MachineID string `json:"machineId"`
+}
+
+type ReleaseEgressIPAddressInput struct {
+	AppID     string `json:"appId"`
+	MachineID string `json:"machineId"`
 }
 
 type ReleaseIPAddressInput struct {
@@ -785,9 +886,26 @@ type GqlMachine struct {
 	IPs struct {
 		Nodes []*MachineIP
 	}
+
+	EgressIpAddresses struct {
+		Nodes []*EgressIPAddress
+	}
 }
 
 type Logger interface {
 	Debug(v ...interface{})
 	Debugf(format string, v ...interface{})
+}
+
+type AppHostIssues struct {
+	HostIssues struct {
+		Nodes []HostIssue
+	}
+}
+
+type HostIssue struct {
+	InternalId string
+	Message    string
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
 }

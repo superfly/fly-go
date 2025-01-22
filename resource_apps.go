@@ -2,6 +2,8 @@ package fly
 
 import (
 	"context"
+	"fmt"
+	"strings"
 )
 
 func (client *Client) GetApps(ctx context.Context, role *string) ([]App, error) {
@@ -95,6 +97,7 @@ func (client *Client) GetApp(ctx context.Context, appName string) (*App, error) 
 		query ($appName: String!) {
 			app(name: $appName) {
 				id
+				internalNumericId
 				name
 				hostname
 				deployed
@@ -115,6 +118,178 @@ func (client *Client) GetApp(ctx context.Context, appName string) (*App, error) 
 					id
 					slug
 					paidPlan
+				}
+				services {
+					description
+					protocol
+					internalPort
+					ports {
+						port
+						handlers
+					}
+				}
+				ipAddresses {
+					nodes {
+						id
+						address
+						type
+						createdAt
+					}
+				}
+				sharedIpAddress
+				imageDetails {
+					registry
+					repository
+					tag
+					digest
+					version
+				}
+				machines{
+					nodes {
+						id
+						name
+						config
+						state
+						region
+						createdAt
+						app {
+							name
+						}
+						ips {
+							nodes {
+								family
+								kind
+								ip
+								maskSize
+							}
+						}
+						host {
+							id
+						}
+					}
+				}
+				postgresAppRole: role {
+					name
+				}
+				limitedAccessTokens {
+					nodes {
+						id
+						name
+						expiresAt
+					}
+				}
+			}
+		}
+	`
+
+	req := client.NewRequest(query)
+	req.Var("appName", appName)
+	ctx = ctxWithAction(ctx, "get_app")
+
+	data, err := client.RunWithContext(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	return &data.App, nil
+}
+
+func (client *Client) GetAppRemoteBuilder(ctx context.Context, appName string) (*App, error) {
+	query := `
+		query ($appName: String!) {
+			app(name: $appName) {
+				id
+				name
+				hostname
+				deployed
+				status
+				version
+				appUrl
+				platformVersion
+				currentRelease {
+					evaluationId
+					status
+					inProgress
+					version
+				}
+				config {
+					definition
+				}
+				organization {
+					id
+					slug
+					paidPlan
+					remoteBuilderApp {
+						id
+						name
+						hostname
+						deployed
+						status
+						version
+						appUrl
+						platformVersion
+						currentRelease {
+							evaluationId
+							status
+							inProgress
+							version
+						}
+						ipAddresses {
+							nodes {
+								id
+								address
+								type
+								createdAt
+							}
+						}
+						organization {
+							id
+							slug
+							paidPlan
+						}
+						imageDetails {
+							registry
+							repository
+							tag
+							digest
+							version
+						}
+						machines{
+							nodes {
+								id
+								name
+								config
+								state
+								region
+								createdAt
+								app {
+									name
+								}
+								ips {
+									nodes {
+										family
+										kind
+										ip
+										maskSize
+									}
+								}
+								host {
+									id
+								}
+							}
+						}
+						postgresAppRole: role {
+							name
+						}
+						limitedAccessTokens {
+							nodes {
+								id
+								name
+								expiresAt
+							}
+						}
+					}
+
 				}
 				services {
 					description
@@ -190,6 +365,24 @@ func (client *Client) GetApp(ctx context.Context, appName string) (*App, error) 
 	return &data.App, nil
 }
 
+func (client *Client) GetDeployerAppByOrg(ctx context.Context, orgID string) (*App, error) {
+	apps, err := client.GetAppsForOrganization(ctx, orgID)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(apps) == 0 {
+		return nil, fmt.Errorf("no deployer found")
+	}
+
+	for _, app := range apps {
+		if strings.HasPrefix(app.Name, "fly-deployer-") {
+			return &app, nil
+		}
+	}
+	return nil, fmt.Errorf("no deployer found")
+}
+
 func (client *Client) GetAppNetwork(ctx context.Context, appName string) (*string, error) {
 	query := `
 		query ($appName: String!) {
@@ -224,6 +417,7 @@ func (client *Client) GetAppCompact(ctx context.Context, appName string) (*AppCo
 				platformVersion
 				organization {
 					id
+					internalNumericId
 					slug
 					paidPlan
 				}
@@ -255,6 +449,7 @@ func (client *Client) GetAppBasic(ctx context.Context, appName string) (*AppBasi
 				platformVersion
 				organization {
 					id
+					internalNumericId
 					slug
 					rawSlug
 					paidPlan
@@ -403,4 +598,80 @@ func (client *Client) AppNameAvailable(ctx context.Context, appName string) (boo
 	}
 
 	return data.AppNameAvailable, nil
+}
+
+func (client *Client) LockApp(ctx context.Context, input LockAppInput) (*LockApp, error) {
+	query := `
+		mutation($input: LockAppInput!) {
+			lockApp(input: $input) {
+				lockId
+				expiration
+			}
+		}
+	`
+
+	req := client.NewRequest(query)
+
+	req.Var("input", map[string]string{
+		"appId": input.AppID,
+	})
+	ctx = ctxWithAction(ctx, "lock_app")
+
+	data, err := client.RunWithContext(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	return data.LockApp, nil
+}
+
+func (client *Client) UnlockApp(ctx context.Context, input UnlockAppInput) (*App, error) {
+	query := `
+		mutation($input: UnlockAppInput!) {
+			unlockApp(input: $input) {
+				app {
+					name
+				}
+			}
+		}
+	`
+
+	req := client.NewRequest(query)
+
+	req.Var("input", map[string]string{
+		"appId":  input.AppID,
+		"lockId": input.LockID,
+	})
+	ctx = ctxWithAction(ctx, "unlock_app")
+
+	data, err := client.RunWithContext(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	return &data.App, nil
+}
+
+func (client *Client) GetAppLock(ctx context.Context, name string) (*App, error) {
+	query := `
+	query($name: String!) {
+		app(name: $name) {
+		  currentLock {
+			lockId
+			expiration
+		  }
+		}
+	  }
+	`
+
+	req := client.NewRequest(query)
+	req.Var("name", name)
+	ctx = ctxWithAction(ctx, "get_app_lock")
+
+	data, err := client.RunWithContext(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	return &data.App, nil
 }

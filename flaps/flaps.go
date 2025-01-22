@@ -14,12 +14,12 @@ import (
 	"regexp"
 	"slices"
 	"strings"
-	"time"
 
 	"github.com/cenkalti/backoff/v4"
 	fly "github.com/superfly/fly-go"
 	"github.com/superfly/fly-go/internal/tracing"
 	"github.com/superfly/fly-go/tokens"
+	"github.com/superfly/macaroon"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -69,7 +69,7 @@ func NewWithOptions(ctx context.Context, opts NewClientOpts) (*Client, error) {
 	}
 
 	if opts.DialContext != nil {
-		return newWithUsermodeWireguard(ctx, wireguardConnectionParams{
+		return newWithUsermodeWireguard(wireguardConnectionParams{
 			appName:     opts.AppName,
 			orgSlug:     opts.OrgSlug,
 			dialContext: opts.DialContext,
@@ -117,7 +117,7 @@ type wireguardConnectionParams struct {
 	tokens      *tokens.Tokens
 }
 
-func newWithUsermodeWireguard(ctx context.Context, params wireguardConnectionParams, logger fly.Logger) (*Client, error) {
+func newWithUsermodeWireguard(params wireguardConnectionParams, logger fly.Logger) (*Client, error) {
 	transport := &http.Transport{
 		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
 			return params.dialContext(ctx, network, addr)
@@ -154,14 +154,7 @@ func (f *Client) CreateApp(ctx context.Context, name string, org string) (err er
 func (f *Client) WaitForApp(ctx context.Context, name string) error {
 	ctx = contextWithAction(ctx, machineGet)
 
-	bo := backoff.NewExponentialBackOff()
-	bo.InitialInterval = 100 * time.Millisecond
-	bo.MaxInterval = 500 * time.Millisecond
-	bo.MaxElapsedTime = 0 // no stop
-	bo.RandomizationFactor = 0.5
-	bo.Multiplier = 2
-
-	var op backoff.Operation = func() error {
+	var op = func() error {
 		err := f._sendRequest(ctx, http.MethodGet, "/apps/"+url.PathEscape(name), nil, nil, nil)
 		if err == nil {
 			return nil
@@ -171,8 +164,7 @@ func (f *Client) WaitForApp(ctx context.Context, name string) error {
 		}
 		return backoff.Permanent(err)
 	}
-
-	return backoff.Retry(op, bo)
+	return Retry(ctx, op)
 }
 
 var snakeCasePattern = regexp.MustCompile("[A-Z]")
@@ -185,12 +177,18 @@ func snakeCase(s string) string {
 
 func (f *Client) _sendRequest(ctx context.Context, method, endpoint string, in, out interface{}, headers map[string][]string) error {
 	actionName := snakeCase(actionFromContext(ctx).String())
+	var caveats []string
+	caveatNames, err := f.getCaveatNames()
+	if err == nil {
+		caveats = caveatNames
+	}
 
 	ctx, span := tracing.GetTracer().Start(ctx, fmt.Sprintf("flaps.%s", actionName), trace.WithAttributes(
 		attribute.String("request.action", actionName),
 		attribute.String("request.endpoint", endpoint),
 		attribute.String("request.method", method),
 		attribute.String("request.machine_id", machineIDFromContext(ctx)),
+		attribute.StringSlice("request.caveats", caveats),
 	))
 	defer span.End()
 
@@ -236,7 +234,7 @@ func (f *Client) _sendRequest(ctx context.Context, method, endpoint string, in, 
 	}
 	if out != nil {
 		if err := json.NewDecoder(resp.Body).Decode(out); err != nil {
-			return err
+			return fmt.Errorf("failed decoding response: %w", err)
 		}
 	}
 	return nil
@@ -277,12 +275,34 @@ func (f *Client) NewRequest(ctx context.Context, method, path string, in interfa
 		return nil, fmt.Errorf("could not create new request, %w", err)
 	}
 	req.Header = headers
-
 	req.Header.Add("Authorization", f.tokens.FlapsHeader())
 
 	return req, nil
 }
 
+func (f *Client) getCaveatNames() ([]string, error) {
+	tok := f.tokens.MacaroonsOnly().All()
+	raws, err := macaroon.Parse(tok)
+	if err != nil {
+		return nil, err
+	}
+
+	m, err := macaroon.Decode(raws[0])
+	if err != nil {
+		return nil, err
+	}
+
+	caveats := m.UnsafeCaveats.Caveats
+	caveatNames := make([]string, len(caveats))
+
+	for i, c := range caveats {
+		caveatNames[i] = c.Name()
+	}
+
+	return caveatNames, nil
+}
+
+// handleAPIError returns an error based on the status code and response body.
 func handleAPIError(statusCode int, responseBody []byte) error {
 	switch statusCode / 100 {
 	case 1, 3:
@@ -292,10 +312,10 @@ func handleAPIError(statusCode int, responseBody []byte) error {
 			Error   string `json:"error"`
 			Message string `json:"message,omitempty"`
 		}{}
-		if err := json.Unmarshal(responseBody, &apiErr); err != nil {
-			return fmt.Errorf("request returned non-2xx status, %d", statusCode)
-		}
-		if apiErr.Message != "" {
+		jsonErr := json.Unmarshal(responseBody, &apiErr)
+		if jsonErr != nil {
+			return fmt.Errorf("request returned non-2xx status: %d: %s", statusCode, string(responseBody))
+		} else if apiErr.Message != "" {
 			return fmt.Errorf("%s", apiErr.Message)
 		}
 		return errors.New(apiErr.Error)

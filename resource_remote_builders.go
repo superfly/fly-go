@@ -49,3 +49,19 @@ func (client *Client) EnsureRemoteBuilder(ctx context.Context, orgID, appName, r
 
 	return data.EnsureMachineRemoteBuilder.Machine, data.EnsureMachineRemoteBuilder.App, nil
 }
+
+// in order to auto generate the EnsureDepotRemoteBuilder function, we just need to create a string assigned to a variable, making sure to include the query, the input type, and the response type
+// we use pointer: true to make specifying the inputs optional
+func (client *Client) EnsureDepotRemoteBuilder(ctx context.Context, input *EnsureDepotRemoteBuilderInput) (*EnsureDepotRemoteBuilderResponse, error) {
+	_ = `
+		# @genqlient(pointer: true)
+		mutation EnsureDepotRemoteBuilder($input: EnsureDepotRemoteBuilderInput!) {
+			ensureDepotRemoteBuilder(input:$input) {
+				buildId
+				buildToken
+			}
+		}
+	`
+
+	return EnsureDepotRemoteBuilder(ctx, client.genqClient, input)
+}

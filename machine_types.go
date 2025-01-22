@@ -1,6 +1,9 @@
 package fly
 
 import (
+	"bytes"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -25,9 +28,18 @@ const (
 	MachineStateDestroying                      = "destroying"
 	MachineStateStarted                         = "started"
 	MachineStateStopped                         = "stopped"
+	MachineStateSuspended                       = "suspended"
 	MachineStateCreated                         = "created"
 	DefaultVMSize                               = "shared-cpu-1x"
 	DefaultGPUVMSize                            = "performance-8x"
+)
+
+type HostStatus string
+
+var (
+	HostStatusOk          HostStatus = "ok"
+	HostStatusUnknown     HostStatus = "unknown"
+	HostStatusUnreachable HostStatus = "unreachable"
 )
 
 type Machine struct {
@@ -46,8 +58,12 @@ type Machine struct {
 	Config     *MachineConfig        `json:"config,omitempty"`
 	Events     []*MachineEvent       `json:"events,omitempty"`
 	Checks     []*MachineCheckStatus `json:"checks,omitempty"`
-	HostStatus string                `json:"host_status,omitempty"`
 	LeaseNonce string                `json:"nonce,omitempty"`
+	HostStatus HostStatus            `json:"host_status,omitempty" enums:"ok,unknown,unreachable"`
+
+	// When `host_status` isn't "ok", the config can't be fully retrieved and has to be rebuilt from multiple sources
+	// to form an partial configuration, not suitable to clone or recreate the original machine
+	IncompleteConfig *MachineConfig `json:"incomplete_config,omitempty"`
 }
 
 func (m *Machine) FullImageRef() string {
@@ -76,8 +92,25 @@ func (m *Machine) ImageRefWithVersion() string {
 	return ref
 }
 
+// GetConfig returns `IncompleteConfig` if `Config` is unset which happens when
+// `HostStatus` isn't "ok"
+func (m *Machine) GetConfig() *MachineConfig {
+	if m.Config != nil {
+		return m.Config
+	}
+	return m.IncompleteConfig
+}
+
+func (m *Machine) GetMetadataByKey(key string) string {
+	c := m.GetConfig()
+	if c == nil || c.Metadata == nil {
+		return ""
+	}
+	return c.Metadata[key]
+}
+
 func (m *Machine) IsAppsV2() bool {
-	return m.Config != nil && m.Config.Metadata[MachineConfigMetadataKeyFlyPlatformVersion] == MachineFlyPlatformVersion2
+	return m.GetMetadataByKey(MachineConfigMetadataKeyFlyPlatformVersion) == MachineFlyPlatformVersion2
 }
 
 func (m *Machine) IsFlyAppsPlatform() bool {
@@ -97,14 +130,11 @@ func (m *Machine) IsActive() bool {
 }
 
 func (m *Machine) ProcessGroup() string {
-	if m.Config == nil {
-		return ""
-	}
-	return m.Config.ProcessGroup()
+	return m.GetConfig().ProcessGroup()
 }
 
 func (m *Machine) HasProcessGroup(desired string) bool {
-	return m.Config != nil && m.ProcessGroup() == desired
+	return m.ProcessGroup() == desired
 }
 
 func (m *Machine) ImageVersion() string {
@@ -225,7 +255,7 @@ func (m *Machine) MostRecentStartTimeAfterLaunch() (time.Time, error) {
 }
 
 func (m *Machine) IsReleaseCommandMachine() bool {
-	return m.HasProcessGroup(MachineProcessGroupFlyAppReleaseCommand) || m.Config.Metadata["process_group"] == "release_command"
+	return m.HasProcessGroup(MachineProcessGroupFlyAppReleaseCommand) || m.GetMetadataByKey("process_group") == "release_command"
 }
 
 type MachineImageRef struct {
@@ -313,6 +343,7 @@ var (
 	MachineRestartPolicyNo        MachineRestartPolicy = "no"
 	MachineRestartPolicyOnFailure MachineRestartPolicy = "on-failure"
 	MachineRestartPolicyAlways    MachineRestartPolicy = "always"
+	MachineRestartPolicySpotPrice MachineRestartPolicy = "spot-price"
 )
 
 // @description The Machine restart policy defines whether and how flyd restarts a Machine after its main process exits. See https://fly.io/docs/machines/guides-examples/machine-restart-policy/.
@@ -320,9 +351,12 @@ type MachineRestart struct {
 	// * no - Never try to restart a Machine automatically when its main process exits, whether that’s on purpose or on a crash.
 	// * always - Always restart a Machine automatically and never let it enter a stopped state, even when the main process exits cleanly.
 	// * on-failure - Try up to MaxRetries times to automatically restart the Machine if it exits with a non-zero exit code. Default when no explicit policy is set, and for Machines with schedules.
-	Policy MachineRestartPolicy `json:"policy,omitempty" enums:"no,always,on-failure"`
+	// * spot-price - Starts the Machine only when there is capacity and the spot price is less than or equal to the bid price.
+	Policy MachineRestartPolicy `json:"policy,omitempty" enums:"no,always,on-failure,spot-price"`
 	// When policy is on-failure, the maximum number of times to attempt to restart the Machine before letting it stop.
 	MaxRetries int `json:"max_retries,omitempty"`
+	// GPU bid price for spot Machines.
+	GPUBidPrice float32 `json:"gpu_bid_price,omitempty"`
 }
 
 type MachineMount struct {
@@ -444,9 +478,21 @@ var MachinePresets map[string]*MachineGuest = map[string]*MachineGuest{
 }
 
 type MachineMetrics struct {
-	Port int    `toml:"port" json:"port,omitempty"`
-	Path string `toml:"path" json:"path,omitempty"`
+	Port  int    `toml:"port" json:"port,omitempty"`
+	Path  string `toml:"path" json:"path,omitempty"`
+	Https bool   `toml:"https" json:"https,omitempty"`
 }
+
+type MachineCheckKind string
+
+var (
+	// Informational check. Showed in status, but doesn't cause any actions.
+	// Default value for top-level check if kind is not specified.
+	MachineCheckKindInformational MachineCheckKind = "informational"
+	// Readiness check. Failed check causes the machine to be taken out of LB pool
+	MachineCheckKindReadiness MachineCheckKind = "readiness"
+	// TODO: liveness, startup
+)
 
 // @description An optional object that defines one or more named checks. The key for each check is the check name.
 type MachineCheck struct {
@@ -454,6 +500,8 @@ type MachineCheck struct {
 	Port *int `json:"port,omitempty"`
 	// tcp or http
 	Type *string `json:"type,omitempty"`
+	// Kind of the check (informational, readiness)
+	Kind *MachineCheckKind `json:"kind,omitempty" enums:"informational,readiness"`
 	// The time between connectivity checks
 	Interval *Duration `json:"interval,omitempty"`
 	// The maximum time a connection can take before being reported as failing its health check
@@ -566,9 +614,11 @@ type TLSOptions struct {
 }
 
 type HTTPOptions struct {
-	Compress  *bool                `json:"compress,omitempty" toml:"compress,omitempty"`
-	Response  *HTTPResponseOptions `json:"response,omitempty" toml:"response,omitempty"`
-	H2Backend *bool                `json:"h2_backend,omitempty" toml:"h2_backend,omitempty"`
+	Compress           *bool                `json:"compress,omitempty" toml:"compress,omitempty"`
+	Response           *HTTPResponseOptions `json:"response,omitempty" toml:"response,omitempty"`
+	H2Backend          *bool                `json:"h2_backend,omitempty" toml:"h2_backend,omitempty"`
+	IdleTimeout        *uint32              `json:"idle_timeout,omitempty" toml:"idle_timeout,omitempty"`
+	HeadersReadTimeout *uint32              `json:"headers_read_timeout,omitempty" toml:"headers_read_timeout,omitempty"`
 }
 
 type HTTPResponseOptions struct {
@@ -577,9 +627,13 @@ type HTTPResponseOptions struct {
 }
 
 type MachineService struct {
-	Protocol                 string                     `json:"protocol,omitempty" toml:"protocol,omitempty"`
-	InternalPort             int                        `json:"internal_port,omitempty" toml:"internal_port,omitempty"`
-	Autostop                 *bool                      `json:"autostop,omitempty"`
+	Protocol     string `json:"protocol,omitempty" toml:"protocol,omitempty"`
+	InternalPort int    `json:"internal_port,omitempty" toml:"internal_port,omitempty"`
+	// Accepts a string (new format) or a boolean (old format). For backward compatibility with older clients, the API continues to use booleans for "off" and "stop" in responses.
+	// * "off" or false - Do not autostop the Machine.
+	// * "stop" or true - Automatically stop the Machine.
+	// * "suspend" - Automatically suspend the Machine, falling back to a full stop if this is not possible.
+	Autostop                 *MachineAutostop           `json:"autostop,omitempty" swaggertype:"string" enums:"off,stop,suspend"`
 	Autostart                *bool                      `json:"autostart,omitempty"`
 	MinMachinesRunning       *int                       `json:"min_machines_running,omitempty"`
 	Ports                    []MachinePort              `json:"ports,omitempty" toml:"ports,omitempty"`
@@ -632,6 +686,14 @@ type MachineConfig struct {
 
 	StopConfig *StopConfig `json:"stop_config,omitempty"`
 
+	// Containers are a list of containers that will run in the machine. Currently restricted to
+	// only specific organizations.
+	Containers []*ContainerConfig `json:"containers,omitempty"`
+
+	// Volumes describe the set of volumes that can be attached to the machine. Used in conjuction
+	// with containers
+	Volumes []*VolumeConfig `json:"volumes,omitempty"`
+
 	// Deprecated: use Guest instead
 	VMSize string `json:"size,omitempty"`
 	// Deprecated: use Service.Autostart instead
@@ -646,8 +708,7 @@ func (c *MachineConfig) ProcessGroup() string {
 	// - machines with only 'process_group'
 	// - machines with both 'process_group' and 'fly_process_group'
 	// - machines with only 'fly_process_group'
-
-	if c.Metadata == nil {
+	if c == nil || c.Metadata == nil {
 		return ""
 	}
 
@@ -660,9 +721,10 @@ func (c *MachineConfig) ProcessGroup() string {
 }
 
 type Static struct {
-	GuestPath    string `toml:"guest_path" json:"guest_path" validate:"required"`
-	UrlPrefix    string `toml:"url_prefix" json:"url_prefix" validate:"required"`
-	TigrisBucket string `toml:"tigris_bucket" json:"tigris_bucket"`
+	GuestPath     string `toml:"guest_path" json:"guest_path" validate:"required"`
+	UrlPrefix     string `toml:"url_prefix" json:"url_prefix" validate:"required"`
+	TigrisBucket  string `toml:"tigris_bucket" json:"tigris_bucket"`
+	IndexDocument string `toml:"index_document" json:"index_document"`
 }
 
 type MachineInit struct {
@@ -680,6 +742,8 @@ type DNSConfig struct {
 	Searches         []string         `json:"searches,omitempty"`
 	Options          []dnsOption      `json:"options,omitempty"`
 	DNSForwardRules  []dnsForwardRule `json:"dns_forward_rules,omitempty"`
+	Hostname         string           `json:"hostname,omitempty"`
+	HostnameFqdn     string           `json:"hostname_fqdn,omitempty"`
 }
 
 type dnsForwardRule struct {
@@ -708,6 +772,183 @@ type File struct {
 
 	// The name of the secret that contains the base64 encoded file contents.
 	SecretName *string `json:"secret_name,omitempty"`
+
+	// Mode bits used to set permissions on this file as accepted by chmod(2).
+	Mode uint32 `json:"mode,omitempty"`
+}
+
+type ContainerConfig struct {
+	// Name is used to identify the container in the machine.
+	Name string `json:"name"`
+
+	// Image is the docker image to run.
+	Image string `json:"image"`
+
+	// Image Config overrides - these fields are used to override the image configuration.
+	// If not provided, the image configuration will be used.
+	// ExecOverride is used to override the default command of the image.
+	ExecOverride []string `json:"exec,omitempty"`
+	// EntrypointOverride is used to override the default entrypoint of the image.
+	EntrypointOverride []string `json:"entrypoint,omitempty"`
+	// CmdOverride is used to override the default command of the image.
+	CmdOverride []string `json:"cmd,omitempty"`
+	// UserOverride is used to override the default user of the image.
+	UserOverride string `json:"user,omitempty"`
+	// ExtraEnv is used to add additional environment variables to the container.
+	ExtraEnv map[string]string `json:"env,omitempty"`
+
+	// Secrets can be provided at the process level to explicitly indicate which secrets should be
+	// used for the process. If not provided, the secrets provided at the machine level will be used.
+	Secrets []MachineSecret `json:"secrets,omitempty"`
+
+	// EnvFrom can be provided to set environment variables from machine fields.
+	EnvFrom []EnvFrom `json:"env_from,omitempty"`
+
+	// Files are files that will be written to the container file system.
+	Files []*File `json:"files,omitempty"`
+
+	// Restart is used to define the restart policy for the container. NOTE: spot-price is not
+	// supported for containers.
+	Restart *MachineRestart `json:"restart,omitempty"`
+
+	// Stop is used to define the signal and timeout for stopping the container.
+	Stop *StopConfig `json:"stop,omitempty"`
+
+	// DependsOn can be used to define dependencies between containers. The container will only be
+	// started after all of its dependent conditions have been satisfied.
+	DependsOn []ContainerDependency `json:"depends_on,omitempty"`
+
+	// Healthchecks determine the health of your containers. Healthchecks can use HTTP, TCP or an Exec command.
+	Healthchecks []ContainerHealthcheck `json:"healthchecks,omitempty"`
+
+	// Set of mounts added to the container. These must reference a volume in the machine config via its name.
+	Mounts []ContainerMount `json:"mounts,omitempty"`
+}
+
+type ContainerMount struct {
+	// The name of the volume. Must exist in the volumes field in the machine configuration
+	Name string `json:"name"`
+	// The path to mount the volume within the container
+	Path string `json:"path"`
+}
+
+type ContainerDependency struct {
+	Name      string                       `json:"name"`
+	Condition ContainerDependencyCondition `json:"condition" enums:"exited_successfully,healthy,started"`
+}
+
+type ContainerDependencyCondition string
+
+const (
+	ExitedSuccessfully ContainerDependencyCondition = "exited_successfully"
+	Healthy            ContainerDependencyCondition = "healthy"
+	Started            ContainerDependencyCondition = "started"
+)
+
+type ContainerHealthcheckKind string
+
+const (
+	// Readiness checks ensure your container is ready to receive traffic.
+	Readiness ContainerHealthcheckKind = "readiness"
+	// Liveness checks ensure your container is reachable and functional. When a liveness check
+	// fails, a policy is used to determine what action to perform such as restarting the container.
+	Liveness ContainerHealthcheckKind = "liveness"
+)
+
+type ContainerHealthcheckScheme string
+
+const (
+	HTTP  ContainerHealthcheckScheme = "http"
+	HTTPS ContainerHealthcheckScheme = "https"
+)
+
+type UnhealthyPolicy string
+
+const (
+	// When a container becomes unhealthy, stop it. If there is a restart policy set on
+	// the container, it will be applied
+	UnhealthyPolicyStop UnhealthyPolicy = "stop"
+)
+
+type ContainerHealthcheckType struct {
+	HTTP *HTTPHealthcheck `json:"http,omitempty"`
+	TCP  *TCPHealthcheck  `json:"tcp,omitempty"`
+	Exec *ExecHealthcheck `json:"exec,omitempty"`
+}
+
+type ContainerHealthcheck struct {
+	// The name of the check. Must be unique within the container.
+	Name string `json:"name"`
+	// The time in seconds between executing the defined check.
+	Interval int64 `json:"interval,omitempty"`
+	// The time in seconds to wait after a container starts before checking its health.
+	GracePeriod int64 `json:"grace_period,omitempty"`
+	// The number of times the check must succeeed before considering the container healthy.
+	SuccessThreshold int32 `json:"success_threshold,omitempty"`
+	// The number of times the check must fail before considering the container unhealthy.
+	FailureThreshold int32 `json:"failure_threshold,omitempty"`
+	// The time in seconds to wait for the check to complete.
+	Timeout int64 `json:"timeout,omitempty"`
+	// Kind of healthcheck (readiness, liveness)
+	Kind ContainerHealthcheckKind `json:"kind,omitempty"`
+	// Unhealthy policy that determines what action to take if a container is deemed unhealthy
+	Unhealthy UnhealthyPolicy `json:"unhealthy,omitempty"`
+	// The type of healthcheck
+	ContainerHealthcheckType
+}
+
+type HTTPHealthcheck struct {
+	// The port to connect to, often the same as internal_port
+	Port int32 `json:"port"`
+	// The HTTP method to use to when making the request
+	Method string `json:"method,omitempty"`
+	// The path to send the request to
+	Path string `json:"path,omitempty"`
+	// Additional headers to send with the request
+	Headers []MachineHTTPHeader `json:"headers,omitempty"`
+	// Whether to use http or https
+	Scheme ContainerHealthcheckScheme `json:"scheme,omitempty"`
+	// If the protocol is https, whether or not to verify the TLS certificate
+	TLSSkipVerify *bool `json:"tls_skip_verify,omitempty"`
+	// If the protocol is https, the hostname to use for TLS certificate validation
+	TLSServerName string `json:"tls_server_name,omitempty"`
+}
+
+type TCPHealthcheck struct {
+	// The port to connect to, often the same as internal_port
+	Port int32 `json:"port"`
+}
+
+type ExecHealthcheck struct {
+	// The command to run to check the health of the container (e.g. ["cat", "/tmp/healthy"])
+	Command []string `json:"command"`
+}
+
+type VolumeConfig struct {
+	// The name of the volume. A volume must have a unique name within an app
+	Name string `json:"name"`
+	// The volume resource, provides configuration for the volume
+	VolumeResource
+}
+
+type VolumeResource struct {
+	TempDir *TempDirVolume `json:"temp_dir,omitempty"`
+}
+
+type StorageType string
+
+const (
+	StorageTypeDisk   = "disk"
+	StorageTypeMemory = "memory"
+)
+
+// A TempDir is an ephemeral directory tied to the lifecycle of a Machine. It
+// is often used as scratch space, to communicate between containers and so on.
+type TempDirVolume struct {
+	// The type of storage used to back the temp dir. Either disk or memory.
+	StorageType StorageType `json:"storage_type"`
+	// The size limit of the temp dir, only applicable when using disk backed storage.
+	SizeMB uint64 `json:"size_mb,omitempty"`
 }
 
 type MachineLease struct {
@@ -791,8 +1032,10 @@ type EnvFrom struct {
 }
 
 type MachineExecRequest struct {
-	Cmd     string `json:"cmd,omitempty"`
-	Timeout int    `json:"timeout,omitempty"`
+	Container string `json:"container,omitempty"`
+	Cmd       string `json:"cmd,omitempty"`
+	Stdin     string `json:"stdin,omitempty"`
+	Timeout   int    `json:"timeout,omitempty"`
 }
 
 type MachineExecResponse struct {
@@ -817,4 +1060,95 @@ type ProcessStat struct {
 type ListenSocket struct {
 	Proto   string `json:"proto"`
 	Address string `json:"address"`
+}
+
+type MachineAutostop int
+
+const (
+	MachineAutostopOff MachineAutostop = iota
+	MachineAutostopStop
+	MachineAutostopSuspend
+)
+
+func (s MachineAutostop) String() string {
+	switch s {
+	case MachineAutostopOff:
+		return "off"
+	case MachineAutostopStop:
+		return "stop"
+	case MachineAutostopSuspend:
+		return "suspend"
+	default:
+		return "off"
+	}
+}
+
+func (s *MachineAutostop) UnmarshalJSON(raw []byte) error {
+	if bytes.Equal(raw, []byte("null")) {
+		return nil
+	}
+
+	var asBool bool
+	if err := json.Unmarshal(raw, &asBool); err == nil {
+		if asBool {
+			*s = MachineAutostopStop
+		} else {
+			*s = MachineAutostopOff
+		}
+		return nil
+	}
+
+	var asString string
+	if err := json.Unmarshal(raw, &asString); err == nil {
+		switch asString {
+		case "off":
+			*s = MachineAutostopOff
+			return nil
+		case "stop":
+			*s = MachineAutostopStop
+			return nil
+		case "suspend":
+			*s = MachineAutostopSuspend
+			return nil
+		default:
+			return fmt.Errorf("invalid autostop string value \"%s\"", asString)
+		}
+	}
+
+	return errors.New("autostop value is not a valid bool or string")
+}
+
+func (s MachineAutostop) MarshalJSON() ([]byte, error) {
+	// For backward compatibility, we continue to serialize "off" and
+	// "stop" as booleans.
+	switch s {
+	case MachineAutostopOff:
+		return []byte("false"), nil
+	case MachineAutostopStop:
+		return []byte("true"), nil
+	case MachineAutostopSuspend:
+		return []byte(`"suspend"`), nil
+	default:
+		return []byte("false"), nil
+	}
+}
+
+func (s *MachineAutostop) UnmarshalText(raw []byte) error {
+	switch string(raw) {
+	case "false", "off":
+		*s = MachineAutostopOff
+		return nil
+	case "true", "stop":
+		*s = MachineAutostopStop
+		return nil
+	case "suspend":
+		*s = MachineAutostopSuspend
+		return nil
+	default:
+		return fmt.Errorf("invalid autostop value \"%s\"", string(raw))
+	}
+}
+
+func (s MachineAutostop) MarshalText() ([]byte, error) {
+	return []byte(s.String()), nil
 }

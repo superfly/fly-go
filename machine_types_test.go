@@ -1,6 +1,8 @@
 package fly
 
 import (
+	"bytes"
+	"encoding/json"
 	"testing"
 	"time"
 )
@@ -103,6 +105,17 @@ func TestGetProcessGroup(t *testing.T) {
 			expected: "web",
 			machine: &Machine{
 				Config: &MachineConfig{
+					Metadata: map[string]string{
+						"fly_process_group": "web",
+					},
+				},
+			},
+		},
+		{
+			name:     "machine with incomplete config and 'fly_process_group'",
+			expected: "web",
+			machine: &Machine{
+				IncompleteConfig: &MachineConfig{
 					Metadata: map[string]string{
 						"fly_process_group": "web",
 					},
@@ -252,6 +265,98 @@ func TestMachineMostRecentStartTimeAfterLaunch(t *testing.T) {
 					t.Error(testCase.name, "expected", testCase.expected, "got", actual)
 				}
 			}
+		}
+	}
+}
+
+func TestMachineAutostopUnmarshalJSON(t *testing.T) {
+	type testcase struct {
+		input  string
+		output MachineAutostop
+	}
+	cases := []testcase{
+		{`false`, MachineAutostopOff},
+		{`true`, MachineAutostopStop},
+		{`"off"`, MachineAutostopOff},
+		{`"stop"`, MachineAutostopStop},
+		{`"suspend"`, MachineAutostopSuspend},
+	}
+	for _, testCase := range cases {
+		var s MachineAutostop
+		if err := json.Unmarshal([]byte(testCase.input), &s); err != nil {
+			t.Errorf("input %s: unexpected error: %v", testCase.input, err)
+		} else if s != testCase.output {
+			t.Errorf("input %s: expected %v, got %v", testCase.input, testCase.output, s)
+		}
+	}
+}
+
+func TestMachineAutostopMarshalJSON(t *testing.T) {
+	type testcase struct {
+		input  MachineAutostop
+		output string
+	}
+	cases := []testcase{
+		{MachineAutostopOff, `false`}, // it's important for backward-compatibility
+		{MachineAutostopStop, `true`}, // that these are serialized as booleans!
+		{MachineAutostopSuspend, `"suspend"`},
+	}
+	for _, testCase := range cases {
+		b, err := json.Marshal(testCase.input)
+		if err != nil {
+			t.Errorf("input %v: unexpected error: %v", testCase.input, err)
+		} else if !bytes.Equal(b, []byte(testCase.output)) {
+			t.Errorf("input %v: expected %v, got %s", testCase.input, testCase.output, string(b))
+		}
+	}
+}
+
+func TestIsAppV2(t *testing.T) {
+	type testcase struct {
+		name     string
+		machine  *Machine
+		expected bool
+	}
+
+	cases := []testcase{
+		{
+			name:     "machine with 'fly_platform_version=v2'",
+			expected: true,
+			machine: &Machine{
+				Config: &MachineConfig{
+					Metadata: map[string]string{"fly_platform_version": "v2"},
+				},
+			},
+		},
+		{
+			name:     "machine with non v2 'fly_platform_version'",
+			expected: false,
+			machine: &Machine{
+				Config: &MachineConfig{
+					Metadata: map[string]string{"fly_platform_version": "v1"},
+				},
+			},
+		},
+		{
+			name:     "machine without config",
+			expected: false,
+			machine:  &Machine{},
+		},
+		{
+			name:     "machine with 'fly_platform_version=v2' in incomplete config",
+			expected: true,
+			machine: &Machine{
+				IncompleteConfig: &MachineConfig{
+					Metadata: map[string]string{"fly_platform_version": "v2"},
+				},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		result := tc.machine.IsAppsV2()
+		if result != tc.expected {
+			t.Errorf("%s, got '%v', want '%v'", tc.name, result, tc.expected)
 		}
 	}
 }

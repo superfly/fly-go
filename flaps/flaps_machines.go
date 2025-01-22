@@ -225,6 +225,7 @@ func (f *Client) ListFlyAppsMachines(ctx context.Context) ([]*fly.Machine, *fly.
 	b := backoff.NewExponentialBackOff()
 	b.InitialInterval = 500 * time.Millisecond
 	b.MaxElapsedTime = 5 * time.Second
+	b.Reset()
 	ctx = contextWithAction(ctx, machineList)
 	err := backoff.Retry(func() error {
 		err := f.sendRequestMachines(ctx, http.MethodGet, "", nil, &allMachines, nil)
@@ -309,9 +310,18 @@ func (f *Client) AcquireLease(ctx context.Context, machineID string, ttl *int) (
 	ctx = contextWithAction(ctx, machineAcquireLease)
 	ctx = contextWithMachineID(ctx, machineID)
 
-	err := f.sendRequestMachines(ctx, http.MethodPost, endpoint, nil, out, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get lease on VM %s: %w", machineID, err)
+	var op func() error = func() error {
+		err := f.sendRequestMachines(ctx, http.MethodPost, endpoint, nil, out, nil)
+		if err != nil {
+			return fmt.Errorf("failed to get lease on VM %s: %w", machineID, err)
+		}
+		if ferr, ok := err.(*FlapsError); ok && slices.Contains([]int{409}, ferr.ResponseStatusCode) {
+			return err
+		}
+		return backoff.Permanent(err)
+	}
+	if err := Retry(ctx, op); err != nil {
+		return nil, err
 	}
 	return out, nil
 }
@@ -450,6 +460,24 @@ func (f *Client) DeleteMetadata(ctx context.Context, machineID, key string) erro
 	err := f.sendRequestMachines(ctx, http.MethodDelete, endpoint, nil, nil, nil)
 	if err != nil {
 		return fmt.Errorf("failed to delete metadata for %s: %w", machineID, err)
+	}
+
+	return nil
+}
+
+func (f *Client) Suspend(ctx context.Context, machineID, nonce string) error {
+	suspendEndpoint := fmt.Sprintf("/%s/suspend", machineID)
+
+	headers := make(map[string][]string)
+	if nonce != "" {
+		headers[NonceHeader] = []string{nonce}
+	}
+
+	ctx = contextWithAction(ctx, machineSuspend)
+	ctx = contextWithMachineID(ctx, machineID)
+
+	if err := f.sendRequestMachines(ctx, http.MethodPost, suspendEndpoint, nil, nil, headers); err != nil {
+		return fmt.Errorf("failed to suspend VM %s: %w", machineID, err)
 	}
 
 	return nil

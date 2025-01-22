@@ -26,6 +26,11 @@ const (
 	machinePs
 	machineCordon
 	machineUncordon
+	machineSuspend
+	secretCreate
+	secretDelete
+	secretGenerate
+	secretsList
 	volumeList
 	volumeCreate
 	volumetUpdate
