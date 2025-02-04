@@ -412,6 +412,7 @@ func (client *Client) GetAppCompact(ctx context.Context, appName string) (*AppCo
 				name
 				hostname
 				deployed
+				network
 				status
 				appUrl
 				platformVersion
