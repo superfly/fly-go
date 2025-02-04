@@ -335,6 +335,7 @@ type AppCompact struct {
 	Status          string
 	Deployed        bool
 	Hostname        string
+	Network         string
 	AppURL          string
 	Organization    *OrganizationBasic
 	PlatformVersion string
