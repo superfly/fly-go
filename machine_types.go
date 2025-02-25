@@ -52,14 +52,15 @@ type Machine struct {
 	InstanceID string `json:"instance_id,omitempty"`
 	Version    string `json:"version,omitempty"`
 	// PrivateIP is the internal 6PN address of the machine.
-	PrivateIP  string                `json:"private_ip,omitempty"`
-	CreatedAt  string                `json:"created_at,omitempty"`
-	UpdatedAt  string                `json:"updated_at,omitempty"`
-	Config     *MachineConfig        `json:"config,omitempty"`
-	Events     []*MachineEvent       `json:"events,omitempty"`
-	Checks     []*MachineCheckStatus `json:"checks,omitempty"`
-	LeaseNonce string                `json:"nonce,omitempty"`
-	HostStatus HostStatus            `json:"host_status,omitempty" enums:"ok,unknown,unreachable"`
+	PrivateIP         string                `json:"private_ip,omitempty"`
+	CreatedAt         string                `json:"created_at,omitempty"`
+	UpdatedAt         string                `json:"updated_at,omitempty"`
+	Config            *MachineConfig        `json:"config,omitempty"`
+	Events            []*MachineEvent       `json:"events,omitempty"`
+	Checks            []*MachineCheckStatus `json:"checks,omitempty"`
+	LeaseNonce        string                `json:"nonce,omitempty"`
+	HostStatus        HostStatus            `json:"host_status,omitempty" enums:"ok,unknown,unreachable"`
+	ContainerStatuses []*ContainerStatus    `json:"containers,omitempty"`
 
 	// When `host_status` isn't "ok", the config can't be fully retrieved and has to be rebuilt from multiple sources
 	// to form an partial configuration, not suitable to clone or recreate the original machine
@@ -647,6 +648,11 @@ type MachineServiceConcurrency struct {
 	Type      string `json:"type,omitempty" toml:"type,omitempty"`
 	HardLimit int    `json:"hard_limit,omitempty" toml:"hard_limit,omitempty"`
 	SoftLimit int    `json:"soft_limit,omitempty" toml:"soft_limit,omitempty"`
+}
+
+type ContainerStatus struct {
+	Name  string `json:"name"`
+	State string `json:"state"`
 }
 
 type MachineConfig struct {
