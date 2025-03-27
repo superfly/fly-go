@@ -24,10 +24,10 @@ func (client *Client) GetLatestImageTag(ctx context.Context, repository string, 
 	return data.LatestImageTag, nil
 }
 
-func (client *Client) GetLatestImageDetails(ctx context.Context, image string) (*ImageVersion, error) {
+func (client *Client) GetLatestImageDetails(ctx context.Context, image string, flyVersion string) (*ImageVersion, error) {
 	query := `
-		query($image: String!) {
-			latestImageDetails(image: $image){
+		query($image: String!, $flyVersion: String) {
+			latestImageDetails(image: $image, flyVersion: $flyVersion) {
 			  registry
 			  repository
 			  tag
@@ -40,6 +40,7 @@ func (client *Client) GetLatestImageDetails(ctx context.Context, image string) (
 	req := client.NewRequest(query)
 	ctx = ctxWithAction(ctx, "get_latest_image_details")
 	req.Var("image", image)
+	req.Var("flyVersion", flyVersion)
 
 	data, err := client.RunWithContext(ctx, req)
 	if err != nil {
