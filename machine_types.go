@@ -933,6 +933,7 @@ type VolumeConfig struct {
 
 type VolumeResource struct {
 	TempDir *TempDirVolume `json:"temp_dir,omitempty"`
+	Image   string         `json:"image,omitempty"`
 }
 
 type StorageType string
