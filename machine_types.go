@@ -773,6 +773,9 @@ type File struct {
 	// The name of the secret that contains the base64 encoded file contents.
 	SecretName *string `json:"secret_name,omitempty"`
 
+	// The name of an image to use the OCI image config as the file contents.
+	ImageConfig *string `json:"image_config,omitempty"`
+
 	// Mode bits used to set permissions on this file as accepted by chmod(2).
 	Mode uint32 `json:"mode,omitempty"`
 }
