@@ -371,14 +371,14 @@ type MachineMount struct {
 }
 
 type MachineGuest struct {
-	CPUKind          string `toml:"cpu_kind,omitempty" json:"cpu_kind,omitempty" toml:"cpu_kind,omitempty"`
-	CPUs             int    `toml:"cpus,omitempty" json:"cpus,omitempty" toml:"cpus,omitempty"`
-	MemoryMB         int    `toml:"memory_mb,omitempty" json:"memory_mb,omitempty" toml:"memory_mb,omitempty"`
-	GPUs             int    `toml:"gpus,omitempty" json:"gpus,omitempty" toml:"gpus,omitempty"`
-	GPUKind          string `toml:"gpu_kind,omitempty" json:"gpu_kind,omitempty" toml:"gpu_kind,omitempty"`
-	HostDedicationID string `toml:"host_dedication_id,omitempty" json:"host_dedication_id,omitempty" toml:"host_dedication_id,omitempty"`
+	CPUKind          string `toml:"cpu_kind,omitempty" json:"cpu_kind,omitempty"`
+	CPUs             int    `toml:"cpus,omitempty" json:"cpus,omitempty"`
+	MemoryMB         int    `toml:"memory_mb,omitempty" json:"memory_mb,omitempty"`
+	GPUs             int    `toml:"gpus,omitempty" json:"gpus,omitempty"`
+	GPUKind          string `toml:"gpu_kind,omitempty" json:"gpu_kind,omitempty"`
+	HostDedicationID string `toml:"host_dedication_id,omitempty" json:"host_dedication_id,omitempty"`
 
-	KernelArgs []string `toml:"kernel_args,omitempty" json:"kernel_args,omitempty" toml:"kernel_args,omitempty"`
+	KernelArgs []string `toml:"kernel_args,omitempty" json:"kernel_args,omitempty"`
 }
 
 func (mg *MachineGuest) SetSize(size string) error {
@@ -478,9 +478,9 @@ var MachinePresets map[string]*MachineGuest = map[string]*MachineGuest{
 }
 
 type MachineMetrics struct {
-	Port  int    `toml:"port" toml:"port,omitempty" json:"port,omitempty"`
-	Path  string `toml:"path" toml:"path,omitempty" json:"path,omitempty"`
-	Https bool   `toml:"https" toml:"https,omitempty" json:"https,omitempty"`
+	Port  int    `toml:"port,omitempty" json:"port,omitempty"`
+	Path  string `toml:"path,omitempty" json:"path,omitempty"`
+	Https bool   `toml:"https,omitempty" json:"https,omitempty"`
 }
 
 type MachineCheckKind string
@@ -545,14 +545,14 @@ type MachineCheckStatus struct {
 }
 
 type MachinePort struct {
-	Port              *int               `toml:"port,omitempty" json:"port,omitempty" toml:"port,omitempty"`
-	StartPort         *int               `toml:"start_port,omitempty" json:"start_port,omitempty" toml:"start_port,omitempty"`
-	EndPort           *int               `toml:"end_port,omitempty" json:"end_port,omitempty" toml:"end_port,omitempty"`
-	Handlers          []string           `toml:"handlers,omitempty" json:"handlers,omitempty" toml:"handlers,omitempty"`
-	ForceHTTPS        bool               `toml:"force_https,omitempty" json:"force_https,omitempty" toml:"force_https,omitempty"`
-	TLSOptions        *TLSOptions        `toml:"tls_options,omitempty" json:"tls_options,omitempty" toml:"tls_options,omitempty"`
-	HTTPOptions       *HTTPOptions       `toml:"http_options,omitempty" json:"http_options,omitempty" toml:"http_options,omitempty"`
-	ProxyProtoOptions *ProxyProtoOptions `toml:"proxy_proto_options,omitempty" json:"proxy_proto_options,omitempty" toml:"proxy_proto_options,omitempty"`
+	Port              *int               `toml:"port,omitempty" json:"port,omitempty"`
+	StartPort         *int               `toml:"start_port,omitempty" json:"start_port,omitempty"`
+	EndPort           *int               `toml:"end_port,omitempty" json:"end_port,omitempty"`
+	Handlers          []string           `toml:"handlers,omitempty" json:"handlers,omitempty"`
+	ForceHTTPS        bool               `toml:"force_https,omitempty" json:"force_https,omitempty"`
+	TLSOptions        *TLSOptions        `toml:"tls_options,omitempty" json:"tls_options,omitempty"`
+	HTTPOptions       *HTTPOptions       `toml:"http_options,omitempty" json:"http_options,omitempty"`
+	ProxyProtoOptions *ProxyProtoOptions `toml:"proxy_proto_options,omitempty" json:"proxy_proto_options,omitempty"`
 }
 
 func (mp *MachinePort) ContainsPort(port int) bool {
@@ -604,31 +604,31 @@ func (mp *MachinePort) HasNonHttpPorts() bool {
 }
 
 type ProxyProtoOptions struct {
-	Version string `toml:"version,omitempty" json:"version,omitempty" toml:"version,omitempty"`
+	Version string `toml:"version,omitempty" json:"version,omitempty"`
 }
 
 type TLSOptions struct {
-	ALPN              []string `toml:"alpn,omitempty" json:"alpn,omitempty" toml:"alpn,omitempty"`
-	Versions          []string `toml:"versions,omitempty" json:"versions,omitempty" toml:"versions,omitempty"`
-	DefaultSelfSigned *bool    `toml:"default_self_signed,omitempty" json:"default_self_signed,omitempty" toml:"default_self_signed,omitempty"`
+	ALPN              []string `toml:"alpn,omitempty" json:"alpn,omitempty"`
+	Versions          []string `toml:"versions,omitempty" json:"versions,omitempty"`
+	DefaultSelfSigned *bool    `toml:"default_self_signed,omitempty" json:"default_self_signed,omitempty"`
 }
 
 type HTTPOptions struct {
-	Compress           *bool                `toml:"compress,omitempty" json:"compress,omitempty" toml:"compress,omitempty"`
-	Response           *HTTPResponseOptions `toml:"response,omitempty" json:"response,omitempty" toml:"response,omitempty"`
-	H2Backend          *bool                `toml:"h2_backend,omitempty" json:"h2_backend,omitempty" toml:"h2_backend,omitempty"`
-	IdleTimeout        *uint32              `toml:"idle_timeout,omitempty" json:"idle_timeout,omitempty" toml:"idle_timeout,omitempty"`
-	HeadersReadTimeout *uint32              `toml:"headers_read_timeout,omitempty" json:"headers_read_timeout,omitempty" toml:"headers_read_timeout,omitempty"`
+	Compress           *bool                `toml:"compress,omitempty" json:"compress,omitempty"`
+	Response           *HTTPResponseOptions `toml:"response,omitempty" json:"response,omitempty"`
+	H2Backend          *bool                `toml:"h2_backend,omitempty" json:"h2_backend,omitempty"`
+	IdleTimeout        *uint32              `toml:"idle_timeout,omitempty" json:"idle_timeout,omitempty"`
+	HeadersReadTimeout *uint32              `toml:"headers_read_timeout,omitempty" json:"headers_read_timeout,omitempty"`
 }
 
 type HTTPResponseOptions struct {
-	Headers  map[string]any `toml:"headers,omitempty" json:"headers,omitempty" toml:"headers,omitempty"`
-	Pristine *bool          `toml:"pristine,omitempty" json:"pristine,omitempty" toml:"pristine,omitempty"`
+	Headers  map[string]any `toml:"headers,omitempty" json:"headers,omitempty"`
+	Pristine *bool          `toml:"pristine,omitempty" json:"pristine,omitempty"`
 }
 
 type MachineService struct {
-	Protocol     string `toml:"protocol,omitempty" json:"protocol,omitempty" toml:"protocol,omitempty"`
-	InternalPort int    `toml:"internal_port,omitempty" json:"internal_port,omitempty" toml:"internal_port,omitempty"`
+	Protocol     string `toml:"protocol,omitempty" json:"protocol,omitempty"`
+	InternalPort int    `toml:"internal_port,omitempty" json:"internal_port,omitempty"`
 	// Accepts a string (new format) or a boolean (old format). For backward compatibility with older clients, the API continues to use booleans for "off" and "stop" in responses.
 	// * "off" or false - Do not autostop the Machine.
 	// * "stop" or true - Automatically stop the Machine.
@@ -636,17 +636,17 @@ type MachineService struct {
 	Autostop                 *MachineAutostop           `toml:"autostop,omitempty" json:"autostop,omitempty" swaggertype:"string" enums:"off,stop,suspend"`
 	Autostart                *bool                      `toml:"autostart,omitempty" json:"autostart,omitempty"`
 	MinMachinesRunning       *int                       `toml:"min_machines_running,omitempty" json:"min_machines_running,omitempty"`
-	Ports                    []MachinePort              `toml:"ports,omitempty" json:"ports,omitempty" toml:"ports,omitempty"`
-	Checks                   []MachineCheck             `toml:"checks,omitempty" json:"checks,omitempty" toml:"checks,omitempty"`
-	Concurrency              *MachineServiceConcurrency `toml:"concurrency,omitempty" json:"concurrency,omitempty" toml:"concurrency"`
-	ForceInstanceKey         *string                    `toml:"force_instance_key" json:"force_instance_key" toml:"force_instance_key"`
-	ForceInstanceDescription *string                    `toml:"force_instance_description,omitempty" json:"force_instance_description,omitempty" toml:"force_instance_description"`
+	Ports                    []MachinePort              `toml:"ports,omitempty" json:"ports,omitempty"`
+	Checks                   []MachineCheck             `toml:"checks,omitempty" json:"checks,omitempty"`
+	Concurrency              *MachineServiceConcurrency `toml:"concurrency,omitempty" json:"concurrency,omitempty"`
+	ForceInstanceKey         *string                    `toml:"force_instance_key" json:"force_instance_key"`
+	ForceInstanceDescription *string                    `toml:"force_instance_description,omitempty" json:"force_instance_description,omitempty"`
 }
 
 type MachineServiceConcurrency struct {
-	Type      string `toml:"type,omitempty" json:"type,omitempty" toml:"type,omitempty"`
-	HardLimit int    `toml:"hard_limit,omitempty" json:"hard_limit,omitempty" toml:"hard_limit,omitempty"`
-	SoftLimit int    `toml:"soft_limit,omitempty" json:"soft_limit,omitempty" toml:"soft_limit,omitempty"`
+	Type      string `toml:"type,omitempty" json:"type,omitempty"`
+	HardLimit int    `toml:"hard_limit,omitempty" json:"hard_limit,omitempty"`
+	SoftLimit int    `toml:"soft_limit,omitempty" json:"soft_limit,omitempty"`
 }
 
 type MachineConfig struct {
@@ -721,10 +721,10 @@ func (c *MachineConfig) ProcessGroup() string {
 }
 
 type Static struct {
-	GuestPath     string `toml:"guest_path" toml:"guest_path" json:"guest_path" validate:"required"`
-	UrlPrefix     string `toml:"url_prefix" toml:"url_prefix" json:"url_prefix" validate:"required"`
-	TigrisBucket  string `toml:"tigris_bucket" toml:"tigris_bucket" json:"tigris_bucket"`
-	IndexDocument string `toml:"index_document" toml:"index_document" json:"index_document"`
+	GuestPath     string `toml:"guest_path" json:"guest_path" validate:"required"`
+	UrlPrefix     string `toml:"url_prefix" json:"url_prefix" validate:"required"`
+	TigrisBucket  string `toml:"tigris_bucket" json:"tigris_bucket"`
+	IndexDocument string `toml:"index_document" json:"index_document"`
 }
 
 type MachineInit struct {
