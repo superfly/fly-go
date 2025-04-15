@@ -11,5 +11,5 @@ test: FORCE
 
 FORCE:
 
-lint:   
+lint:
 	golangci-lint run ./...
