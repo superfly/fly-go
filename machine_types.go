@@ -43,27 +43,27 @@ var (
 )
 
 type Machine struct {
-	ID       string          `json:"id,omitempty"`
-	Name     string          `json:"name,omitempty"`
-	State    string          `json:"state,omitempty"`
-	Region   string          `json:"region,omitempty"`
-	ImageRef MachineImageRef `json:"image_ref,omitempty"`
+	ID       string          `toml:"id,omitempty" json:"id,omitempty"`
+	Name     string          `toml:"name,omitempty" json:"name,omitempty"`
+	State    string          `toml:"state,omitempty" json:"state,omitempty"`
+	Region   string          `toml:"region,omitempty" json:"region,omitempty"`
+	ImageRef MachineImageRef `toml:"image_ref,omitempty" json:"image_ref,omitempty"`
 	// InstanceID is unique for each version of the machine
-	InstanceID string `json:"instance_id,omitempty"`
-	Version    string `json:"version,omitempty"`
+	InstanceID string `toml:"instance_id,omitempty" json:"instance_id,omitempty"`
+	Version    string `toml:"version,omitempty" json:"version,omitempty"`
 	// PrivateIP is the internal 6PN address of the machine.
-	PrivateIP  string                `json:"private_ip,omitempty"`
-	CreatedAt  string                `json:"created_at,omitempty"`
-	UpdatedAt  string                `json:"updated_at,omitempty"`
-	Config     *MachineConfig        `json:"config,omitempty"`
-	Events     []*MachineEvent       `json:"events,omitempty"`
-	Checks     []*MachineCheckStatus `json:"checks,omitempty"`
-	LeaseNonce string                `json:"nonce,omitempty"`
-	HostStatus HostStatus            `json:"host_status,omitempty" enums:"ok,unknown,unreachable"`
+	PrivateIP  string                `toml:"private_ip,omitempty" json:"private_ip,omitempty"`
+	CreatedAt  string                `toml:"created_at,omitempty" json:"created_at,omitempty"`
+	UpdatedAt  string                `toml:"updated_at,omitempty" json:"updated_at,omitempty"`
+	Config     *MachineConfig        `toml:"config,omitempty" json:"config,omitempty"`
+	Events     []*MachineEvent       `toml:"events,omitempty" json:"events,omitempty"`
+	Checks     []*MachineCheckStatus `toml:"checks,omitempty" json:"checks,omitempty"`
+	LeaseNonce string                `toml:"nonce,omitempty" json:"nonce,omitempty"`
+	HostStatus HostStatus            `toml:"host_status,omitempty" json:"host_status,omitempty" enums:"ok,unknown,unreachable"`
 
 	// When `host_status` isn't "ok", the config can't be fully retrieved and has to be rebuilt from multiple sources
 	// to form an partial configuration, not suitable to clone or recreate the original machine
-	IncompleteConfig *MachineConfig `json:"incomplete_config,omitempty"`
+	IncompleteConfig *MachineConfig `toml:"incomplete_config,omitempty" json:"incomplete_config,omitempty"`
 }
 
 func (m *Machine) FullImageRef() string {
@@ -259,19 +259,19 @@ func (m *Machine) IsReleaseCommandMachine() bool {
 }
 
 type MachineImageRef struct {
-	Registry   string            `json:"registry,omitempty"`
-	Repository string            `json:"repository,omitempty"`
-	Tag        string            `json:"tag,omitempty"`
-	Digest     string            `json:"digest,omitempty"`
-	Labels     map[string]string `json:"labels,omitempty"`
+	Registry   string            `toml:"registry,omitempty" json:"registry,omitempty"`
+	Repository string            `toml:"repository,omitempty" json:"repository,omitempty"`
+	Tag        string            `toml:"tag,omitempty" json:"tag,omitempty"`
+	Digest     string            `toml:"digest,omitempty" json:"digest,omitempty"`
+	Labels     map[string]string `toml:"labels,omitempty" json:"labels,omitempty"`
 }
 
 type MachineEvent struct {
-	Type      string          `json:"type,omitempty"`
-	Status    string          `json:"status,omitempty"`
-	Request   *MachineRequest `json:"request,omitempty"`
-	Source    string          `json:"source,omitempty"`
-	Timestamp int64           `json:"timestamp,omitempty"`
+	Type      string          `toml:"type,omitempty" json:"type,omitempty"`
+	Status    string          `toml:"status,omitempty" json:"status,omitempty"`
+	Request   *MachineRequest `toml:"request,omitempty" json:"request,omitempty"`
+	Source    string          `toml:"source,omitempty" json:"source,omitempty"`
+	Timestamp int64           `toml:"timestamp,omitempty" json:"timestamp,omitempty"`
 }
 
 func (e *MachineEvent) Time() time.Time {
@@ -279,9 +279,9 @@ func (e *MachineEvent) Time() time.Time {
 }
 
 type MachineRequest struct {
-	ExitEvent    *MachineExitEvent    `json:"exit_event,omitempty"`
-	MonitorEvent *MachineMonitorEvent `json:"MonitorEvent,omitempty"`
-	RestartCount int                  `json:"restart_count,omitempty"`
+	ExitEvent    *MachineExitEvent    `toml:"exit_event,omitempty" json:"exit_event,omitempty"`
+	MonitorEvent *MachineMonitorEvent `toml:"MonitorEvent,omitempty" json:"MonitorEvent,omitempty"`
+	RestartCount int                  `toml:"restart_count,omitempty" json:"restart_count,omitempty"`
 }
 
 // returns the ExitCode from MonitorEvent if it exists, otherwise ExitEvent
@@ -297,32 +297,32 @@ func (mr *MachineRequest) GetExitCode() (int, error) {
 }
 
 type MachineMonitorEvent struct {
-	ExitEvent *MachineExitEvent `json:"exit_event,omitempty"`
+	ExitEvent *MachineExitEvent `toml:"exit_event,omitempty" json:"exit_event,omitempty"`
 }
 
 type MachineExitEvent struct {
-	ExitCode      int       `json:"exit_code,omitempty"`
-	GuestExitCode int       `json:"guest_exit_code,omitempty"`
-	GuestSignal   int       `json:"guest_signal,omitempty"`
-	OOMKilled     bool      `json:"oom_killed,omitempty"`
-	RequestedStop bool      `json:"requested_stop,omitempty"`
-	Restarting    bool      `json:"restarting,omitempty"`
-	Signal        int       `json:"signal,omitempty"`
-	ExitedAt      time.Time `json:"exited_at,omitempty"`
+	ExitCode      int       `toml:"exit_code,omitempty" json:"exit_code,omitempty"`
+	GuestExitCode int       `toml:"guest_exit_code,omitempty" json:"guest_exit_code,omitempty"`
+	GuestSignal   int       `toml:"guest_signal,omitempty" json:"guest_signal,omitempty"`
+	OOMKilled     bool      `toml:"oom_killed,omitempty" json:"oom_killed,omitempty"`
+	RequestedStop bool      `toml:"requested_stop,omitempty" json:"requested_stop,omitempty"`
+	Restarting    bool      `toml:"restarting,omitempty" json:"restarting,omitempty"`
+	Signal        int       `toml:"signal,omitempty" json:"signal,omitempty"`
+	ExitedAt      time.Time `toml:"exited_at,omitempty" json:"exited_at,omitempty"`
 }
 
 type StopMachineInput struct {
-	ID      string   `json:"id,omitempty"`
-	Signal  string   `json:"signal,omitempty"`
-	Timeout Duration `json:"timeout,omitempty"`
+	ID      string   `toml:"id,omitempty" json:"id,omitempty"`
+	Signal  string   `toml:"signal,omitempty" json:"signal,omitempty"`
+	Timeout Duration `toml:"timeout,omitempty" json:"timeout,omitempty"`
 }
 
 type RestartMachineInput struct {
-	ID               string        `json:"id,omitempty"`
-	Signal           string        `json:"signal,omitempty"`
-	Timeout          time.Duration `json:"timeout,omitempty"`
-	ForceStop        bool          `json:"force_stop,omitempty"`
-	SkipHealthChecks bool          `json:"skip_health_checks,omitempty"`
+	ID               string        `toml:"id,omitempty" json:"id,omitempty"`
+	Signal           string        `toml:"signal,omitempty" json:"signal,omitempty"`
+	Timeout          time.Duration `toml:"timeout,omitempty" json:"timeout,omitempty"`
+	ForceStop        bool          `toml:"force_stop,omitempty" json:"force_stop,omitempty"`
+	SkipHealthChecks bool          `toml:"skip_health_checks,omitempty" json:"skip_health_checks,omitempty"`
 }
 
 type MachineIP struct {
@@ -333,8 +333,8 @@ type MachineIP struct {
 }
 
 type RemoveMachineInput struct {
-	ID   string `json:"id,omitempty"`
-	Kill bool   `json:"kill,omitempty"`
+	ID   string `toml:"id,omitempty" json:"id,omitempty"`
+	Kill bool   `toml:"kill,omitempty" json:"kill,omitempty"`
 }
 
 type MachineRestartPolicy string
@@ -352,33 +352,33 @@ type MachineRestart struct {
 	// * always - Always restart a Machine automatically and never let it enter a stopped state, even when the main process exits cleanly.
 	// * on-failure - Try up to MaxRetries times to automatically restart the Machine if it exits with a non-zero exit code. Default when no explicit policy is set, and for Machines with schedules.
 	// * spot-price - Starts the Machine only when there is capacity and the spot price is less than or equal to the bid price.
-	Policy MachineRestartPolicy `json:"policy,omitempty" enums:"no,always,on-failure,spot-price"`
+	Policy MachineRestartPolicy `toml:"policy,omitempty" json:"policy,omitempty" enums:"no,always,on-failure,spot-price"`
 	// When policy is on-failure, the maximum number of times to attempt to restart the Machine before letting it stop.
-	MaxRetries int `json:"max_retries,omitempty"`
+	MaxRetries int `toml:"max_retries,omitempty" json:"max_retries,omitempty"`
 	// GPU bid price for spot Machines.
-	GPUBidPrice float32 `json:"gpu_bid_price,omitempty"`
+	GPUBidPrice float32 `toml:"gpu_bid_price,omitempty" json:"gpu_bid_price,omitempty"`
 }
 
 type MachineMount struct {
-	Encrypted              bool   `json:"encrypted,omitempty"`
-	Path                   string `json:"path,omitempty"`
-	SizeGb                 int    `json:"size_gb,omitempty"`
-	Volume                 string `json:"volume,omitempty"`
-	Name                   string `json:"name,omitempty"`
-	ExtendThresholdPercent int    `json:"extend_threshold_percent,omitempty"`
-	AddSizeGb              int    `json:"add_size_gb,omitempty"`
-	SizeGbLimit            int    `json:"size_gb_limit,omitempty"`
+	Encrypted              bool   `toml:"encrypted,omitempty" json:"encrypted,omitempty"`
+	Path                   string `toml:"path,omitempty" json:"path,omitempty"`
+	SizeGb                 int    `toml:"size_gb,omitempty" json:"size_gb,omitempty"`
+	Volume                 string `toml:"volume,omitempty" json:"volume,omitempty"`
+	Name                   string `toml:"name,omitempty" json:"name,omitempty"`
+	ExtendThresholdPercent int    `toml:"extend_threshold_percent,omitempty" json:"extend_threshold_percent,omitempty"`
+	AddSizeGb              int    `toml:"add_size_gb,omitempty" json:"add_size_gb,omitempty"`
+	SizeGbLimit            int    `toml:"size_gb_limit,omitempty" json:"size_gb_limit,omitempty"`
 }
 
 type MachineGuest struct {
-	CPUKind          string `json:"cpu_kind,omitempty" toml:"cpu_kind,omitempty"`
-	CPUs             int    `json:"cpus,omitempty" toml:"cpus,omitempty"`
-	MemoryMB         int    `json:"memory_mb,omitempty" toml:"memory_mb,omitempty"`
-	GPUs             int    `json:"gpus,omitempty" toml:"gpus,omitempty"`
-	GPUKind          string `json:"gpu_kind,omitempty" toml:"gpu_kind,omitempty"`
-	HostDedicationID string `json:"host_dedication_id,omitempty" toml:"host_dedication_id,omitempty"`
+	CPUKind          string `toml:"cpu_kind,omitempty" json:"cpu_kind,omitempty" toml:"cpu_kind,omitempty"`
+	CPUs             int    `toml:"cpus,omitempty" json:"cpus,omitempty" toml:"cpus,omitempty"`
+	MemoryMB         int    `toml:"memory_mb,omitempty" json:"memory_mb,omitempty" toml:"memory_mb,omitempty"`
+	GPUs             int    `toml:"gpus,omitempty" json:"gpus,omitempty" toml:"gpus,omitempty"`
+	GPUKind          string `toml:"gpu_kind,omitempty" json:"gpu_kind,omitempty" toml:"gpu_kind,omitempty"`
+	HostDedicationID string `toml:"host_dedication_id,omitempty" json:"host_dedication_id,omitempty" toml:"host_dedication_id,omitempty"`
 
-	KernelArgs []string `json:"kernel_args,omitempty" toml:"kernel_args,omitempty"`
+	KernelArgs []string `toml:"kernel_args,omitempty" json:"kernel_args,omitempty" toml:"kernel_args,omitempty"`
 }
 
 func (mg *MachineGuest) SetSize(size string) error {
@@ -478,9 +478,9 @@ var MachinePresets map[string]*MachineGuest = map[string]*MachineGuest{
 }
 
 type MachineMetrics struct {
-	Port  int    `toml:"port" json:"port,omitempty"`
-	Path  string `toml:"path" json:"path,omitempty"`
-	Https bool   `toml:"https" json:"https,omitempty"`
+	Port  int    `toml:"port" toml:"port,omitempty" json:"port,omitempty"`
+	Path  string `toml:"path" toml:"path,omitempty" json:"path,omitempty"`
+	Https bool   `toml:"https" toml:"https,omitempty" json:"https,omitempty"`
 }
 
 type MachineCheckKind string
@@ -497,36 +497,36 @@ var (
 // @description An optional object that defines one or more named checks. The key for each check is the check name.
 type MachineCheck struct {
 	// The port to connect to, often the same as internal_port
-	Port *int `json:"port,omitempty"`
+	Port *int `toml:"port,omitempty" json:"port,omitempty"`
 	// tcp or http
-	Type *string `json:"type,omitempty"`
+	Type *string `toml:"type,omitempty" json:"type,omitempty"`
 	// Kind of the check (informational, readiness)
-	Kind *MachineCheckKind `json:"kind,omitempty" enums:"informational,readiness"`
+	Kind *MachineCheckKind `toml:"kind,omitempty" json:"kind,omitempty" enums:"informational,readiness"`
 	// The time between connectivity checks
-	Interval *Duration `json:"interval,omitempty"`
+	Interval *Duration `toml:"interval,omitempty" json:"interval,omitempty"`
 	// The maximum time a connection can take before being reported as failing its health check
-	Timeout *Duration `json:"timeout,omitempty"`
+	Timeout *Duration `toml:"timeout,omitempty" json:"timeout,omitempty"`
 	// The time to wait after a VM starts before checking its health
-	GracePeriod *Duration `json:"grace_period,omitempty"`
+	GracePeriod *Duration `toml:"grace_period,omitempty" json:"grace_period,omitempty"`
 	// For http checks, the HTTP method to use to when making the request
-	HTTPMethod *string `json:"method,omitempty"`
+	HTTPMethod *string `toml:"method,omitempty" json:"method,omitempty"`
 	// For http checks, the path to send the request to
-	HTTPPath *string `json:"path,omitempty"`
+	HTTPPath *string `toml:"path,omitempty" json:"path,omitempty"`
 	// For http checks, whether to use http or https
-	HTTPProtocol *string `json:"protocol,omitempty"`
+	HTTPProtocol *string `toml:"protocol,omitempty" json:"protocol,omitempty"`
 	// For http checks with https protocol, whether or not to verify the TLS certificate
-	HTTPSkipTLSVerify *bool `json:"tls_skip_verify,omitempty"`
+	HTTPSkipTLSVerify *bool `toml:"tls_skip_verify,omitempty" json:"tls_skip_verify,omitempty"`
 	// If the protocol is https, the hostname to use for TLS certificate validation
-	HTTPTLSServerName *string             `json:"tls_server_name,omitempty"`
-	HTTPHeaders       []MachineHTTPHeader `json:"headers,omitempty"`
+	HTTPTLSServerName *string             `toml:"tls_server_name,omitempty" json:"tls_server_name,omitempty"`
+	HTTPHeaders       []MachineHTTPHeader `toml:"headers,omitempty" json:"headers,omitempty"`
 }
 
 // @description For http checks, an array of objects with string field Name and array of strings field Values. The key/value pairs specify header and header values that will get passed with the check call.
 type MachineHTTPHeader struct {
 	// The header name
-	Name string `json:"name,omitempty"`
+	Name string `toml:"name,omitempty" json:"name,omitempty"`
 	// The header value
-	Values []string `json:"values,omitempty"`
+	Values []string `toml:"values,omitempty" json:"values,omitempty"`
 }
 
 type ConsulCheckStatus string
@@ -538,21 +538,21 @@ const (
 )
 
 type MachineCheckStatus struct {
-	Name      string            `json:"name,omitempty"`
-	Status    ConsulCheckStatus `json:"status,omitempty"`
-	Output    string            `json:"output,omitempty"`
-	UpdatedAt *time.Time        `json:"updated_at,omitempty"`
+	Name      string            `toml:"name,omitempty" json:"name,omitempty"`
+	Status    ConsulCheckStatus `toml:"status,omitempty" json:"status,omitempty"`
+	Output    string            `toml:"output,omitempty" json:"output,omitempty"`
+	UpdatedAt *time.Time        `toml:"updated_at,omitempty" json:"updated_at,omitempty"`
 }
 
 type MachinePort struct {
-	Port              *int               `json:"port,omitempty" toml:"port,omitempty"`
-	StartPort         *int               `json:"start_port,omitempty" toml:"start_port,omitempty"`
-	EndPort           *int               `json:"end_port,omitempty" toml:"end_port,omitempty"`
-	Handlers          []string           `json:"handlers,omitempty" toml:"handlers,omitempty"`
-	ForceHTTPS        bool               `json:"force_https,omitempty" toml:"force_https,omitempty"`
-	TLSOptions        *TLSOptions        `json:"tls_options,omitempty" toml:"tls_options,omitempty"`
-	HTTPOptions       *HTTPOptions       `json:"http_options,omitempty" toml:"http_options,omitempty"`
-	ProxyProtoOptions *ProxyProtoOptions `json:"proxy_proto_options,omitempty" toml:"proxy_proto_options,omitempty"`
+	Port              *int               `toml:"port,omitempty" json:"port,omitempty" toml:"port,omitempty"`
+	StartPort         *int               `toml:"start_port,omitempty" json:"start_port,omitempty" toml:"start_port,omitempty"`
+	EndPort           *int               `toml:"end_port,omitempty" json:"end_port,omitempty" toml:"end_port,omitempty"`
+	Handlers          []string           `toml:"handlers,omitempty" json:"handlers,omitempty" toml:"handlers,omitempty"`
+	ForceHTTPS        bool               `toml:"force_https,omitempty" json:"force_https,omitempty" toml:"force_https,omitempty"`
+	TLSOptions        *TLSOptions        `toml:"tls_options,omitempty" json:"tls_options,omitempty" toml:"tls_options,omitempty"`
+	HTTPOptions       *HTTPOptions       `toml:"http_options,omitempty" json:"http_options,omitempty" toml:"http_options,omitempty"`
+	ProxyProtoOptions *ProxyProtoOptions `toml:"proxy_proto_options,omitempty" json:"proxy_proto_options,omitempty" toml:"proxy_proto_options,omitempty"`
 }
 
 func (mp *MachinePort) ContainsPort(port int) bool {
@@ -604,49 +604,49 @@ func (mp *MachinePort) HasNonHttpPorts() bool {
 }
 
 type ProxyProtoOptions struct {
-	Version string `json:"version,omitempty" toml:"version,omitempty"`
+	Version string `toml:"version,omitempty" json:"version,omitempty" toml:"version,omitempty"`
 }
 
 type TLSOptions struct {
-	ALPN              []string `json:"alpn,omitempty" toml:"alpn,omitempty"`
-	Versions          []string `json:"versions,omitempty" toml:"versions,omitempty"`
-	DefaultSelfSigned *bool    `json:"default_self_signed,omitempty" toml:"default_self_signed,omitempty"`
+	ALPN              []string `toml:"alpn,omitempty" json:"alpn,omitempty" toml:"alpn,omitempty"`
+	Versions          []string `toml:"versions,omitempty" json:"versions,omitempty" toml:"versions,omitempty"`
+	DefaultSelfSigned *bool    `toml:"default_self_signed,omitempty" json:"default_self_signed,omitempty" toml:"default_self_signed,omitempty"`
 }
 
 type HTTPOptions struct {
-	Compress           *bool                `json:"compress,omitempty" toml:"compress,omitempty"`
-	Response           *HTTPResponseOptions `json:"response,omitempty" toml:"response,omitempty"`
-	H2Backend          *bool                `json:"h2_backend,omitempty" toml:"h2_backend,omitempty"`
-	IdleTimeout        *uint32              `json:"idle_timeout,omitempty" toml:"idle_timeout,omitempty"`
-	HeadersReadTimeout *uint32              `json:"headers_read_timeout,omitempty" toml:"headers_read_timeout,omitempty"`
+	Compress           *bool                `toml:"compress,omitempty" json:"compress,omitempty" toml:"compress,omitempty"`
+	Response           *HTTPResponseOptions `toml:"response,omitempty" json:"response,omitempty" toml:"response,omitempty"`
+	H2Backend          *bool                `toml:"h2_backend,omitempty" json:"h2_backend,omitempty" toml:"h2_backend,omitempty"`
+	IdleTimeout        *uint32              `toml:"idle_timeout,omitempty" json:"idle_timeout,omitempty" toml:"idle_timeout,omitempty"`
+	HeadersReadTimeout *uint32              `toml:"headers_read_timeout,omitempty" json:"headers_read_timeout,omitempty" toml:"headers_read_timeout,omitempty"`
 }
 
 type HTTPResponseOptions struct {
-	Headers  map[string]any `json:"headers,omitempty" toml:"headers,omitempty"`
-	Pristine *bool          `json:"pristine,omitempty" toml:"pristine,omitempty"`
+	Headers  map[string]any `toml:"headers,omitempty" json:"headers,omitempty" toml:"headers,omitempty"`
+	Pristine *bool          `toml:"pristine,omitempty" json:"pristine,omitempty" toml:"pristine,omitempty"`
 }
 
 type MachineService struct {
-	Protocol     string `json:"protocol,omitempty" toml:"protocol,omitempty"`
-	InternalPort int    `json:"internal_port,omitempty" toml:"internal_port,omitempty"`
+	Protocol     string `toml:"protocol,omitempty" json:"protocol,omitempty" toml:"protocol,omitempty"`
+	InternalPort int    `toml:"internal_port,omitempty" json:"internal_port,omitempty" toml:"internal_port,omitempty"`
 	// Accepts a string (new format) or a boolean (old format). For backward compatibility with older clients, the API continues to use booleans for "off" and "stop" in responses.
 	// * "off" or false - Do not autostop the Machine.
 	// * "stop" or true - Automatically stop the Machine.
 	// * "suspend" - Automatically suspend the Machine, falling back to a full stop if this is not possible.
-	Autostop                 *MachineAutostop           `json:"autostop,omitempty" swaggertype:"string" enums:"off,stop,suspend"`
-	Autostart                *bool                      `json:"autostart,omitempty"`
-	MinMachinesRunning       *int                       `json:"min_machines_running,omitempty"`
-	Ports                    []MachinePort              `json:"ports,omitempty" toml:"ports,omitempty"`
-	Checks                   []MachineCheck             `json:"checks,omitempty" toml:"checks,omitempty"`
-	Concurrency              *MachineServiceConcurrency `json:"concurrency,omitempty" toml:"concurrency"`
-	ForceInstanceKey         *string                    `json:"force_instance_key" toml:"force_instance_key"`
-	ForceInstanceDescription *string                    `json:"force_instance_description,omitempty" toml:"force_instance_description"`
+	Autostop                 *MachineAutostop           `toml:"autostop,omitempty" json:"autostop,omitempty" swaggertype:"string" enums:"off,stop,suspend"`
+	Autostart                *bool                      `toml:"autostart,omitempty" json:"autostart,omitempty"`
+	MinMachinesRunning       *int                       `toml:"min_machines_running,omitempty" json:"min_machines_running,omitempty"`
+	Ports                    []MachinePort              `toml:"ports,omitempty" json:"ports,omitempty" toml:"ports,omitempty"`
+	Checks                   []MachineCheck             `toml:"checks,omitempty" json:"checks,omitempty" toml:"checks,omitempty"`
+	Concurrency              *MachineServiceConcurrency `toml:"concurrency,omitempty" json:"concurrency,omitempty" toml:"concurrency"`
+	ForceInstanceKey         *string                    `toml:"force_instance_key" json:"force_instance_key" toml:"force_instance_key"`
+	ForceInstanceDescription *string                    `toml:"force_instance_description,omitempty" json:"force_instance_description,omitempty" toml:"force_instance_description"`
 }
 
 type MachineServiceConcurrency struct {
-	Type      string `json:"type,omitempty" toml:"type,omitempty"`
-	HardLimit int    `json:"hard_limit,omitempty" toml:"hard_limit,omitempty"`
-	SoftLimit int    `json:"soft_limit,omitempty" toml:"soft_limit,omitempty"`
+	Type      string `toml:"type,omitempty" json:"type,omitempty" toml:"type,omitempty"`
+	HardLimit int    `toml:"hard_limit,omitempty" json:"hard_limit,omitempty" toml:"hard_limit,omitempty"`
+	SoftLimit int    `toml:"soft_limit,omitempty" json:"soft_limit,omitempty" toml:"soft_limit,omitempty"`
 }
 
 type MachineConfig struct {
@@ -654,50 +654,50 @@ type MachineConfig struct {
 	// If you add anything here, ensure appconfig.Config.ToMachine() is updated
 
 	// An object filled with key/value pairs to be set as environment variables
-	Env      map[string]string       `json:"env,omitempty"`
-	Init     MachineInit             `json:"init,omitempty"`
-	Guest    *MachineGuest           `json:"guest,omitempty"`
-	Metadata map[string]string       `json:"metadata,omitempty"`
-	Mounts   []MachineMount          `json:"mounts,omitempty"`
-	Services []MachineService        `json:"services,omitempty"`
-	Metrics  *MachineMetrics         `json:"metrics,omitempty"`
-	Checks   map[string]MachineCheck `json:"checks,omitempty"`
-	Statics  []*Static               `json:"statics,omitempty"`
+	Env      map[string]string       `toml:"env,omitempty" json:"env,omitempty"`
+	Init     MachineInit             `toml:"init,omitempty" json:"init,omitempty"`
+	Guest    *MachineGuest           `toml:"guest,omitempty" json:"guest,omitempty"`
+	Metadata map[string]string       `toml:"metadata,omitempty" json:"metadata,omitempty"`
+	Mounts   []MachineMount          `toml:"mounts,omitempty" json:"mounts,omitempty"`
+	Services []MachineService        `toml:"services,omitempty" json:"services,omitempty"`
+	Metrics  *MachineMetrics         `toml:"metrics,omitempty" json:"metrics,omitempty"`
+	Checks   map[string]MachineCheck `toml:"checks,omitempty" json:"checks,omitempty"`
+	Statics  []*Static               `toml:"statics,omitempty" json:"statics,omitempty"`
 
 	// Set by fly deploy or fly machines commands
 
 	// The docker image to run
-	Image string  `json:"image,omitempty"`
-	Files []*File `json:"files,omitempty"`
+	Image string  `toml:"image,omitempty" json:"image,omitempty"`
+	Files []*File `toml:"files,omitempty" json:"files,omitempty"`
 
 	// The following fields can only be set or updated by `fly machines run|update` commands
 	// "fly deploy" must preserve them, if you add anything here, ensure it is propagated on deploys
 
-	Schedule string `json:"schedule,omitempty"`
+	Schedule string `toml:"schedule,omitempty" json:"schedule,omitempty"`
 	// Optional boolean telling the Machine to destroy itself once it’s complete (default false)
-	AutoDestroy bool             `json:"auto_destroy,omitempty"`
-	Restart     *MachineRestart  `json:"restart,omitempty"`
-	DNS         *DNSConfig       `json:"dns,omitempty"`
-	Processes   []MachineProcess `json:"processes,omitempty"`
+	AutoDestroy bool             `toml:"auto_destroy,omitempty" json:"auto_destroy,omitempty"`
+	Restart     *MachineRestart  `toml:"restart,omitempty" json:"restart,omitempty"`
+	DNS         *DNSConfig       `toml:"dns,omitempty" json:"dns,omitempty"`
+	Processes   []MachineProcess `toml:"processes,omitempty" json:"processes,omitempty"`
 
 	// Standbys enable a machine to be a standby for another. In the event of a hardware failure,
 	// the standby machine will be started.
-	Standbys []string `json:"standbys,omitempty"`
+	Standbys []string `toml:"standbys,omitempty" json:"standbys,omitempty"`
 
-	StopConfig *StopConfig `json:"stop_config,omitempty"`
+	StopConfig *StopConfig `toml:"stop_config,omitempty" json:"stop_config,omitempty"`
 
 	// Containers are a list of containers that will run in the machine. Currently restricted to
 	// only specific organizations.
-	Containers []*ContainerConfig `json:"containers,omitempty"`
+	Containers []*ContainerConfig `toml:"containers,omitempty" json:"containers,omitempty"`
 
 	// Volumes describe the set of volumes that can be attached to the machine. Used in conjuction
 	// with containers
-	Volumes []*VolumeConfig `json:"volumes,omitempty"`
+	Volumes []*VolumeConfig `toml:"volumes,omitempty" json:"volumes,omitempty"`
 
 	// Deprecated: use Guest instead
-	VMSize string `json:"size,omitempty"`
+	VMSize string `toml:"size,omitempty" json:"size,omitempty"`
 	// Deprecated: use Service.Autostart instead
-	DisableMachineAutostart *bool `json:"disable_machine_autostart,omitempty"`
+	DisableMachineAutostart *bool `toml:"disable_machine_autostart,omitempty" json:"disable_machine_autostart,omitempty"`
 }
 
 func (c *MachineConfig) ProcessGroup() string {
@@ -721,120 +721,120 @@ func (c *MachineConfig) ProcessGroup() string {
 }
 
 type Static struct {
-	GuestPath     string `toml:"guest_path" json:"guest_path" validate:"required"`
-	UrlPrefix     string `toml:"url_prefix" json:"url_prefix" validate:"required"`
-	TigrisBucket  string `toml:"tigris_bucket" json:"tigris_bucket"`
-	IndexDocument string `toml:"index_document" json:"index_document"`
+	GuestPath     string `toml:"guest_path" toml:"guest_path" json:"guest_path" validate:"required"`
+	UrlPrefix     string `toml:"url_prefix" toml:"url_prefix" json:"url_prefix" validate:"required"`
+	TigrisBucket  string `toml:"tigris_bucket" toml:"tigris_bucket" json:"tigris_bucket"`
+	IndexDocument string `toml:"index_document" toml:"index_document" json:"index_document"`
 }
 
 type MachineInit struct {
-	Exec       []string `json:"exec,omitempty"`
-	Entrypoint []string `json:"entrypoint,omitempty"`
-	Cmd        []string `json:"cmd,omitempty"`
-	Tty        bool     `json:"tty,omitempty"`
-	SwapSizeMB *int     `json:"swap_size_mb,omitempty"`
-	KernelArgs []string `json:"kernel_args,omitempty"`
+	Exec       []string `toml:"exec,omitempty" json:"exec,omitempty"`
+	Entrypoint []string `toml:"entrypoint,omitempty" json:"entrypoint,omitempty"`
+	Cmd        []string `toml:"cmd,omitempty" json:"cmd,omitempty"`
+	Tty        bool     `toml:"tty,omitempty" json:"tty,omitempty"`
+	SwapSizeMB *int     `toml:"swap_size_mb,omitempty" json:"swap_size_mb,omitempty"`
+	KernelArgs []string `toml:"kernel_args,omitempty" json:"kernel_args,omitempty"`
 }
 
 type DNSConfig struct {
-	SkipRegistration bool             `json:"skip_registration,omitempty"`
-	Nameservers      []string         `json:"nameservers,omitempty"`
-	Searches         []string         `json:"searches,omitempty"`
-	Options          []dnsOption      `json:"options,omitempty"`
-	DNSForwardRules  []dnsForwardRule `json:"dns_forward_rules,omitempty"`
-	Hostname         string           `json:"hostname,omitempty"`
-	HostnameFqdn     string           `json:"hostname_fqdn,omitempty"`
+	SkipRegistration bool             `toml:"skip_registration,omitempty" json:"skip_registration,omitempty"`
+	Nameservers      []string         `toml:"nameservers,omitempty" json:"nameservers,omitempty"`
+	Searches         []string         `toml:"searches,omitempty" json:"searches,omitempty"`
+	Options          []dnsOption      `toml:"options,omitempty" json:"options,omitempty"`
+	DNSForwardRules  []dnsForwardRule `toml:"dns_forward_rules,omitempty" json:"dns_forward_rules,omitempty"`
+	Hostname         string           `toml:"hostname,omitempty" json:"hostname,omitempty"`
+	HostnameFqdn     string           `toml:"hostname_fqdn,omitempty" json:"hostname_fqdn,omitempty"`
 }
 
 type dnsForwardRule struct {
-	Basename string `json:"basename,omitempty"`
-	Addr     string `json:"addr,omitempty"`
+	Basename string `toml:"basename,omitempty" json:"basename,omitempty"`
+	Addr     string `toml:"addr,omitempty" json:"addr,omitempty"`
 }
 
 type dnsOption struct {
-	Name  string `json:"name,omitempty"`
-	Value string `json:"value,omitempty"`
+	Name  string `toml:"name,omitempty" json:"name,omitempty"`
+	Value string `toml:"value,omitempty" json:"value,omitempty"`
 }
 
 type StopConfig struct {
-	Timeout *Duration `json:"timeout,omitempty"`
-	Signal  *string   `json:"signal,omitempty"`
+	Timeout *Duration `toml:"timeout,omitempty" json:"timeout,omitempty"`
+	Signal  *string   `toml:"signal,omitempty" json:"signal,omitempty"`
 }
 
 // @description A file that will be written to the Machine. One of RawValue or SecretName must be set.
 type File struct {
 	// GuestPath is the path on the machine where the file will be written and must be an absolute path.
 	// For example: /full/path/to/file.json
-	GuestPath string `json:"guest_path,omitempty"`
+	GuestPath string `toml:"guest_path,omitempty" json:"guest_path,omitempty"`
 
 	// The base64 encoded string of the file contents.
-	RawValue *string `json:"raw_value,omitempty"`
+	RawValue *string `toml:"raw_value,omitempty" json:"raw_value,omitempty"`
 
 	// The name of the secret that contains the base64 encoded file contents.
-	SecretName *string `json:"secret_name,omitempty"`
+	SecretName *string `toml:"secret_name,omitempty" json:"secret_name,omitempty"`
 
 	// Mode bits used to set permissions on this file as accepted by chmod(2).
-	Mode uint32 `json:"mode,omitempty"`
+	Mode uint32 `toml:"mode,omitempty" json:"mode,omitempty"`
 }
 
 type ContainerConfig struct {
 	// Name is used to identify the container in the machine.
-	Name string `json:"name"`
+	Name string `toml:"name" json:"name"`
 
 	// Image is the docker image to run.
-	Image string `json:"image"`
+	Image string `toml:"image" json:"image"`
 
 	// Image Config overrides - these fields are used to override the image configuration.
 	// If not provided, the image configuration will be used.
 	// ExecOverride is used to override the default command of the image.
-	ExecOverride []string `json:"exec,omitempty"`
+	ExecOverride []string `toml:"exec,omitempty" json:"exec,omitempty"`
 	// EntrypointOverride is used to override the default entrypoint of the image.
-	EntrypointOverride []string `json:"entrypoint,omitempty"`
+	EntrypointOverride []string `toml:"entrypoint,omitempty" json:"entrypoint,omitempty"`
 	// CmdOverride is used to override the default command of the image.
-	CmdOverride []string `json:"cmd,omitempty"`
+	CmdOverride []string `toml:"cmd,omitempty" json:"cmd,omitempty"`
 	// UserOverride is used to override the default user of the image.
-	UserOverride string `json:"user,omitempty"`
+	UserOverride string `toml:"user,omitempty" json:"user,omitempty"`
 	// ExtraEnv is used to add additional environment variables to the container.
-	ExtraEnv map[string]string `json:"env,omitempty"`
+	ExtraEnv map[string]string `toml:"env,omitempty" json:"env,omitempty"`
 
 	// Secrets can be provided at the process level to explicitly indicate which secrets should be
 	// used for the process. If not provided, the secrets provided at the machine level will be used.
-	Secrets []MachineSecret `json:"secrets,omitempty"`
+	Secrets []MachineSecret `toml:"secrets,omitempty" json:"secrets,omitempty"`
 
 	// EnvFrom can be provided to set environment variables from machine fields.
-	EnvFrom []EnvFrom `json:"env_from,omitempty"`
+	EnvFrom []EnvFrom `toml:"env_from,omitempty" json:"env_from,omitempty"`
 
 	// Files are files that will be written to the container file system.
-	Files []*File `json:"files,omitempty"`
+	Files []*File `toml:"files,omitempty" json:"files,omitempty"`
 
 	// Restart is used to define the restart policy for the container. NOTE: spot-price is not
 	// supported for containers.
-	Restart *MachineRestart `json:"restart,omitempty"`
+	Restart *MachineRestart `toml:"restart,omitempty" json:"restart,omitempty"`
 
 	// Stop is used to define the signal and timeout for stopping the container.
-	Stop *StopConfig `json:"stop,omitempty"`
+	Stop *StopConfig `toml:"stop,omitempty" json:"stop,omitempty"`
 
 	// DependsOn can be used to define dependencies between containers. The container will only be
 	// started after all of its dependent conditions have been satisfied.
-	DependsOn []ContainerDependency `json:"depends_on,omitempty"`
+	DependsOn []ContainerDependency `toml:"depends_on,omitempty" json:"depends_on,omitempty"`
 
 	// Healthchecks determine the health of your containers. Healthchecks can use HTTP, TCP or an Exec command.
-	Healthchecks []ContainerHealthcheck `json:"healthchecks,omitempty"`
+	Healthchecks []ContainerHealthcheck `toml:"healthchecks,omitempty" json:"healthchecks,omitempty"`
 
 	// Set of mounts added to the container. These must reference a volume in the machine config via its name.
-	Mounts []ContainerMount `json:"mounts,omitempty"`
+	Mounts []ContainerMount `toml:"mounts,omitempty" json:"mounts,omitempty"`
 }
 
 type ContainerMount struct {
 	// The name of the volume. Must exist in the volumes field in the machine configuration
-	Name string `json:"name"`
+	Name string `toml:"name" json:"name"`
 	// The path to mount the volume within the container
-	Path string `json:"path"`
+	Path string `toml:"path" json:"path"`
 }
 
 type ContainerDependency struct {
-	Name      string                       `json:"name"`
-	Condition ContainerDependencyCondition `json:"condition" enums:"exited_successfully,healthy,started"`
+	Name      string                       `toml:"name" json:"name"`
+	Condition ContainerDependencyCondition `toml:"condition" json:"condition" enums:"exited_successfully,healthy,started"`
 }
 
 type ContainerDependencyCondition string
@@ -871,69 +871,69 @@ const (
 )
 
 type ContainerHealthcheckType struct {
-	HTTP *HTTPHealthcheck `json:"http,omitempty"`
-	TCP  *TCPHealthcheck  `json:"tcp,omitempty"`
-	Exec *ExecHealthcheck `json:"exec,omitempty"`
+	HTTP *HTTPHealthcheck `toml:"http,omitempty" json:"http,omitempty"`
+	TCP  *TCPHealthcheck  `toml:"tcp,omitempty" json:"tcp,omitempty"`
+	Exec *ExecHealthcheck `toml:"exec,omitempty" json:"exec,omitempty"`
 }
 
 type ContainerHealthcheck struct {
 	// The name of the check. Must be unique within the container.
-	Name string `json:"name"`
+	Name string `toml:"name" json:"name"`
 	// The time in seconds between executing the defined check.
-	Interval int64 `json:"interval,omitempty"`
+	Interval int64 `toml:"interval,omitempty" json:"interval,omitempty"`
 	// The time in seconds to wait after a container starts before checking its health.
-	GracePeriod int64 `json:"grace_period,omitempty"`
+	GracePeriod int64 `toml:"grace_period,omitempty" json:"grace_period,omitempty"`
 	// The number of times the check must succeeed before considering the container healthy.
-	SuccessThreshold int32 `json:"success_threshold,omitempty"`
+	SuccessThreshold int32 `toml:"success_threshold,omitempty" json:"success_threshold,omitempty"`
 	// The number of times the check must fail before considering the container unhealthy.
-	FailureThreshold int32 `json:"failure_threshold,omitempty"`
+	FailureThreshold int32 `toml:"failure_threshold,omitempty" json:"failure_threshold,omitempty"`
 	// The time in seconds to wait for the check to complete.
-	Timeout int64 `json:"timeout,omitempty"`
+	Timeout int64 `toml:"timeout,omitempty" json:"timeout,omitempty"`
 	// Kind of healthcheck (readiness, liveness)
-	Kind ContainerHealthcheckKind `json:"kind,omitempty"`
+	Kind ContainerHealthcheckKind `toml:"kind,omitempty" json:"kind,omitempty"`
 	// Unhealthy policy that determines what action to take if a container is deemed unhealthy
-	Unhealthy UnhealthyPolicy `json:"unhealthy,omitempty"`
+	Unhealthy UnhealthyPolicy `toml:"unhealthy,omitempty" json:"unhealthy,omitempty"`
 	// The type of healthcheck
 	ContainerHealthcheckType
 }
 
 type HTTPHealthcheck struct {
 	// The port to connect to, often the same as internal_port
-	Port int32 `json:"port"`
+	Port int32 `toml:"port" json:"port"`
 	// The HTTP method to use to when making the request
-	Method string `json:"method,omitempty"`
+	Method string `toml:"method,omitempty" json:"method,omitempty"`
 	// The path to send the request to
-	Path string `json:"path,omitempty"`
+	Path string `toml:"path,omitempty" json:"path,omitempty"`
 	// Additional headers to send with the request
-	Headers []MachineHTTPHeader `json:"headers,omitempty"`
+	Headers []MachineHTTPHeader `toml:"headers,omitempty" json:"headers,omitempty"`
 	// Whether to use http or https
-	Scheme ContainerHealthcheckScheme `json:"scheme,omitempty"`
+	Scheme ContainerHealthcheckScheme `toml:"scheme,omitempty" json:"scheme,omitempty"`
 	// If the protocol is https, whether or not to verify the TLS certificate
-	TLSSkipVerify *bool `json:"tls_skip_verify,omitempty"`
+	TLSSkipVerify *bool `toml:"tls_skip_verify,omitempty" json:"tls_skip_verify,omitempty"`
 	// If the protocol is https, the hostname to use for TLS certificate validation
-	TLSServerName string `json:"tls_server_name,omitempty"`
+	TLSServerName string `toml:"tls_server_name,omitempty" json:"tls_server_name,omitempty"`
 }
 
 type TCPHealthcheck struct {
 	// The port to connect to, often the same as internal_port
-	Port int32 `json:"port"`
+	Port int32 `toml:"port" json:"port"`
 }
 
 type ExecHealthcheck struct {
 	// The command to run to check the health of the container (e.g. ["cat", "/tmp/healthy"])
-	Command []string `json:"command"`
+	Command []string `toml:"command" json:"command"`
 }
 
 type VolumeConfig struct {
 	// The name of the volume. A volume must have a unique name within an app
-	Name string `json:"name"`
+	Name string `toml:"name" json:"name"`
 	// The volume resource, provides configuration for the volume
 	VolumeResource
 }
 
 type VolumeResource struct {
-	TempDir *TempDirVolume `json:"temp_dir,omitempty"`
-	Image   string         `json:"image,omitempty"`
+	TempDir *TempDirVolume `toml:"temp_dir,omitempty" json:"temp_dir,omitempty"`
+	Image   string         `toml:"image,omitempty" json:"image,omitempty"`
 }
 
 type StorageType string
@@ -947,64 +947,64 @@ const (
 // is often used as scratch space, to communicate between containers and so on.
 type TempDirVolume struct {
 	// The type of storage used to back the temp dir. Either disk or memory.
-	StorageType StorageType `json:"storage_type"`
+	StorageType StorageType `toml:"storage_type" json:"storage_type"`
 	// The size limit of the temp dir, only applicable when using disk backed storage.
-	SizeMB uint64 `json:"size_mb,omitempty"`
+	SizeMB uint64 `toml:"size_mb,omitempty" json:"size_mb,omitempty"`
 }
 
 type MachineLease struct {
-	Status  string            `json:"status,omitempty"`
-	Data    *MachineLeaseData `json:"data,omitempty"`
-	Message string            `json:"message,omitempty"`
-	Code    string            `json:"code,omitempty"`
+	Status  string            `toml:"status,omitempty" json:"status,omitempty"`
+	Data    *MachineLeaseData `toml:"data,omitempty" json:"data,omitempty"`
+	Message string            `toml:"message,omitempty" json:"message,omitempty"`
+	Code    string            `toml:"code,omitempty" json:"code,omitempty"`
 }
 
 type MachineLeaseData struct {
-	Nonce     string `json:"nonce,omitempty"`
-	ExpiresAt int64  `json:"expires_at,omitempty"`
-	Owner     string `json:"owner,omitempty"`
-	Version   string `json:"version,omitempty"`
+	Nonce     string `toml:"nonce,omitempty" json:"nonce,omitempty"`
+	ExpiresAt int64  `toml:"expires_at,omitempty" json:"expires_at,omitempty"`
+	Owner     string `toml:"owner,omitempty" json:"owner,omitempty"`
+	Version   string `toml:"version,omitempty" json:"version,omitempty"`
 }
 
 type MachineStartResponse struct {
-	Message       string `json:"message,omitempty"`
-	Status        string `json:"status,omitempty"`
-	PreviousState string `json:"previous_state,omitempty"`
+	Message       string `toml:"message,omitempty" json:"message,omitempty"`
+	Status        string `toml:"status,omitempty" json:"status,omitempty"`
+	PreviousState string `toml:"previous_state,omitempty" json:"previous_state,omitempty"`
 }
 
 type LaunchMachineInput struct {
-	Config                  *MachineConfig `json:"config,omitempty"`
-	Region                  string         `json:"region,omitempty"`
-	Name                    string         `json:"name,omitempty"`
-	SkipLaunch              bool           `json:"skip_launch,omitempty"`
-	SkipServiceRegistration bool           `json:"skip_service_registration,omitempty"`
-	LSVD                    bool           `json:"lsvd,omitempty"`
+	Config                  *MachineConfig `toml:"config,omitempty" json:"config,omitempty"`
+	Region                  string         `toml:"region,omitempty" json:"region,omitempty"`
+	Name                    string         `toml:"name,omitempty" json:"name,omitempty"`
+	SkipLaunch              bool           `toml:"skip_launch,omitempty" json:"skip_launch,omitempty"`
+	SkipServiceRegistration bool           `toml:"skip_service_registration,omitempty" json:"skip_service_registration,omitempty"`
+	LSVD                    bool           `toml:"lsvd,omitempty" json:"lsvd,omitempty"`
 
-	LeaseTTL int `json:"lease_ttl,omitempty"`
+	LeaseTTL int `toml:"lease_ttl,omitempty" json:"lease_ttl,omitempty"`
 
 	// Client side only
-	ID                  string `json:"-"`
-	SkipHealthChecks    bool   `json:"-"`
-	RequiresReplacement bool   `json:"-"`
-	Timeout             int    `json:"-"`
+	ID                  string `toml:"-" json:"-"`
+	SkipHealthChecks    bool   `toml:"-" json:"-"`
+	RequiresReplacement bool   `toml:"-" json:"-"`
+	Timeout             int    `toml:"-" json:"-"`
 }
 
 type MachineProcess struct {
-	ExecOverride       []string          `json:"exec,omitempty"`
-	EntrypointOverride []string          `json:"entrypoint,omitempty"`
-	CmdOverride        []string          `json:"cmd,omitempty"`
-	UserOverride       string            `json:"user,omitempty"`
-	ExtraEnv           map[string]string `json:"env,omitempty"`
+	ExecOverride       []string          `toml:"exec,omitempty" json:"exec,omitempty"`
+	EntrypointOverride []string          `toml:"entrypoint,omitempty" json:"entrypoint,omitempty"`
+	CmdOverride        []string          `toml:"cmd,omitempty" json:"cmd,omitempty"`
+	UserOverride       string            `toml:"user,omitempty" json:"user,omitempty"`
+	ExtraEnv           map[string]string `toml:"env,omitempty" json:"env,omitempty"`
 	// Secrets can be provided at the process level to explicitly indicate which secrets should be
 	// used for the process. If not provided, the secrets provided at the machine level will be used.
-	Secrets []MachineSecret `json:"secrets,omitempty"`
+	Secrets []MachineSecret `toml:"secrets,omitempty" json:"secrets,omitempty"`
 	// IgnoreAppSecrets can be set to true to ignore the secrets for the App the Machine belongs to
 	// and only use the secrets provided at the process level. The default/legacy behavior is to use
 	// the secrets provided at the App level.
-	IgnoreAppSecrets bool `json:"ignore_app_secrets,omitempty"`
+	IgnoreAppSecrets bool `toml:"ignore_app_secrets,omitempty" json:"ignore_app_secrets,omitempty"`
 
 	// EnvFrom can be provided to set environment variables from machine fields.
-	EnvFrom []EnvFrom `json:"env_from,omitempty"`
+	EnvFrom []EnvFrom `toml:"env_from,omitempty" json:"env_from,omitempty"`
 }
 
 // @description A Secret needing to be set in the environment of the Machine. env_var is required
@@ -1014,11 +1014,11 @@ type MachineProcess struct {
 type MachineSecret struct {
 	// EnvVar is required and is the name of the environment variable that will be set from the
 	// secret. It must be a valid environment variable name.
-	EnvVar string `json:"env_var"`
+	EnvVar string `toml:"env_var" json:"env_var"`
 
 	// Name is optional and when provided is used to reference a secret name where the EnvVar is
 	// different from what was set as the secret name.
-	Name string `json:"name"`
+	Name string `toml:"name" json:"name"`
 }
 
 // @description EnvVar defines an environment variable to be populated from a machine field, env_var
@@ -1026,41 +1026,41 @@ type MachineSecret struct {
 type EnvFrom struct {
 	// EnvVar is required and is the name of the environment variable that will be set from the
 	// secret. It must be a valid environment variable name.
-	EnvVar string `json:"env_var"`
+	EnvVar string `toml:"env_var" json:"env_var"`
 
 	// FieldRef selects a field of the Machine: supports id, version, app_name, private_ip, region, image.
-	FieldRef string `json:"field_ref" enums:"id,version,app_name,private_ip,region,image"`
+	FieldRef string `toml:"field_ref" json:"field_ref" enums:"id,version,app_name,private_ip,region,image"`
 }
 
 type MachineExecRequest struct {
-	Container string `json:"container,omitempty"`
-	Cmd       string `json:"cmd,omitempty"`
-	Stdin     string `json:"stdin,omitempty"`
-	Timeout   int    `json:"timeout,omitempty"`
+	Container string `toml:"container,omitempty" json:"container,omitempty"`
+	Cmd       string `toml:"cmd,omitempty" json:"cmd,omitempty"`
+	Stdin     string `toml:"stdin,omitempty" json:"stdin,omitempty"`
+	Timeout   int    `toml:"timeout,omitempty" json:"timeout,omitempty"`
 }
 
 type MachineExecResponse struct {
-	ExitCode int32  `json:"exit_code,omitempty"`
-	StdOut   string `json:"stdout,omitempty"`
-	StdErr   string `json:"stderr,omitempty"`
+	ExitCode int32  `toml:"exit_code,omitempty" json:"exit_code,omitempty"`
+	StdOut   string `toml:"stdout,omitempty" json:"stdout,omitempty"`
+	StdErr   string `toml:"stderr,omitempty" json:"stderr,omitempty"`
 }
 
 type MachinePsResponse []ProcessStat
 
 type ProcessStat struct {
-	Pid           int32          `json:"pid"`
-	Stime         uint64         `json:"stime"`
-	Rtime         uint64         `json:"rtime"`
-	Command       string         `json:"command"`
-	Directory     string         `json:"directory"`
-	Cpu           uint64         `json:"cpu"`
-	Rss           uint64         `json:"rss"`
-	ListenSockets []ListenSocket `json:"listen_sockets"`
+	Pid           int32          `toml:"pid" json:"pid"`
+	Stime         uint64         `toml:"stime" json:"stime"`
+	Rtime         uint64         `toml:"rtime" json:"rtime"`
+	Command       string         `toml:"command" json:"command"`
+	Directory     string         `toml:"directory" json:"directory"`
+	Cpu           uint64         `toml:"cpu" json:"cpu"`
+	Rss           uint64         `toml:"rss" json:"rss"`
+	ListenSockets []ListenSocket `toml:"listen_sockets" json:"listen_sockets"`
 }
 
 type ListenSocket struct {
-	Proto   string `json:"proto"`
-	Address string `json:"address"`
+	Proto   string `toml:"proto" json:"proto"`
+	Address string `toml:"address" json:"address"`
 }
 
 type MachineAutostop int
