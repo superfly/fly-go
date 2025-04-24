@@ -233,7 +233,13 @@ func (f *Client) _sendRequest(ctx context.Context, method, endpoint string, in, 
 		}
 	}
 	if out != nil {
-		if err := json.NewDecoder(resp.Body).Decode(out); err != nil {
+		if strOut, ok := out.(*string); ok {
+			bodyBytes, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return fmt.Errorf("failed reading response body: %w", err)
+			}
+			*strOut = string(bodyBytes)
+		} else if err := json.NewDecoder(resp.Body).Decode(out); err != nil {
 			return fmt.Errorf("failed decoding response: %w", err)
 		}
 	}
@@ -322,4 +328,22 @@ func handleAPIError(statusCode int, responseBody []byte) error {
 	default:
 		return errors.New("something went terribly wrong")
 	}
+}
+
+type CreateOIDCTokenRequest struct {
+	Audience         string `json:"aud"`
+	AWSPrincipalTags bool   `json:"aws_principal_tags"`
+}
+
+func (f *Client) GetOIDCToken(ctx context.Context, aud string, aws bool) (string, error) {
+	ctx = contextWithAction(ctx, getOIDCToken)
+	var token string
+	err := f._sendRequest(ctx, http.MethodPost, "/tokens/oidc", &CreateOIDCTokenRequest{
+		Audience:         aud,
+		AWSPrincipalTags: aws,
+	}, &token, nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to get OIDC token: %w", err)
+	}
+	return token, nil
 }
