@@ -14,6 +14,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/cenkalti/backoff/v4"
 	fly "github.com/superfly/fly-go"
@@ -233,13 +234,7 @@ func (f *Client) _sendRequest(ctx context.Context, method, endpoint string, in, 
 		}
 	}
 	if out != nil {
-		if strOut, ok := out.(*string); ok {
-			bodyBytes, err := io.ReadAll(resp.Body)
-			if err != nil {
-				return fmt.Errorf("failed reading response body: %w", err)
-			}
-			*strOut = string(bodyBytes)
-		} else if err := json.NewDecoder(resp.Body).Decode(out); err != nil {
+		if err := json.NewDecoder(resp.Body).Decode(out); err != nil {
 			return fmt.Errorf("failed decoding response: %w", err)
 		}
 	}
@@ -330,20 +325,21 @@ func handleAPIError(statusCode int, responseBody []byte) error {
 	}
 }
 
-type CreateOIDCTokenRequest struct {
-	Audience         string `json:"aud"`
-	AWSPrincipalTags bool   `json:"aws_principal_tags"`
+type S3LogsTokenResponse struct {
+	Version         int
+	AccessKeyID     string `json:"AccessKeyId"`
+	SecretAccessKey string
+	SessionToken    string
+	Expiration      *time.Time
+	AccountID       string `json:"AccountId"`
 }
 
-func (f *Client) GetOIDCToken(ctx context.Context, aud string, aws bool) (string, error) {
-	ctx = contextWithAction(ctx, getOIDCToken)
-	var token string
-	err := f._sendRequest(ctx, http.MethodPost, "/tokens/oidc", &CreateOIDCTokenRequest{
-		Audience:         aud,
-		AWSPrincipalTags: aws,
-	}, &token, nil)
+func (f *Client) GetS3LogsToken(ctx context.Context, orgSlug string) (S3LogsTokenResponse, error) {
+	ctx = contextWithAction(ctx, getS3LogsToken)
+	var token S3LogsTokenResponse
+	err := f._sendRequest(ctx, http.MethodPost, fmt.Sprintf("/orgs/%s/tokens/s3_logs", orgSlug), nil, &token, nil)
 	if err != nil {
-		return "", fmt.Errorf("failed to get OIDC token: %w", err)
+		return token, fmt.Errorf("failed to get S3 Logs token: %w", err)
 	}
 	return token, nil
 }

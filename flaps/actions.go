@@ -42,5 +42,5 @@ const (
 	metadataSet
 	metadataGet
 	metadataDel
-	getOIDCToken
+	getS3LogsToken
 )
