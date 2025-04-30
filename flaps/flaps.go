@@ -14,6 +14,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/cenkalti/backoff/v4"
 	fly "github.com/superfly/fly-go"
@@ -322,4 +323,23 @@ func handleAPIError(statusCode int, responseBody []byte) error {
 	default:
 		return errors.New("something went terribly wrong")
 	}
+}
+
+type S3LogsTokenResponse struct {
+	Version         int
+	AccessKeyID     string `json:"AccessKeyId"`
+	SecretAccessKey string
+	SessionToken    string
+	Expiration      *time.Time
+	AccountID       string `json:"AccountId"`
+}
+
+func (f *Client) GetS3LogsToken(ctx context.Context, orgSlug string) (S3LogsTokenResponse, error) {
+	ctx = contextWithAction(ctx, getS3LogsToken)
+	var token S3LogsTokenResponse
+	err := f._sendRequest(ctx, http.MethodPost, fmt.Sprintf("/orgs/%s/tokens/s3_logs", orgSlug), nil, &token, nil)
+	if err != nil {
+		return token, fmt.Errorf("failed to get S3 Logs token: %w", err)
+	}
+	return token, nil
 }

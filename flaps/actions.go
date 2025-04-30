@@ -42,4 +42,5 @@ const (
 	metadataSet
 	metadataGet
 	metadataDel
+	getS3LogsToken
 )
