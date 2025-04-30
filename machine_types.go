@@ -494,7 +494,6 @@ var (
 	// TODO: liveness, startup
 )
 
-// @description An optional object that defines one or more named checks. The key for each check is the check name.
 type MachineCheck struct {
 	// The port to connect to, often the same as internal_port
 	Port *int `toml:"port,omitempty" json:"port,omitempty"`
@@ -502,6 +501,30 @@ type MachineCheck struct {
 	Type *string `toml:"type,omitempty" json:"type,omitempty"`
 	// Kind of the check (informational, readiness)
 	Kind *MachineCheckKind `toml:"kind,omitempty" json:"kind,omitempty" enums:"informational,readiness"`
+	// The time between connectivity checks
+	Interval *Duration `toml:"interval,omitempty" json:"interval,omitempty"`
+	// The maximum time a connection can take before being reported as failing its health check
+	Timeout *Duration `toml:"timeout,omitempty" json:"timeout,omitempty"`
+	// The time to wait after a VM starts before checking its health
+	GracePeriod *Duration `toml:"grace_period,omitempty" json:"grace_period,omitempty"`
+	// For http checks, the HTTP method to use to when making the request
+	HTTPMethod *string `toml:"method,omitempty" json:"method,omitempty"`
+	// For http checks, the path to send the request to
+	HTTPPath *string `toml:"path,omitempty" json:"path,omitempty"`
+	// For http checks, whether to use http or https
+	HTTPProtocol *string `toml:"protocol,omitempty" json:"protocol,omitempty"`
+	// For http checks with https protocol, whether or not to verify the TLS certificate
+	HTTPSkipTLSVerify *bool `toml:"tls_skip_verify,omitempty" json:"tls_skip_verify,omitempty"`
+	// If the protocol is https, the hostname to use for TLS certificate validation
+	HTTPTLSServerName *string             `toml:"tls_server_name,omitempty" json:"tls_server_name,omitempty"`
+	HTTPHeaders       []MachineHTTPHeader `toml:"headers,omitempty" json:"headers,omitempty"`
+}
+
+type MachineServiceCheck struct {
+	// The port to connect to, often the same as internal_port
+	Port *int `toml:"port,omitempty" json:"port,omitempty"`
+	// tcp or http
+	Type *string `toml:"type,omitempty" json:"type,omitempty"`
 	// The time between connectivity checks
 	Interval *Duration `toml:"interval,omitempty" json:"interval,omitempty"`
 	// The maximum time a connection can take before being reported as failing its health check
@@ -633,11 +656,12 @@ type MachineService struct {
 	// * "off" or false - Do not autostop the Machine.
 	// * "stop" or true - Automatically stop the Machine.
 	// * "suspend" - Automatically suspend the Machine, falling back to a full stop if this is not possible.
-	Autostop                 *MachineAutostop           `toml:"autostop,omitempty" json:"autostop,omitempty" swaggertype:"string" enums:"off,stop,suspend"`
-	Autostart                *bool                      `toml:"autostart,omitempty" json:"autostart,omitempty"`
-	MinMachinesRunning       *int                       `toml:"min_machines_running,omitempty" json:"min_machines_running,omitempty"`
-	Ports                    []MachinePort              `toml:"ports,omitempty" json:"ports,omitempty"`
-	Checks                   []MachineCheck             `toml:"checks,omitempty" json:"checks,omitempty"`
+	Autostop           *MachineAutostop `toml:"autostop,omitempty" json:"autostop,omitempty" swaggertype:"string" enums:"off,stop,suspend"`
+	Autostart          *bool            `toml:"autostart,omitempty" json:"autostart,omitempty"`
+	MinMachinesRunning *int             `toml:"min_machines_running,omitempty" json:"min_machines_running,omitempty"`
+	Ports              []MachinePort    `toml:"ports,omitempty" json:"ports,omitempty"`
+	// An optional list of service checks
+	Checks                   []MachineServiceCheck      `toml:"checks,omitempty" json:"checks,omitempty"`
 	Concurrency              *MachineServiceConcurrency `toml:"concurrency,omitempty" json:"concurrency,omitempty"`
 	ForceInstanceKey         *string                    `toml:"force_instance_key" json:"force_instance_key"`
 	ForceInstanceDescription *string                    `toml:"force_instance_description,omitempty" json:"force_instance_description,omitempty"`
@@ -654,15 +678,16 @@ type MachineConfig struct {
 	// If you add anything here, ensure appconfig.Config.ToMachine() is updated
 
 	// An object filled with key/value pairs to be set as environment variables
-	Env      map[string]string       `toml:"env,omitempty" json:"env,omitempty"`
-	Init     MachineInit             `toml:"init,omitempty" json:"init,omitempty"`
-	Guest    *MachineGuest           `toml:"guest,omitempty" json:"guest,omitempty"`
-	Metadata map[string]string       `toml:"metadata,omitempty" json:"metadata,omitempty"`
-	Mounts   []MachineMount          `toml:"mounts,omitempty" json:"mounts,omitempty"`
-	Services []MachineService        `toml:"services,omitempty" json:"services,omitempty"`
-	Metrics  *MachineMetrics         `toml:"metrics,omitempty" json:"metrics,omitempty"`
-	Checks   map[string]MachineCheck `toml:"checks,omitempty" json:"checks,omitempty"`
-	Statics  []*Static               `toml:"statics,omitempty" json:"statics,omitempty"`
+	Env      map[string]string `toml:"env,omitempty" json:"env,omitempty"`
+	Init     MachineInit       `toml:"init,omitempty" json:"init,omitempty"`
+	Guest    *MachineGuest     `toml:"guest,omitempty" json:"guest,omitempty"`
+	Metadata map[string]string `toml:"metadata,omitempty" json:"metadata,omitempty"`
+	Mounts   []MachineMount    `toml:"mounts,omitempty" json:"mounts,omitempty"`
+	Services []MachineService  `toml:"services,omitempty" json:"services,omitempty"`
+	Metrics  *MachineMetrics   `toml:"metrics,omitempty" json:"metrics,omitempty"`
+	// An optional object that defines one or more named top-level checks. The key for each check is the check name.
+	Checks  map[string]MachineCheck `toml:"checks,omitempty" json:"checks,omitempty"`
+	Statics []*Static               `toml:"statics,omitempty" json:"statics,omitempty"`
 
 	// Set by fly deploy or fly machines commands
 
