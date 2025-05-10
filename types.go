@@ -610,12 +610,13 @@ type LogEntry struct {
 }
 
 type Region struct {
-	Code             string
-	Name             string
-	Latitude         float32
-	Longitude        float32
-	GatewayAvailable bool
-	RequiresPaidPlan bool
+	Code             string  `json:"code"`
+	Name             string  `json:"name"`
+	Latitude         float32 `json:"latitude"`
+	Longitude        float32 `json:"longitude"`
+	GatewayAvailable bool    `json:"gateway_available"`
+	RequiresPaidPlan bool    `json:"requires_paid_plan"`
+	Capacity         int64   `json:"capacity"`
 }
 
 type Release struct {
