@@ -609,14 +609,40 @@ type LogEntry struct {
 	}
 }
 
+type GeoRegion string
+
+const (
+	Africa       GeoRegion = "africa"
+	AsiaPacific  GeoRegion = "asia_pacific"
+	Europe       GeoRegion = "europe"
+	NorthAmerica GeoRegion = "north_america"
+	SouthAmerica GeoRegion = "south_america"
+)
+
+var geoRegionNames = map[GeoRegion]string{
+	Africa:       "Africa",
+	AsiaPacific:  "Asia Pacific",
+	Europe:       "Europe",
+	NorthAmerica: "North America",
+	SouthAmerica: "South America",
+}
+
+func (p GeoRegion) String() string {
+	if name, ok := geoRegionNames[p]; ok {
+		return name
+	}
+	return ""
+}
+
 type Region struct {
-	Code             string  `json:"code"`
-	Name             string  `json:"name"`
-	Latitude         float32 `json:"latitude"`
-	Longitude        float32 `json:"longitude"`
-	GatewayAvailable bool    `json:"gateway_available"`
-	RequiresPaidPlan bool    `json:"requires_paid_plan"`
-	Capacity         int64   `json:"capacity"`
+	Code             string    `json:"code"`
+	Name             string    `json:"name"`
+	Latitude         float32   `json:"latitude"`
+	Longitude        float32   `json:"longitude"`
+	GatewayAvailable bool      `json:"gateway_available"`
+	RequiresPaidPlan bool      `json:"requires_paid_plan"`
+	Capacity         int64     `json:"capacity"`
+	GeoRegion        GeoRegion `json:"geo_region"`
 }
 
 type Release struct {

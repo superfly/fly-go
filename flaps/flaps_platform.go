@@ -3,8 +3,9 @@ package flaps
 import (
 	"context"
 	"fmt"
-	"github.com/superfly/fly-go"
 	"net/http"
+
+	"github.com/superfly/fly-go"
 )
 
 func (f *Client) GetRegions(ctx context.Context, size string) ([]fly.Region, error) {
