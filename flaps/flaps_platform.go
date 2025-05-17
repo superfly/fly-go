@@ -25,8 +25,7 @@ type Weights map[string]int64
 
 type GetPlacementsRequest struct {
 	VM              *fly.MachineGuest `json:"vm"`
-	DesiredRegion   string            `json:"desired_region"`
-	Regions         []string          `json:"regions"`
+	Region          string            `json:"region"`
 	Count           int64             `json:"count"`
 	VolumeName      string            `json:"volume_name"`
 	VolumeSizeBytes uint64            `json:"volume_size_bytes"`
