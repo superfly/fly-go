@@ -27,10 +27,19 @@ const (
 	machineCordon
 	machineUncordon
 	machineSuspend
-	secretCreate
-	secretDelete
-	secretGenerate
-	secretsList
+	appSecretsList
+	appSecretGet
+	appSecretSet
+	appSecretDelete
+	secretkeysList
+	secretkeyGet
+	secretkeySet
+	secretkeyGenerate
+	secretkeyDelete
+	secretkeyEncrypt
+	secretkeyDecrypt
+	secretkeySign
+	secretkeyVerify
 	volumeList
 	volumeCreate
 	volumetUpdate
