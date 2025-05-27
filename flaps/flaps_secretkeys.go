@@ -9,7 +9,7 @@ import (
 	fly "github.com/superfly/fly-go"
 )
 
-func (f *Client) sendRequestSecretkeys(ctx context.Context, method, endpoint string, in, out interface{}, qs url.Values, headers map[string][]string) error {
+func (f *Client) sendRequestSecretkeys(ctx context.Context, method, endpoint string, in, out any, qs url.Values, headers map[string][]string) error {
 	endpoint = fmt.Sprintf("/apps/%s/secretkeys%s", url.PathEscape(f.appName), endpoint)
 	if qs != nil {
 		endpoint += "?" + qs.Encode()
