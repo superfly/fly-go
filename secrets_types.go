@@ -36,47 +36,47 @@ type SecretKey struct {
 	Publickey []byte `json:"public_key,omitempty"`
 }
 
-type ListSecretkeysResp struct {
+type ListSecretKeysResp struct {
 	Secrets []SecretKey `json:"secret_keys"`
 }
 
-type SetSecretkeyRequest struct {
+type SetSecretKeyRequest struct {
 	Type  string `json:"type"`
 	Value []byte `json:"value"`
 }
 
-type SetSecretkeyResp struct {
+type SetSecretKeyResp struct {
 	SecretKey
 	Version uint64
 }
 
-type EncryptSecretkeyRequest struct {
+type EncryptSecretKeyRequest struct {
 	Plaintext []byte `json:"plaintext"`
 	AssocData []byte `json:"associated_data,omitempty"`
 }
 
-type EncryptSecretkeyResp struct {
+type EncryptSecretKeyResp struct {
 	Ciphertext []byte `json:"ciphertext"`
 }
 
-type DecryptSecretkeyRequest struct {
+type DecryptSecretKeyRequest struct {
 	Ciphertext []byte `json:"ciphertext"`
 	AssocData  []byte `json:"associated_data,omitempty"`
 }
 
-type DecryptSecretkeyResp struct {
+type DecryptSecretKeyResp struct {
 	Plaintext []byte `json:"plaintext"`
 }
 
-type SignSecretkeyRequest struct {
+type SignSecretKeyRequest struct {
 	Plaintext []byte `json:"plaintext"`
 }
 
-type SignSecretkeyResp struct {
+type SignSecretKeyResp struct {
 	Signature []byte `json:"signature"`
 }
 
-type VerifySecretkeyRequest struct {
+type VerifySecretKeyRequest struct {
 	Plaintext []byte `json:"plaintext"`
 	Signature []byte `json:"signature"`
 }
