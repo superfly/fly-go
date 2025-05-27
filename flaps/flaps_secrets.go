@@ -17,12 +17,15 @@ func (f *Client) sendRequestSecrets(ctx context.Context, method, endpoint string
 	return f._sendRequest(ctx, method, endpoint, in, out, headers)
 }
 
-func (f *Client) ListAppSecrets(ctx context.Context, version *uint64) ([]fly.AppSecret, error) {
+func (f *Client) ListAppSecrets(ctx context.Context, version *uint64, showSecrets bool) ([]fly.AppSecret, error) {
 	ctx = contextWithAction(ctx, appSecretsList)
 
 	var qs url.Values
 	if version != nil {
 		qs.Set("version", fmt.Sprintf("%d", *version))
+	}
+	if showSecrets {
+		qs.Set("show_secrets", "true")
 	}
 
 	out := fly.ListAppSecretsResp{}
@@ -33,12 +36,15 @@ func (f *Client) ListAppSecrets(ctx context.Context, version *uint64) ([]fly.App
 	return out.Secrets, nil
 }
 
-func (f *Client) GetAppSecrets(ctx context.Context, name string, version *uint64) (*fly.AppSecret, error) {
+func (f *Client) GetAppSecrets(ctx context.Context, name string, version *uint64, showSecrets bool) (*fly.AppSecret, error) {
 	ctx = contextWithAction(ctx, appSecretGet)
 
 	var qs url.Values
 	if version != nil {
 		qs.Set("version", fmt.Sprintf("%d", *version))
+	}
+	if showSecrets {
+		qs.Set("show_secrets", "true")
 	}
 
 	path := fmt.Sprintf("/%s", url.PathEscape(name))
