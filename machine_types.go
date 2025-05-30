@@ -377,6 +377,7 @@ type MachineGuest struct {
 	GPUs             int    `toml:"gpus,omitempty" json:"gpus,omitempty"`
 	GPUKind          string `toml:"gpu_kind,omitempty" json:"gpu_kind,omitempty"`
 	HostDedicationID string `toml:"host_dedication_id,omitempty" json:"host_dedication_id,omitempty"`
+	PersistRootfs    string `toml:"persist_rootfs,omitempty" json:"persist_rootfs,omitempty"`
 
 	KernelArgs []string `toml:"kernel_args,omitempty" json:"kernel_args,omitempty"`
 }
