@@ -3616,7 +3616,7 @@ input CreateUserSignupInput {
   clientMutationId: String
 
   """
-
+  
   """
   path: [String!]
 
@@ -5151,6 +5151,11 @@ input EnsureDepotRemoteBuilderInput {
   builderScope: String
 
   """
+  The size of the builder cache in GB. Defaults to 50
+  """
+  builderSize: Int
+
+  """
   A unique identifier for the client performing the mutation.
   """
   clientMutationId: String
@@ -5164,6 +5169,11 @@ input EnsureDepotRemoteBuilderInput {
   Desired region for the remote builder
   """
   region: String
+
+  """
+  Update the Depot builder, if it already exists
+  """
+  update: Boolean
 }
 
 """
