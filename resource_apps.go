@@ -405,7 +405,7 @@ func (client *Client) GetAppNetwork(ctx context.Context, appName string) (*strin
 	return &data.App.Network, nil
 }
 
-func (client *Client) GetAppCNAMETarget(ctx context.Context, appName string) (*string, error) {
+func (client *Client) GetAppCNAMETarget(ctx context.Context, appName string) (string, error) {
 	query := `
 		query ($appName: String!) {
 			app(name: $appName) {
@@ -420,10 +420,10 @@ func (client *Client) GetAppCNAMETarget(ctx context.Context, appName string) (*s
 
 	data, err := client.RunWithContext(ctx, req)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	return &data.App.CNAMETarget, nil
+	return data.App.CNAMETarget, nil
 }
 
 func (client *Client) GetAppCompact(ctx context.Context, appName string) (*AppCompact, error) {
