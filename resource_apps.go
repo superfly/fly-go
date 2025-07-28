@@ -137,6 +137,7 @@ func (client *Client) GetApp(ctx context.Context, appName string) (*App, error) 
 					}
 				}
 				sharedIpAddress
+				cnameTarget
 				imageDetails {
 					registry
 					repository
@@ -402,6 +403,27 @@ func (client *Client) GetAppNetwork(ctx context.Context, appName string) (*strin
 	}
 
 	return &data.App.Network, nil
+}
+
+func (client *Client) GetAppCNAMETarget(ctx context.Context, appName string) (string, error) {
+	query := `
+		query ($appName: String!) {
+			app(name: $appName) {
+				cnameTarget
+			}
+		}
+	`
+
+	req := client.NewRequest(query)
+	req.Var("appName", appName)
+	ctx = ctxWithAction(ctx, "get_app_cname_target")
+
+	data, err := client.RunWithContext(ctx, req)
+	if err != nil {
+		return "", err
+	}
+
+	return data.App.CNAMETarget, nil
 }
 
 func (client *Client) GetAppCompact(ctx context.Context, appName string) (*AppCompact, error) {
