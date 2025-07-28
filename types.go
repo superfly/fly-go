@@ -264,6 +264,7 @@ type App struct {
 		Nodes []IPAddress
 	}
 	SharedIPAddress string
+	CNAMETarget     string
 	IPAddress       *IPAddress
 	Certificates    struct {
 		Nodes []AppCertificate
