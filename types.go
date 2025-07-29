@@ -584,29 +584,65 @@ type LogEntry struct {
 	Level     string
 	Instance  string
 	Region    string
-	Meta      struct {
-		Instance string
-		Region   string
-		Event    struct {
-			Provider string
+	Meta      LogMeta
+}
+
+type LogMeta struct {
+	Instance string
+	Region   string
+	Event    struct {
+		Provider string
+	}
+	HTTP struct {
+		Request struct {
+			ID      string
+			Method  string
+			Version string
 		}
-		HTTP struct {
-			Request struct {
-				ID      string
-				Method  string
-				Version string
-			}
-			Response struct {
-				StatusCode int `json:"status_code"`
-			}
+		Response struct {
+			StatusCode int `json:"status_code"`
 		}
-		Error struct {
-			Code    int
-			Message string
+	}
+	Error struct {
+		Code    int
+		Message string
+	}
+	URL struct {
+		Full string
+	}
+}
+
+type AppLogEntry struct {
+	Event struct {
+		Provider string
+	}
+	Fly struct {
+		App struct {
+			Instance string
+			Name     string
 		}
-		URL struct {
-			Full string
-		}
+		Region string
+	}
+	Host string
+	Log  struct {
+		Level string
+	}
+	Message   string
+	Timestamp string
+}
+
+func (l *AppLogEntry) LogEntry() LogEntry {
+	return LogEntry{
+		Instance:  l.Fly.App.Instance,
+		Level:     l.Log.Level,
+		Message:   l.Message,
+		Region:    l.Fly.Region,
+		Timestamp: l.Timestamp,
+		Meta: LogMeta{
+			Instance: l.Fly.App.Instance,
+			Region:   l.Fly.Region,
+			Event:    struct{ Provider string }{l.Event.Provider},
+		},
 	}
 }
 
