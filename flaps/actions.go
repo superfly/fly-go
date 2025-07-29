@@ -53,4 +53,5 @@ const (
 	metadataDel
 	regionsGet
 	placementPost
+	logsGet
 )
