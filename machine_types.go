@@ -1008,6 +1008,8 @@ type LaunchMachineInput struct {
 	SkipLaunch              bool           `toml:"skip_launch,omitempty" json:"skip_launch,omitempty"`
 	SkipServiceRegistration bool           `toml:"skip_service_registration,omitempty" json:"skip_service_registration,omitempty"`
 	LSVD                    bool           `toml:"lsvd,omitempty" json:"lsvd,omitempty"`
+	SkipSecrets             bool           `json:"skip_secrets"`
+	MinSecretsVersion       *uint64        `json:"min_secrets_version,omitempty"`
 
 	LeaseTTL int `toml:"lease_ttl,omitempty" json:"lease_ttl,omitempty"`
 
