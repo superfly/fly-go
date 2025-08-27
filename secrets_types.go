@@ -14,7 +14,7 @@ const (
 type AppSecret struct {
 	Name   string  `json:"name"`
 	Value  *string `json:"value,omitempty"`
-	Digest string  `json:"digest"`
+	Digest string  `json:"digest,omitempty"`
 }
 
 type ListAppSecretsResp struct {
@@ -27,6 +27,19 @@ type SetAppSecretRequest struct {
 
 type SetAppSecretResp struct {
 	AppSecret
+	Version uint64
+}
+
+type DeleteAppSecretResp struct {
+	Version uint64
+}
+
+type UpdateAppSecretsRequest struct {
+	Values map[string]*string `json:"values"`
+}
+
+type UpdateAppSecretsResp struct {
+	Secrets []AppSecret `json:"secrets"`
 	Version uint64
 }
 
