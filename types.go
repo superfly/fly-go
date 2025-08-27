@@ -145,6 +145,9 @@ type Query struct {
 	CanPerformBluegreenDeployment bool
 	AppNameAvailable              bool
 
+	AllocateEgressIPAddress AllocateEgressIPAddress
+	ReleaseEgressIPAddress  ReleaseEgressIPAddress
+
 	LockApp *LockApp
 }
 
@@ -698,6 +701,26 @@ type HostnameCheck struct {
 	DNSProvider           string   `json:"dnsProvider"`
 	DNSVerificationRecord string   `json:"dnsVerificationRecord"`
 	ResolvedAddresses     []string `json:"resolvedAddresses"`
+}
+
+type AllocateEgressIPAddress struct {
+	V4 string
+	V6 string
+}
+
+type ReleaseEgressIPAddress struct {
+	V4 string
+	V6 string
+}
+
+type AllocateEgressIPAddressInput struct {
+	AppID     string `json:"appId"`
+	MachineID string `json:"machineId"`
+}
+
+type ReleaseEgressIPAddressInput struct {
+	AppID     string `json:"appId"`
+	MachineID string `json:"machineId"`
 }
 
 type DeleteCertificatePayload struct {
