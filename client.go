@@ -203,7 +203,7 @@ func (c *Client) RunWithContext(ctx context.Context, req *graphql.Request) (Quer
 	err := c.client.Run(ctx, req, &resp)
 
 	if resp.Errors != nil {
-		span.RecordError(fmt.Errorf(c.getErrorFromErrors(resp.Errors)))
+		span.RecordError(errors.New(c.getErrorFromErrors(resp.Errors)))
 		span.SetStatus(codes.Error, "failed to do grapqhl request")
 	}
 

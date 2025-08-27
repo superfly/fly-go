@@ -93,7 +93,6 @@ type Query struct {
 		Check       *HostnameCheck
 	}
 
-
 	CreateDomain struct {
 		Domain *Domain
 	}
