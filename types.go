@@ -93,21 +93,6 @@ type Query struct {
 		Check       *HostnameCheck
 	}
 
-	AllocateIPAddress struct {
-		App       App
-		IPAddress IPAddress
-	}
-	AllocateEgressIPAddress struct {
-		V4 string
-		V6 string
-	}
-	ReleaseEgressIPAddress struct {
-		V4 string
-		V6 string
-	}
-	ReleaseIPAddress struct {
-		App App
-	}
 
 	CreateDomain struct {
 		Domain *Domain
@@ -719,30 +704,6 @@ type HostnameCheck struct {
 type DeleteCertificatePayload struct {
 	App         App
 	Certificate AppCertificate
-}
-
-type AllocateIPAddressInput struct {
-	AppID          string `json:"appId"`
-	Type           string `json:"type"`
-	Region         string `json:"region"`
-	OrganizationID string `json:"organizationId,omitempty"`
-	Network        string `json:"network,omitempty"`
-}
-
-type AllocateEgressIPAddressInput struct {
-	AppID     string `json:"appId"`
-	MachineID string `json:"machineId"`
-}
-
-type ReleaseEgressIPAddressInput struct {
-	AppID     string `json:"appId"`
-	MachineID string `json:"machineId"`
-}
-
-type ReleaseIPAddressInput struct {
-	AppID       *string `json:"appId"`
-	IPAddressID *string `json:"ipAddressId"`
-	IP          *string `json:"ip"`
 }
 
 type Errors []Error
