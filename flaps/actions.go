@@ -53,4 +53,7 @@ const (
 	metadataDel
 	regionsGet
 	placementPost
+	ipAssignmentsList
+	ipAssignmentCreate
+	ipAssignmentDelete
 )

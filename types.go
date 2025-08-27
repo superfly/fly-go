@@ -93,22 +93,6 @@ type Query struct {
 		Check       *HostnameCheck
 	}
 
-	AllocateIPAddress struct {
-		App       App
-		IPAddress IPAddress
-	}
-	AllocateEgressIPAddress struct {
-		V4 string
-		V6 string
-	}
-	ReleaseEgressIPAddress struct {
-		V4 string
-		V6 string
-	}
-	ReleaseIPAddress struct {
-		App App
-	}
-
 	CreateDomain struct {
 		Domain *Domain
 	}
@@ -160,6 +144,9 @@ type Query struct {
 
 	CanPerformBluegreenDeployment bool
 	AppNameAvailable              bool
+
+	AllocateEgressIPAddress AllocateEgressIPAddress
+	ReleaseEgressIPAddress  ReleaseEgressIPAddress
 
 	LockApp *LockApp
 }
@@ -716,17 +703,14 @@ type HostnameCheck struct {
 	ResolvedAddresses     []string `json:"resolvedAddresses"`
 }
 
-type DeleteCertificatePayload struct {
-	App         App
-	Certificate AppCertificate
+type AllocateEgressIPAddress struct {
+	V4 string
+	V6 string
 }
 
-type AllocateIPAddressInput struct {
-	AppID          string `json:"appId"`
-	Type           string `json:"type"`
-	Region         string `json:"region"`
-	OrganizationID string `json:"organizationId,omitempty"`
-	Network        string `json:"network,omitempty"`
+type ReleaseEgressIPAddress struct {
+	V4 string
+	V6 string
 }
 
 type AllocateEgressIPAddressInput struct {
@@ -739,10 +723,9 @@ type ReleaseEgressIPAddressInput struct {
 	MachineID string `json:"machineId"`
 }
 
-type ReleaseIPAddressInput struct {
-	AppID       *string `json:"appId"`
-	IPAddressID *string `json:"ipAddressId"`
-	IP          *string `json:"ip"`
+type DeleteCertificatePayload struct {
+	App         App
+	Certificate AppCertificate
 }
 
 type Errors []Error
