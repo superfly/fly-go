@@ -31,6 +31,7 @@ const (
 	appSecretGet
 	appSecretSet
 	appSecretDelete
+	appSecretUpdate
 	secretkeysList
 	secretkeyGet
 	secretkeySet
