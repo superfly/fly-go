@@ -56,6 +56,12 @@ func (c *Client) CheckAppCertificate(ctx context.Context, appName, hostname stri
 							expiresAt
 						}
 					}
+					validationErrors {
+						errorCode
+						message
+						remediation
+						timestamp
+					}
 				}
 				check {
 					aRecords
@@ -111,6 +117,12 @@ func (c *Client) AddCertificate(ctx context.Context, appName, hostname string) (
 							type
 							expiresAt
 						}
+					}
+					validationErrors {
+						errorCode
+						message
+						remediation
+						timestamp
 					}
 				}
 				check {
