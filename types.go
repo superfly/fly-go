@@ -690,12 +690,20 @@ type AppCertificate struct {
 	ClientStatus              string
 	IsApex                    bool
 	IsWildcard                bool
+	ValidationErrors          []AppCertificateValidationError
 	Issued                    struct {
 		Nodes []struct {
 			ExpiresAt time.Time
 			Type      string
 		}
 	}
+}
+
+type AppCertificateValidationError struct {
+	ErrorCode   string    `json:"errorCode"`
+	Message     string    `json:"message"`
+	Remediation string    `json:"remediation"`
+	Timestamp   time.Time `json:"timestamp"`
 }
 
 type CreateOrganizationPayload struct {
