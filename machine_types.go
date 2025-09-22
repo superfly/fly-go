@@ -346,6 +346,14 @@ var (
 	MachineRestartPolicySpotPrice MachineRestartPolicy = "spot-price"
 )
 
+type MachinePersistRootfs string
+
+var (
+	MachinePersistRootfsNever   MachinePersistRootfs = "never"
+	MachinePersistRootfsAlways  MachinePersistRootfs = "always"
+	MachinePersistRootfsRestart MachinePersistRootfs = "restart"
+)
+
 // @description The Machine restart policy defines whether and how flyd restarts a Machine after its main process exits. See https://fly.io/docs/machines/guides-examples/machine-restart-policy/.
 type MachineRestart struct {
 	// * no - Never try to restart a Machine automatically when its main process exits, whether that’s on purpose or on a crash.
@@ -371,13 +379,13 @@ type MachineMount struct {
 }
 
 type MachineGuest struct {
-	CPUKind          string `toml:"cpu_kind,omitempty" json:"cpu_kind,omitempty"`
-	CPUs             int    `toml:"cpus,omitempty" json:"cpus,omitempty"`
-	MemoryMB         int    `toml:"memory_mb,omitempty" json:"memory_mb,omitempty"`
-	GPUs             int    `toml:"gpus,omitempty" json:"gpus,omitempty"`
-	GPUKind          string `toml:"gpu_kind,omitempty" json:"gpu_kind,omitempty"`
-	HostDedicationID string `toml:"host_dedication_id,omitempty" json:"host_dedication_id,omitempty"`
-	PersistRootfs    string `toml:"persist_rootfs,omitempty" json:"persist_rootfs,omitempty"`
+	CPUKind          string               `toml:"cpu_kind,omitempty" json:"cpu_kind,omitempty"`
+	CPUs             int                  `toml:"cpus,omitempty" json:"cpus,omitempty"`
+	MemoryMB         int                  `toml:"memory_mb,omitempty" json:"memory_mb,omitempty"`
+	GPUs             int                  `toml:"gpus,omitempty" json:"gpus,omitempty"`
+	GPUKind          string               `toml:"gpu_kind,omitempty" json:"gpu_kind,omitempty"`
+	HostDedicationID string               `toml:"host_dedication_id,omitempty" json:"host_dedication_id,omitempty"`
+	PersistRootfs    MachinePersistRootfs `toml:"persist_rootfs,omitempty" json:"persist_rootfs,omitempty" enums:"never,always,restart"`
 
 	KernelArgs []string `toml:"kernel_args,omitempty" json:"kernel_args,omitempty"`
 }
