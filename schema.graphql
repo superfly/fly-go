@@ -2009,16 +2009,6 @@ Possible certificate validation error codes
 """
 enum CertificateValidationErrorCodeEnum {
   """
-  IPv6 addresses in DNS are not allocated to your app
-  """
-  ALPN_IPV6_NOT_ALLOCATED
-
-  """
-  ALPN validation requires IPv6 DNS records
-  """
-  ALPN_NO_IPV6_RECORDS
-
-  """
   CAA records are blocking Let's Encrypt certificate issuance
   """
   CAA_RECORD_INVALID
@@ -2039,24 +2029,19 @@ enum CertificateValidationErrorCodeEnum {
   DNS_RECORD_MISMATCH
 
   """
-  Some DNS records do not match the expected values
+  Some DNS records are correct, but others do not match the expected values
   """
   DNS_RECORD_PARTIAL_MATCH
 
   """
   DNS resolution timed out
   """
-  DNS_RESOLUTION_TIMEOUT
+  DNS_TIMEOUT
 
   """
   DNS validation for Let's Encrypt certificate failed
   """
   DNS_VALIDATION_FAILED
-
-  """
-  DNS verification record lookup timed out
-  """
-  DNS_VERIFICATION_TIMEOUT
 
   """
   Hostname does not match the certificate request
@@ -2069,9 +2054,14 @@ enum CertificateValidationErrorCodeEnum {
   HTTP_IPV6_REQUIRED
 
   """
-  HTTP validation for Let's Encrypt certificate failed
+  Your app does not have any IPv6 records allocated
   """
-  HTTP_VALIDATION_FAILED
+  IPV6_NOT_ALLOCATED
+
+  """
+  No AAAA records were found for your domain
+  """
+  IPV6_NOT_FOUND
 
   """
   No IP addresses are allocated to this app
