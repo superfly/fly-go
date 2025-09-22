@@ -45,6 +45,7 @@ func (f *Client) Update(ctx context.Context, builder fly.LaunchMachineInput, non
 	if err := f.sendRequestMachines(ctx, http.MethodPost, endpoint, builder, out, headers); err != nil {
 		return nil, fmt.Errorf("failed to update VM %s: %w", builder.ID, err)
 	}
+	out.RemoveCompatChecks()
 	return out, nil
 }
 
@@ -166,6 +167,7 @@ func (f *Client) Get(ctx context.Context, machineID string) (*fly.Machine, error
 	if err != nil {
 		return nil, fmt.Errorf("failed to get VM %s: %w", machineID, err)
 	}
+	out.RemoveCompatChecks()
 	return out, nil
 }
 
@@ -176,6 +178,7 @@ func (f *Client) GetMany(ctx context.Context, machineIDs []string) ([]*fly.Machi
 		if err != nil {
 			return machines, err
 		}
+		m.RemoveCompatChecks()
 		machines = append(machines, m)
 	}
 	return machines, nil
@@ -195,6 +198,11 @@ func (f *Client) List(ctx context.Context, state string) ([]*fly.Machine, error)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list VMs: %w", err)
 	}
+
+	for _, m := range out {
+		m.RemoveCompatChecks()
+	}
+
 	return out, nil
 }
 
@@ -213,6 +221,10 @@ func (f *Client) ListActive(ctx context.Context) ([]*fly.Machine, error) {
 	machines = slices.DeleteFunc(machines, func(m *fly.Machine) bool {
 		return m.IsReleaseCommandMachine() || m.IsFlyAppsConsole() || !m.IsActive()
 	})
+
+	for _, m := range machines {
+		m.RemoveCompatChecks()
+	}
 
 	return machines, nil
 }
@@ -244,6 +256,7 @@ func (f *Client) ListFlyAppsMachines(ctx context.Context) ([]*fly.Machine, *fly.
 	var releaseCmdMachine *fly.Machine
 	machines := make([]*fly.Machine, 0)
 	for _, m := range allMachines {
+		m.RemoveCompatChecks()
 		if m.IsFlyAppsPlatform() && m.IsActive() && !m.IsFlyAppsReleaseCommand() && !m.IsFlyAppsConsole() {
 			machines = append(machines, m)
 		} else if m.IsFlyAppsReleaseCommand() {

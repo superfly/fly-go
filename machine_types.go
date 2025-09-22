@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -149,6 +150,7 @@ func (m *Machine) ImageRepository() string {
 }
 
 func (m *Machine) TopLevelChecks() *HealthCheckStatus {
+	m.RemoveCompatChecks()
 	res := &HealthCheckStatus{}
 	total := 0
 
@@ -179,6 +181,7 @@ func (hcs *HealthCheckStatus) AllPassing() bool {
 }
 
 func (m *Machine) AllHealthChecks() *HealthCheckStatus {
+	m.RemoveCompatChecks()
 	res := &HealthCheckStatus{}
 	res.Total = len(m.Checks)
 	for _, check := range m.Checks {
@@ -192,6 +195,18 @@ func (m *Machine) AllHealthChecks() *HealthCheckStatus {
 		}
 	}
 	return res
+}
+
+// We used to generate `bg_deployments_*` top-level checks during bluegreen deployments.
+// This is no longer the case, but flaps still inserts these "fake" checks in its response
+// for compatibility with older `flyctl` versions, since the bluegreen strategy only looks
+// at those checks.
+// So, this function removes these fake checks so that they're not exposed to newer users of
+// this library, including new builds of `flyctl`.
+func (m *Machine) RemoveCompatChecks() {
+	m.Checks = slices.DeleteFunc(m.Checks, func(check *MachineCheckStatus) bool {
+		return strings.HasPrefix(check.Name, "bg_deployments_compat")
+	})
 }
 
 func (m *Machine) GetLatestEventOfType(eventType string) *MachineEvent {
