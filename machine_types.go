@@ -402,8 +402,7 @@ type MachineGuest struct {
 	HostDedicationID string               `toml:"host_dedication_id,omitempty" json:"host_dedication_id,omitempty"`
 	PersistRootfs    MachinePersistRootfs `toml:"persist_rootfs,omitempty" json:"persist_rootfs,omitempty" enums:"never,always,restart"`
 
-	KernelArgs    []string `toml:"kernel_args,omitempty" json:"kernel_args,omitempty"`
-	PersistRootfs string   `toml:"persist_rootfs,omitempty" json:"persist_rootfs,omitempty"`
+	KernelArgs []string `toml:"kernel_args,omitempty" json:"kernel_args,omitempty"`
 }
 
 func (mg *MachineGuest) SetSize(size string) error {
