@@ -29,26 +29,38 @@ func _() {
 	_ = x[machineCordon-18]
 	_ = x[machineUncordon-19]
 	_ = x[machineSuspend-20]
-	_ = x[secretCreate-21]
-	_ = x[secretDelete-22]
-	_ = x[secretGenerate-23]
-	_ = x[secretsList-24]
-	_ = x[volumeList-25]
-	_ = x[volumeCreate-26]
-	_ = x[volumetUpdate-27]
-	_ = x[volumeGet-28]
-	_ = x[volumeSnapshotCreate-29]
-	_ = x[volumeSnapshotList-30]
-	_ = x[volumeExtend-31]
-	_ = x[volumeDelete-32]
-	_ = x[metadataSet-33]
-	_ = x[metadataGet-34]
-	_ = x[metadataDel-35]
+	_ = x[appSecretsList-21]
+	_ = x[appSecretGet-22]
+	_ = x[appSecretSet-23]
+	_ = x[appSecretDelete-24]
+	_ = x[appSecretUpdate-25]
+	_ = x[secretkeysList-26]
+	_ = x[secretkeyGet-27]
+	_ = x[secretkeySet-28]
+	_ = x[secretkeyGenerate-29]
+	_ = x[secretkeyDelete-30]
+	_ = x[secretkeyEncrypt-31]
+	_ = x[secretkeyDecrypt-32]
+	_ = x[secretkeySign-33]
+	_ = x[secretkeyVerify-34]
+	_ = x[volumeList-35]
+	_ = x[volumeCreate-36]
+	_ = x[volumetUpdate-37]
+	_ = x[volumeGet-38]
+	_ = x[volumeSnapshotCreate-39]
+	_ = x[volumeSnapshotList-40]
+	_ = x[volumeExtend-41]
+	_ = x[volumeDelete-42]
+	_ = x[metadataSet-43]
+	_ = x[metadataGet-44]
+	_ = x[metadataDel-45]
+	_ = x[regionsGet-46]
+	_ = x[placementPost-47]
 }
 
-const _flapsAction_name = "noneappCreatemachineLaunchmachineUpdatemachineStartmachineWaitmachineStopmachineRestartmachineGetmachineListmachineDestroymachineKillmachineFindLeasemachineAcquireLeasemachineRefreshLeasemachineReleaseLeasemachineExecmachinePsmachineCordonmachineUncordonmachineSuspendsecretCreatesecretDeletesecretGeneratesecretsListvolumeListvolumeCreatevolumetUpdatevolumeGetvolumeSnapshotCreatevolumeSnapshotListvolumeExtendvolumeDeletemetadataSetmetadataGetmetadataDel"
+const _flapsAction_name = "noneappCreatemachineLaunchmachineUpdatemachineStartmachineWaitmachineStopmachineRestartmachineGetmachineListmachineDestroymachineKillmachineFindLeasemachineAcquireLeasemachineRefreshLeasemachineReleaseLeasemachineExecmachinePsmachineCordonmachineUncordonmachineSuspendappSecretsListappSecretGetappSecretSetappSecretDeleteappSecretUpdatesecretkeysListsecretkeyGetsecretkeySetsecretkeyGeneratesecretkeyDeletesecretkeyEncryptsecretkeyDecryptsecretkeySignsecretkeyVerifyvolumeListvolumeCreatevolumetUpdatevolumeGetvolumeSnapshotCreatevolumeSnapshotListvolumeExtendvolumeDeletemetadataSetmetadataGetmetadataDelregionsGetplacementPost"
 
-var _flapsAction_index = [...]uint16{0, 4, 13, 26, 39, 51, 62, 73, 87, 97, 108, 122, 133, 149, 168, 187, 206, 217, 226, 239, 254, 268, 280, 292, 306, 317, 327, 339, 352, 361, 381, 399, 411, 423, 434, 445, 456}
+var _flapsAction_index = [...]uint16{0, 4, 13, 26, 39, 51, 62, 73, 87, 97, 108, 122, 133, 149, 168, 187, 206, 217, 226, 239, 254, 268, 282, 294, 306, 321, 336, 350, 362, 374, 391, 406, 422, 438, 451, 466, 476, 488, 501, 510, 530, 548, 560, 572, 583, 594, 605, 615, 628}
 
 func (i flapsAction) String() string {
 	if i < 0 || i >= flapsAction(len(_flapsAction_index)-1) {

@@ -4,55 +4,92 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 
 	fly "github.com/superfly/fly-go"
 )
 
-func (f *Client) sendRequestSecrets(ctx context.Context, method, endpoint string, in, out interface{}, headers map[string][]string) error {
-	endpoint = fmt.Sprintf("/apps/%s/secrets%s", f.appName, endpoint)
+func (f *Client) sendRequestSecrets(ctx context.Context, method, endpoint string, in, out any, qs url.Values, headers map[string][]string) error {
+	endpoint = fmt.Sprintf("/apps/%s/secrets%s", url.PathEscape(f.appName), endpoint)
+	if len(qs) > 0 {
+		endpoint += "?" + qs.Encode()
+	}
 	return f._sendRequest(ctx, method, endpoint, in, out, headers)
 }
 
-func (f *Client) ListSecrets(ctx context.Context) ([]fly.ListSecret, error) {
-	ctx = contextWithAction(ctx, secretsList)
+func (f *Client) ListAppSecrets(ctx context.Context, version *uint64, showSecrets bool) ([]fly.AppSecret, error) {
+	ctx = contextWithAction(ctx, appSecretsList)
 
-	out := make([]fly.ListSecret, 0)
-	if err := f.sendRequestSecrets(ctx, http.MethodGet, "", nil, &out, nil); err != nil {
-		return nil, fmt.Errorf("failed to list secrets: %w", err)
+	qs := url.Values{}
+	if version != nil {
+		qs.Set("version", fmt.Sprintf("%d", *version))
+	}
+	if showSecrets {
+		qs.Set("show_secrets", "true")
 	}
 
-	return out, nil
+	out := fly.ListAppSecretsResp{}
+	if err := f.sendRequestSecrets(ctx, http.MethodGet, "", nil, &out, qs, nil); err != nil {
+		return nil, fmt.Errorf("failed to list app secrets: %w", err)
+	}
+
+	return out.Secrets, nil
 }
 
-func (f *Client) CreateSecret(ctx context.Context, sLabel, sType string, in fly.CreateSecretRequest) error {
-	ctx = contextWithAction(ctx, secretCreate)
+func (f *Client) GetAppSecrets(ctx context.Context, name string, version *uint64, showSecrets bool) (*fly.AppSecret, error) {
+	ctx = contextWithAction(ctx, appSecretGet)
 
-	path := fmt.Sprintf("/%s/type/%s", sLabel, sType)
-	if err := f.sendRequestSecrets(ctx, http.MethodPost, path, in, nil, nil); err != nil {
-		return fmt.Errorf("failed to create secret: %w", err)
+	qs := url.Values{}
+	if version != nil {
+		qs.Set("version", fmt.Sprintf("%d", *version))
+	}
+	if showSecrets {
+		qs.Set("show_secrets", "true")
 	}
 
-	return nil
+	path := fmt.Sprintf("/%s", url.PathEscape(name))
+	out := fly.AppSecret{}
+	if err := f.sendRequestSecrets(ctx, http.MethodGet, path, nil, &out, qs, nil); err != nil {
+		return nil, fmt.Errorf("failed to get app secret: %w", err)
+	}
+
+	return &out, nil
 }
 
-func (f *Client) GenerateSecret(ctx context.Context, sLabel, sType string) error {
-	ctx = contextWithAction(ctx, secretGenerate)
+func (f *Client) SetAppSecret(ctx context.Context, name string, value string) (*fly.SetAppSecretResp, error) {
+	ctx = contextWithAction(ctx, appSecretSet)
 
-	path := fmt.Sprintf("/%s/type/%s/generate", sLabel, sType)
-	if err := f.sendRequestSecrets(ctx, http.MethodPost, path, nil, nil, nil); err != nil {
-		return fmt.Errorf("failed to create secret: %w", err)
+	path := fmt.Sprintf("/%s", url.PathEscape(name))
+	in := fly.SetAppSecretRequest{Value: value}
+	out := fly.SetAppSecretResp{}
+	if err := f.sendRequestSecrets(ctx, http.MethodPost, path, in, &out, nil, nil); err != nil {
+		return nil, fmt.Errorf("failed to set app secret: %w", err)
 	}
 
-	return nil
+	return &out, nil
 }
 
-func (f *Client) DeleteSecret(ctx context.Context, label string) error {
-	ctx = contextWithAction(ctx, secretDelete)
+func (f *Client) DeleteAppSecret(ctx context.Context, name string) (*fly.DeleteAppSecretResp, error) {
+	ctx = contextWithAction(ctx, appSecretDelete)
 
-	endpoint := fmt.Sprintf("/%s", label)
-	if err := f.sendRequestSecrets(ctx, http.MethodDelete, endpoint, nil, nil, nil); err != nil {
-		return fmt.Errorf("failed to delete secret: %w", err)
+	path := fmt.Sprintf("/%s", url.PathEscape(name))
+	out := fly.DeleteAppSecretResp{}
+	if err := f.sendRequestSecrets(ctx, http.MethodDelete, path, nil, &out, nil, nil); err != nil {
+		return nil, fmt.Errorf("failed to delete app secret: %w", err)
 	}
 
-	return nil
+	return &out, nil
+}
+
+// UpdateAppSecrets can set and delete secrets. Nil secret values are deleted, while others are set.
+func (f *Client) UpdateAppSecrets(ctx context.Context, values map[string]*string) (*fly.UpdateAppSecretsResp, error) {
+	ctx = contextWithAction(ctx, appSecretUpdate)
+
+	in := fly.UpdateAppSecretsRequest{Values: values}
+	out := fly.UpdateAppSecretsResp{}
+	if err := f.sendRequestSecrets(ctx, http.MethodPost, "", in, &out, nil, nil); err != nil {
+		return nil, fmt.Errorf("failed to update app secrets: %w", err)
+	}
+
+	return &out, nil
 }

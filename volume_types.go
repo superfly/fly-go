@@ -32,6 +32,7 @@ type CreateVolumeRequest struct {
 	SizeGb            *int   `json:"size_gb"`
 	Encrypted         *bool  `json:"encrypted"`
 	RequireUniqueZone *bool  `json:"require_unique_zone"`
+	UniqueZoneAppWide *bool  `json:"unique_zone_app_wide"`
 	SnapshotRetention *int   `json:"snapshot_retention"`
 	AutoBackupEnabled *bool  `json:"auto_backup_enabled"`
 

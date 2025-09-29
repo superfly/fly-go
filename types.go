@@ -264,6 +264,7 @@ type App struct {
 		Nodes []IPAddress
 	}
 	SharedIPAddress string
+	CNAMETarget     string
 	IPAddress       *IPAddress
 	Certificates    struct {
 		Nodes []AppCertificate
@@ -335,6 +336,7 @@ type AppCompact struct {
 	Status          string
 	Deployed        bool
 	Hostname        string
+	Network         string
 	AppURL          string
 	Organization    *OrganizationBasic
 	PlatformVersion string
@@ -608,13 +610,40 @@ type LogEntry struct {
 	}
 }
 
+type GeoRegion string
+
+const (
+	Africa       GeoRegion = "africa"
+	AsiaPacific  GeoRegion = "asia_pacific"
+	Europe       GeoRegion = "europe"
+	NorthAmerica GeoRegion = "north_america"
+	SouthAmerica GeoRegion = "south_america"
+)
+
+var geoRegionNames = map[GeoRegion]string{
+	Africa:       "Africa",
+	AsiaPacific:  "Asia Pacific",
+	Europe:       "Europe",
+	NorthAmerica: "North America",
+	SouthAmerica: "South America",
+}
+
+func (p GeoRegion) String() string {
+	if name, ok := geoRegionNames[p]; ok {
+		return name
+	}
+	return ""
+}
+
 type Region struct {
-	Code             string
-	Name             string
-	Latitude         float32
-	Longitude        float32
-	GatewayAvailable bool
-	RequiresPaidPlan bool
+	Code             string    `json:"code"`
+	Name             string    `json:"name"`
+	Latitude         float32   `json:"latitude"`
+	Longitude        float32   `json:"longitude"`
+	GatewayAvailable bool      `json:"gateway_available"`
+	RequiresPaidPlan bool      `json:"requires_paid_plan"`
+	Capacity         int64     `json:"capacity"`
+	GeoRegion        GeoRegion `json:"geo_region"`
 }
 
 type Release struct {
@@ -661,12 +690,20 @@ type AppCertificate struct {
 	ClientStatus              string
 	IsApex                    bool
 	IsWildcard                bool
+	ValidationErrors          []AppCertificateValidationError
 	Issued                    struct {
 		Nodes []struct {
 			ExpiresAt time.Time
 			Type      string
 		}
 	}
+}
+
+type AppCertificateValidationError struct {
+	ErrorCode   string    `json:"errorCode"`
+	Message     string    `json:"message"`
+	Remediation string    `json:"remediation"`
+	Timestamp   time.Time `json:"timestamp"`
 }
 
 type CreateOrganizationPayload struct {
