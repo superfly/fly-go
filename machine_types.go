@@ -378,7 +378,8 @@ type MachineGuest struct {
 	GPUKind          string `json:"gpu_kind,omitempty" toml:"gpu_kind,omitempty"`
 	HostDedicationID string `json:"host_dedication_id,omitempty" toml:"host_dedication_id,omitempty"`
 
-	KernelArgs []string `json:"kernel_args,omitempty" toml:"kernel_args,omitempty"`
+        KernelArgs    []string `toml:"kernel_args,omitempty" json:"kernel_args,omitempty"`
+	PersistRootfs string   `toml:"persist_rootfs,omitempty" json:"persist_rootfs,omitempty"`
 }
 
 func (mg *MachineGuest) SetSize(size string) error {
