@@ -170,7 +170,7 @@ func (c *Client) GetEgressIPAddresses(ctx context.Context, appName string) (map[
 
 	ret := make(map[string][]EgressIPAddress)
 	for _, m := range data.App.Machines.Nodes {
-		if m.EgressIpAddresses.Nodes == nil || len(m.EgressIpAddresses.Nodes) == 0 {
+		if len(m.EgressIpAddresses.Nodes) == 0 {
 			continue
 		}
 
