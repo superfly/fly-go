@@ -323,7 +323,7 @@ func (f *Client) AcquireLease(ctx context.Context, machineID string, ttl *int) (
 	ctx = contextWithAction(ctx, machineAcquireLease)
 	ctx = contextWithMachineID(ctx, machineID)
 
-	var op func() error = func() error {
+	op := func() error {
 		err := f.sendRequestMachines(ctx, http.MethodPost, endpoint, nil, out, nil)
 		if err != nil {
 			return fmt.Errorf("failed to get lease on VM %s: %w", machineID, err)
