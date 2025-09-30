@@ -1,6 +1,6 @@
 module github.com/superfly/fly-go
 
-go 1.21
+go 1.24
 
 require (
 	github.com/Khan/genqlient v0.7.1-0.20240819060157-4466fc10e4f3
