@@ -1,6 +1,6 @@
 module github.com/superfly/fly-go
 
-go 1.24
+go 1.24.0
 
 require (
 	github.com/Khan/genqlient v0.7.1-0.20240819060157-4466fc10e4f3
@@ -9,7 +9,7 @@ require (
 	github.com/superfly/macaroon v0.3.0
 	go.opentelemetry.io/otel v1.27.0
 	go.opentelemetry.io/otel/trace v1.27.0
-	golang.org/x/crypto v0.31.0
+	golang.org/x/crypto v0.42.0
 	golang.org/x/exp v0.0.0-20240416160154-fe59bbe5cc7f
 )
 
@@ -25,7 +25,6 @@ require (
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/rogpeppe/go-internal v1.12.0 // indirect
 	golang.org/x/mod v0.17.0 // indirect
-	golang.org/x/net v0.30.0 // indirect
 	golang.org/x/sync v0.7.0 // indirect
 	golang.org/x/tools v0.20.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
@@ -46,5 +45,5 @@ require (
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.52.0
 	go.opentelemetry.io/otel/metric v1.27.0 // indirect
-	golang.org/x/sys v0.28.0 // indirect
+	golang.org/x/sys v0.36.0 // indirect
 )
