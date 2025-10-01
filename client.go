@@ -211,7 +211,11 @@ func (c *Client) RunWithContext(ctx context.Context, req *graphql.Request) (Quer
 		fmt.Fprintf(os.Stderr, "Error: %+v\n", resp.Errors)
 	}
 
-	return resp, err
+	if err == nil {
+		return resp, nil
+	}
+
+	return resp, fmt.Errorf("failed to run %s: %w", req.Query(), err)
 }
 
 var compactPattern = regexp.MustCompile(`\s+`)
