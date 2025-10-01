@@ -58,6 +58,7 @@ type UpdateVolumeRequest struct {
 type VolumeSnapshot struct {
 	ID            string    `json:"id"`
 	Size          int       `json:"size"`
+	VolumeSize    int       `json:"volume_size"`
 	Digest        string    `json:"digest"`
 	CreatedAt     time.Time `json:"created_at"`
 	Status        string    `json:"status"`
