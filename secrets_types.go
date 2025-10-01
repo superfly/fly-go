@@ -27,11 +27,11 @@ type SetAppSecretRequest struct {
 
 type SetAppSecretResp struct {
 	AppSecret
-	Version uint64
+	Version uint64 `json:"version"`
 }
 
 type DeleteAppSecretResp struct {
-	Version uint64
+	Version uint64 `json:"version"`
 }
 
 type UpdateAppSecretsRequest struct {
@@ -40,7 +40,7 @@ type UpdateAppSecretsRequest struct {
 
 type UpdateAppSecretsResp struct {
 	Secrets []AppSecret `json:"secrets"`
-	Version uint64
+	Version uint64      `json:"version"`
 }
 
 type SecretKey struct {
@@ -60,7 +60,7 @@ type SetSecretKeyRequest struct {
 
 type SetSecretKeyResp struct {
 	SecretKey
-	Version uint64
+	Version uint64 `json:"version"`
 }
 
 type EncryptSecretKeyRequest struct {
