@@ -93,23 +93,34 @@ func (t *LoggingTransport) logResponse(resp *http.Response) {
 	defer t.mu.Unlock()
 
 	ctx := resp.Request.Context()
-	defer func() { _ = resp.Body.Close() }()
-
 	if start, ok := ctx.Value(contextKeyRequestStart).(time.Time); ok {
 		t.Logger.Debugf("<-- %d %s (%s)\n", resp.StatusCode, resp.Request.URL, shiftedDuration(time.Since(start), 2))
 	} else {
-		t.Logger.Debugf("<-- %d %s %s\n", resp.StatusCode, resp.Request.URL)
+		t.Logger.Debugf("<-- %d %s\n", resp.StatusCode, resp.Request.URL)
 	}
 
-	data, err := io.ReadAll(resp.Body)
+	// Wrap the body so reads are logged as they happen without buffering or closing early.
+	resp.Body = &loggingReadCloser{rc: resp.Body, logger: t.Logger, requestURL: resp.Request.URL.String()}
+}
 
-	if err != nil {
-		t.Logger.Debug("error reading response body:", err)
-	} else {
-		t.Logger.Debug(string(data))
+// loggingReadCloser logs bytes as they are read from the underlying ReadCloser.
+// This preserves streaming semantics by avoiding any pre-reading or buffering.
+type loggingReadCloser struct {
+	requestURL string
+	rc         io.ReadCloser
+	logger     Logger
+}
+
+func (l *loggingReadCloser) Read(p []byte) (int, error) {
+	n, err := l.rc.Read(p)
+	if n > 0 {
+		l.logger.Debugf("%s: %s", l.requestURL, string(p[:n]))
 	}
+	return n, err
+}
 
-	resp.Body = io.NopCloser(bytes.NewReader(data))
+func (l *loggingReadCloser) Close() error {
+	return l.rc.Close()
 }
 
 func shiftedDuration(d time.Duration, dicimal int) time.Duration {
