@@ -896,6 +896,11 @@ type Image struct {
 	Digest         string
 	Ref            string
 	CompressedSize string
+	Manifest       *ImageManifest
+}
+
+type ImageManifest struct {
+	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
 type Invitation struct {
