@@ -114,7 +114,7 @@ type loggingReadCloser struct {
 func (l *loggingReadCloser) Read(p []byte) (int, error) {
 	n, err := l.rc.Read(p)
 	if n > 0 {
-		l.logger.Debugf("%s: %s", l.requestURL, string(p[:n]))
+		l.logger.Debugf("  <-- %s: %s", l.requestURL, string(p[:n]))
 	}
 	return n, err
 }
