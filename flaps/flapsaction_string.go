@@ -63,8 +63,9 @@ const _flapsAction_name = "noneappCreatemachineLaunchmachineUpdatemachineStartma
 var _flapsAction_index = [...]uint16{0, 4, 13, 26, 39, 51, 62, 73, 87, 97, 108, 122, 133, 149, 168, 187, 206, 217, 226, 239, 254, 268, 282, 294, 306, 321, 336, 350, 362, 374, 391, 406, 422, 438, 451, 466, 476, 488, 501, 510, 530, 548, 560, 572, 583, 594, 605, 615, 628}
 
 func (i flapsAction) String() string {
-	if i < 0 || i >= flapsAction(len(_flapsAction_index)-1) {
+	idx := int(i) - 0
+	if i < 0 || idx >= len(_flapsAction_index)-1 {
 		return "flapsAction(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _flapsAction_name[_flapsAction_index[i]:_flapsAction_index[i+1]]
+	return _flapsAction_name[_flapsAction_index[idx]:_flapsAction_index[idx+1]]
 }
