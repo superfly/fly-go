@@ -642,6 +642,7 @@ type Region struct {
 	Longitude        float32   `json:"longitude"`
 	GatewayAvailable bool      `json:"gateway_available"`
 	RequiresPaidPlan bool      `json:"requires_paid_plan"`
+	Deprecated       bool      `json:"deprecated"`
 	Capacity         int64     `json:"capacity"`
 	GeoRegion        GeoRegion `json:"geo_region"`
 }
