@@ -14,7 +14,6 @@ func (c *Client) PlatformRegions(ctx context.Context) ([]Region, *Region, error)
 					longitude
 					gatewayAvailable
 					requiresPaidPlan
-					deprecated
 				}
 			}
 		}

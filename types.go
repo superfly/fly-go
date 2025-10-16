@@ -644,7 +644,6 @@ type Region struct {
 	RequiresPaidPlan bool      `json:"requires_paid_plan"`
 	Capacity         int64     `json:"capacity"`
 	GeoRegion        GeoRegion `json:"geo_region"`
-	Deprecated       bool      `json:"deprecated"`
 }
 
 type Release struct {
