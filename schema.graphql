@@ -8909,6 +8909,11 @@ type Region {
   name: String!
   processGroup: String
   requiresPaidPlan: Boolean!
+
+  """
+  Whether this region is deprecated
+  """
+  deprecated: Boolean!
 }
 
 type RegionPlacement {
