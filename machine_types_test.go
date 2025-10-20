@@ -360,3 +360,152 @@ func TestIsAppV2(t *testing.T) {
 		}
 	}
 }
+
+func TestReplayCacheMarshalJSON(t *testing.T) {
+	type testcase struct {
+		name   string
+		input  HTTPOptions
+		output string
+	}
+
+	cases := []testcase{
+		{
+			name: "single cookie-based replay cache",
+			input: HTTPOptions{
+				ReplayCache: []ReplayCache{
+					{
+						PathPrefix:  "/",
+						TTLSeconds:  300,
+						Type:        "cookie",
+						Name:        "session_id",
+						AllowBypass: false,
+					},
+				},
+			},
+			output: `{"replay_cache":[{"path_prefix":"/","ttl_seconds":300,"type":"cookie","name":"session_id"}]}`,
+		},
+		{
+			name: "multiple replay cache entries",
+			input: HTTPOptions{
+				ReplayCache: []ReplayCache{
+					{
+						PathPrefix:  "/",
+						TTLSeconds:  300,
+						Type:        "cookie",
+						Name:        "session_id",
+						AllowBypass: false,
+					},
+					{
+						PathPrefix:  "/api",
+						TTLSeconds:  600,
+						Type:        "header",
+						Name:        "Authorization",
+						AllowBypass: true,
+					},
+				},
+			},
+			output: `{"replay_cache":[{"path_prefix":"/","ttl_seconds":300,"type":"cookie","name":"session_id"},{"path_prefix":"/api","ttl_seconds":600,"type":"header","name":"Authorization","allow_bypass":true}]}`,
+		},
+		{
+			name: "header-based with allow_bypass",
+			input: HTTPOptions{
+				ReplayCache: []ReplayCache{
+					{
+						PathPrefix:  "/admin",
+						TTLSeconds:  180,
+						Type:        "header",
+						Name:        "X-Admin-Session",
+						AllowBypass: true,
+					},
+				},
+			},
+			output: `{"replay_cache":[{"path_prefix":"/admin","ttl_seconds":180,"type":"header","name":"X-Admin-Session","allow_bypass":true}]}`,
+		},
+		{
+			name:   "empty replay cache",
+			input:  HTTPOptions{},
+			output: `{}`,
+		},
+	}
+
+	for _, testCase := range cases {
+		b, err := json.Marshal(testCase.input)
+		if err != nil {
+			t.Errorf("%s: unexpected error: %v", testCase.name, err)
+		} else if !bytes.Equal(b, []byte(testCase.output)) {
+			t.Errorf("%s, got '%s', want '%s'", testCase.name, string(b), testCase.output)
+		}
+	}
+}
+
+func TestReplayCacheUnmarshalJSON(t *testing.T) {
+	type testcase struct {
+		name   string
+		input  string
+		output HTTPOptions
+	}
+
+	cases := []testcase{
+		{
+			name:  "single cookie-based replay cache",
+			input: `{"replay_cache":[{"path_prefix":"/","ttl_seconds":300,"type":"cookie","name":"session_id"}]}`,
+			output: HTTPOptions{
+				ReplayCache: []ReplayCache{
+					{
+						PathPrefix:  "/",
+						TTLSeconds:  300,
+						Type:        "cookie",
+						Name:        "session_id",
+						AllowBypass: false,
+					},
+				},
+			},
+		},
+		{
+			name:  "multiple replay cache entries",
+			input: `{"replay_cache":[{"path_prefix":"/","ttl_seconds":300,"type":"cookie","name":"session_id","allow_bypass":false},{"path_prefix":"/api","ttl_seconds":600,"type":"header","name":"Authorization","allow_bypass":true}]}`,
+			output: HTTPOptions{
+				ReplayCache: []ReplayCache{
+					{
+						PathPrefix:  "/",
+						TTLSeconds:  300,
+						Type:        "cookie",
+						Name:        "session_id",
+						AllowBypass: false,
+					},
+					{
+						PathPrefix:  "/api",
+						TTLSeconds:  600,
+						Type:        "header",
+						Name:        "Authorization",
+						AllowBypass: true,
+					},
+				},
+			},
+		},
+		{
+			name:   "empty http options",
+			input:  `{}`,
+			output: HTTPOptions{},
+		},
+	}
+
+	for _, testCase := range cases {
+		var result HTTPOptions
+		if err := json.Unmarshal([]byte(testCase.input), &result); err != nil {
+			t.Errorf("%s: unexpected error: %v", testCase.name, err)
+		}
+
+		if len(result.ReplayCache) != len(testCase.output.ReplayCache) {
+			t.Errorf("%s, got '%d' replay cache entries, want '%d'", testCase.name, len(result.ReplayCache), len(testCase.output.ReplayCache))
+			continue
+		}
+
+		for i, rc := range result.ReplayCache {
+			want := testCase.output.ReplayCache[i]
+			if rc.PathPrefix != want.PathPrefix || rc.TTLSeconds != want.TTLSeconds || rc.Type != want.Type || rc.Name != want.Name || rc.AllowBypass != want.AllowBypass {
+				t.Errorf("%s entry %d, got %+v, want %+v", testCase.name, i, rc, want)
+			}
+		}
+	}
+}

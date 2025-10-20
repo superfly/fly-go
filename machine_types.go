@@ -660,12 +660,23 @@ type TLSOptions struct {
 	DefaultSelfSigned *bool    `toml:"default_self_signed,omitempty" json:"default_self_signed,omitempty"`
 }
 
+type ReplayCache struct {
+	PathPrefix string `toml:"path_prefix" json:"path_prefix"`
+	TTLSeconds int    `toml:"ttl_seconds" json:"ttl_seconds"`
+	// Currently either "cookie" or "header"
+	Type string `toml:"type" json:"type" enums:"cookie,header"`
+	// Name of the cookie or header to key the cache on
+	Name        string `toml:"name" json:"name"`
+	AllowBypass bool   `toml:"allow_bypass,omitempty" json:"allow_bypass,omitempty"`
+}
+
 type HTTPOptions struct {
 	Compress           *bool                `toml:"compress,omitempty" json:"compress,omitempty"`
 	Response           *HTTPResponseOptions `toml:"response,omitempty" json:"response,omitempty"`
 	H2Backend          *bool                `toml:"h2_backend,omitempty" json:"h2_backend,omitempty"`
 	IdleTimeout        *uint32              `toml:"idle_timeout,omitempty" json:"idle_timeout,omitempty"`
 	HeadersReadTimeout *uint32              `toml:"headers_read_timeout,omitempty" json:"headers_read_timeout,omitempty"`
+	ReplayCache        []ReplayCache        `toml:"replay_cache,omitempty" json:"replay_cache,omitempty"`
 }
 
 type HTTPResponseOptions struct {
