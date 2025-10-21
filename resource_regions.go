@@ -9,6 +9,7 @@ func (c *Client) GetNearestRegion(ctx context.Context) (*Region, error) {
 				code
 				name
 				gatewayAvailable
+				deprecated
 			}
 		}
 `)

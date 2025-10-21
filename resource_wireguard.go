@@ -207,6 +207,7 @@ func (c *Client) ClosestWireguardGatewayRegion(ctx context.Context) (*Region, er
 				code
 				name
 				gatewayAvailable
+				deprecated
 			}
 		}
 `)
