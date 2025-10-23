@@ -275,12 +275,17 @@ func (f *Client) NewRequest(ctx context.Context, method, path string, in interfa
 		return nil, fmt.Errorf("could not create new request, %w", err)
 	}
 	req.Header = headers
-	req.Header.Add("Authorization", f.tokens.FlapsHeader())
+	if f.tokens != nil {
+		req.Header.Add("Authorization", f.tokens.FlapsHeader())
+	}
 
 	return req, nil
 }
 
 func (f *Client) getCaveatNames() ([]string, error) {
+	if f.tokens == nil {
+		return nil, nil
+	}
 	tok := f.tokens.MacaroonsOnly().All()
 	raws, err := macaroon.Parse(tok)
 	if err != nil {
