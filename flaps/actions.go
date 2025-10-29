@@ -8,6 +8,7 @@ type flapsAction int
 const (
 	none flapsAction = iota
 	appCreate
+	appGet
 	machineLaunch
 	machineUpdate
 	machineStart
