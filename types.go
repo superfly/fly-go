@@ -432,11 +432,6 @@ func (o *OrganizationBasic) GetSlug() string {
 	return o.Slug
 }
 
-type OrganizationImpl interface {
-	GetID() string
-	GetSlug() string
-}
-
 type OrganizationDetails struct {
 	ID                 string
 	InternalNumericID  string
