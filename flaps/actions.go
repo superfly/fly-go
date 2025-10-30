@@ -33,6 +33,9 @@ const (
 	appSecretSet
 	appSecretDelete
 	appSecretUpdate
+	ipAssignmentList
+	ipAssignmentCreate
+	ipAssignmentDelete
 	secretkeysList
 	secretkeyGet
 	secretkeySet
