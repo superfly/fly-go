@@ -8,17 +8,19 @@ import (
 	"github.com/superfly/fly-go"
 )
 
-func (f *Client) GetRegions(ctx context.Context, size string) ([]fly.Region, error) {
+type RegionData struct {
+	Regions []fly.Region `json:"Regions"`
+	Nearest *string      `json:"Nearest"`
+}
+
+func (f *Client) GetRegions(ctx context.Context) (*RegionData, error) {
+	data := &RegionData{}
 	ctx = contextWithAction(ctx, regionsGet)
 	endpoint := "/platform/regions"
-	if size != "" {
-		endpoint += fmt.Sprintf("?size=%s", size)
-	}
-	regions := &struct{ Regions []fly.Region }{}
-	if err := f._sendRequest(ctx, http.MethodGet, endpoint, nil, regions, nil); err != nil {
+	if err := f._sendRequest(ctx, http.MethodGet, endpoint, nil, data, nil); err != nil {
 		return nil, fmt.Errorf("failed to get regions: %w", err)
 	}
-	return regions.Regions, nil
+	return data, nil
 }
 
 // Weights override default placement preferences.
