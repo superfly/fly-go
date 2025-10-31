@@ -431,8 +431,10 @@ func (client *Client) GetAppCompact(ctx context.Context, appName string) (*AppCo
 		query ($appName: String!) {
 			appcompact:app(name: $appName) {
 				id
+				internalNumericId
 				name
 				hostname
+				cnameTarget
 				deployed
 				network
 				status

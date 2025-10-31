@@ -313,16 +313,18 @@ type AppCertificateCompact struct {
 }
 
 type AppCompact struct {
-	ID              string
-	Name            string
-	Status          string
-	Deployed        bool
-	Hostname        string
-	Network         string
-	AppURL          string
-	Organization    *OrganizationBasic
-	PlatformVersion string
-	PostgresAppRole *struct {
+	ID                string
+	InternalNumericID int32
+	Name              string
+	Status            string
+	Deployed          bool
+	Hostname          string
+	CnameTarget       string
+	Network           string
+	AppURL            string
+	Organization      *OrganizationBasic
+	PlatformVersion   string
+	PostgresAppRole   *struct {
 		Name string
 	}
 }
