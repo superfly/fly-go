@@ -10,7 +10,7 @@ import (
 
 type RegionData struct {
 	Regions []fly.Region `json:"Regions"`
-	Nearest *string      `json:"Nearest"`
+	Nearest string       `json:"Nearest"`
 }
 
 func (f *Client) GetRegions(ctx context.Context) (*RegionData, error) {
