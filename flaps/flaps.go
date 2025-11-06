@@ -38,7 +38,7 @@ type NewClientOpts struct {
 	AppName string
 
 	// optional, avoids API roundtrip when connecting to flaps by wireguard:
-	AppCompact *fly.AppCompact
+	AppData *App
 
 	// optional, sent with requests
 	UserAgent string
