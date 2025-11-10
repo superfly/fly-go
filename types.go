@@ -37,7 +37,6 @@ type Query struct {
 			Nodes []VolumeSnapshotGql
 		}
 	}
-	Domain *Domain
 
 	Node  interface{}
 	Nodes []interface{}
@@ -109,23 +108,6 @@ type Query struct {
 		App App
 	}
 
-	CreateDomain struct {
-		Domain *Domain
-	}
-	CreateAndRegisterDomain struct {
-		Domain *Domain
-	}
-
-	CheckDomain *CheckDomainResult
-
-	ExportDnsZone struct {
-		Contents string
-	}
-
-	ImportDnsZone struct {
-		Warnings []ImportDnsWarning
-		Changes  []ImportDnsChange
-	}
 	CreateOrganization CreateOrganizationPayload
 	DeleteOrganization DeleteOrganizationPayload
 
@@ -384,14 +366,6 @@ type Organization struct {
 	Billable           bool
 	Settings           map[string]any
 
-	Domains struct {
-		Nodes *[]*Domain
-		Edges *[]*struct {
-			Cursor *string
-			Node   *Domain
-		}
-	}
-
 	WireGuardPeer *WireGuardPeer
 
 	WireGuardPeers struct {
@@ -493,20 +467,6 @@ type Billable struct {
 	Time     time.Time
 	Quantity float64
 	App      App
-}
-
-type DNSRecords struct {
-	ID         string
-	Name       string
-	Ttl        int
-	Values     []string
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
-	Fqdn       string
-	IsApex     bool
-	IsSystem   bool
-	IsWildcard bool
-	Domain     *Domain
 }
 
 type IPAddress struct {
@@ -767,64 +727,6 @@ type Extensions struct {
 	ServiceName string
 	Query       string
 	Variables   map[string]string
-}
-
-type Domain struct {
-	ID                   string
-	Name                 string
-	CreatedAt            time.Time
-	Organization         *Organization
-	AutoRenew            *bool
-	DelegatedNameservers *[]string
-	ZoneNameservers      *[]string
-	DnsStatus            *string
-	RegistrationStatus   *string
-	ExpiresAt            time.Time
-	DnsRecords           *struct {
-		Nodes *[]*DNSRecord
-	}
-}
-
-type CheckDomainResult struct {
-	DomainName            string
-	TLD                   string
-	RegistrationSupported bool
-	RegistrationAvailable bool
-	RegistrationPrice     int
-	RegistrationPeriod    int
-	TransferAvailable     bool
-	DnsAvailable          bool
-}
-
-type DNSRecord struct {
-	ID         string
-	Name       string
-	FQDN       string
-	IsApex     bool
-	IsWildcard bool
-	IsSystem   bool
-	TTL        int
-	Type       string
-	RData      string
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
-}
-
-type ImportDnsChange struct {
-	Action  string
-	OldText string
-	NewText string
-}
-
-type ImportDnsWarning struct {
-	Action     string
-	Attributes struct {
-		Name  string
-		Type  string
-		TTL   int
-		Rdata string
-	}
-	Message string
 }
 
 type WireGuardPeer struct {
