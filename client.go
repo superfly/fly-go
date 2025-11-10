@@ -144,8 +144,10 @@ func NewClientFromOptions(opts ClientOptions) *Client {
 	url := fmt.Sprintf("%s/graphql", opts.BaseURL)
 	client := graphql.NewClient(url, graphql.WithHTTPClient(httpClient))
 	genqClient := genq.NewClient(url, httpClient)
-
-	return &Client{httpClient, client, genqClient, opts.tokens(), opts.Logger}
+	tracingGenqClient := &tracingGenqlientClient{
+		client: genqClient,
+	}
+	return &Client{httpClient, client, tracingGenqClient, opts.tokens(), opts.Logger}
 }
 
 // NewRequest - creates a new GraphQL request
@@ -306,4 +308,31 @@ func (t *Transport) addAuthorization(req *http.Request) {
 		hdr = t.tokens().GraphQLHeader()
 	}
 	req.Header.Set("Authorization", hdr)
+}
+
+// tracingGenqlientClient wraps a genqlient client to add OTEL tracing with operation names
+type tracingGenqlientClient struct {
+	client genq.Client
+}
+
+func (c *tracingGenqlientClient) MakeRequest(ctx context.Context, req *genq.Request, resp *genq.Response) error {
+	tracer := otel.GetTracerProvider().Tracer("github.com/superfly/fly-go")
+
+	// Create span name based on operation name if available, otherwise use generic name
+	spanName := "graphql.request"
+	if req.OpName != "" {
+		spanName = fmt.Sprintf("graphql.%s", req.OpName)
+	}
+
+	ctx, span := tracer.Start(ctx, spanName)
+	defer span.End()
+
+	if instrumenter != nil {
+		start := time.Now()
+		defer func() {
+			instrumenter.ReportCallTiming(time.Since(start))
+		}()
+	}
+
+	return c.client.MakeRequest(ctx, req, resp)
 }
