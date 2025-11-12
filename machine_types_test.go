@@ -283,6 +283,8 @@ func TestMachinePersistRootfsUnmarshalJSON(t *testing.T) {
 	}
 	cases := []testcase{
 		{`null`, MachinePersistRootfsNone},
+		{`""`, MachinePersistRootfsNone},
+		{`"none"`, MachinePersistRootfsNone},
 		{`"never"`, MachinePersistRootfsNever},
 		{`"restart"`, MachinePersistRootfsRestart},
 		{`"always"`, MachinePersistRootfsAlways},
