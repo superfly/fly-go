@@ -206,42 +206,49 @@ func TestMachineMostRecentStartTimeAfterLaunch(t *testing.T) {
 	cases := []testcase{
 		{name: "nil machine", machine: nil, expectedErr: true},
 		{name: "no events", machine: &Machine{}, expectedErr: true},
-		{name: "launch only event", expectedErr: true,
+		{
+			name: "launch only event", expectedErr: true,
 			machine: &Machine{Events: []*MachineEvent{
 				{Type: "launch", Timestamp: time01.UnixMilli()},
 			}},
 		},
-		{name: "start only event", expectedErr: true,
+		{
+			name: "start only event", expectedErr: true,
 			machine: &Machine{Events: []*MachineEvent{
 				{Type: "start", Timestamp: time01.UnixMilli()},
 			}},
 		},
-		{name: "launch after start", expectedErr: true,
+		{
+			name: "launch after start", expectedErr: true,
 			machine: &Machine{Events: []*MachineEvent{
 				{Type: "launch", Timestamp: time05.UnixMilli()},
 				{Type: "start", Timestamp: time01.UnixMilli()},
 			}},
 		},
-		{name: "exit after start", expectedErr: true,
+		{
+			name: "exit after start", expectedErr: true,
 			machine: &Machine{Events: []*MachineEvent{
 				{Type: "exit", Timestamp: time05.UnixMilli()},
 				{Type: "start", Timestamp: time01.UnixMilli()},
 			}},
 		},
-		{name: "launch, start", expected: time17,
+		{
+			name: "launch, start", expected: time17,
 			machine: &Machine{Events: []*MachineEvent{
 				{Type: "start", Timestamp: time17.UnixMilli()},
 				{Type: "launch", Timestamp: time05.UnixMilli()},
 			}},
 		},
-		{name: "exit, launch, start", expected: time17,
+		{
+			name: "exit, launch, start", expected: time17,
 			machine: &Machine{Events: []*MachineEvent{
 				{Type: "start", Timestamp: time17.UnixMilli()},
 				{Type: "launch", Timestamp: time05.UnixMilli()},
 				{Type: "exit", Timestamp: time01.UnixMilli()},
 			}},
 		},
-		{name: "exit, launch, start, exit", expectedErr: true,
+		{
+			name: "exit, launch, start, exit", expectedErr: true,
 			machine: &Machine{Events: []*MachineEvent{
 				{Type: "exit", Timestamp: time99.UnixMilli()},
 				{Type: "start", Timestamp: time17.UnixMilli()},
@@ -265,6 +272,31 @@ func TestMachineMostRecentStartTimeAfterLaunch(t *testing.T) {
 					t.Error(testCase.name, "expected", testCase.expected, "got", actual)
 				}
 			}
+		}
+	}
+}
+
+func TestMachinePersistRootfsUnmarshalJSON(t *testing.T) {
+	type testcase struct {
+		input  string
+		output MachinePersistRootfs
+	}
+	cases := []testcase{
+		{`null`, MachinePersistRootfsNone},
+		{`"never"`, MachinePersistRootfsNever},
+		{`"restart"`, MachinePersistRootfsRestart},
+		{`"always"`, MachinePersistRootfsAlways},
+		{`0`, MachinePersistRootfsNone},
+		{`1`, MachinePersistRootfsNever},
+		{`2`, MachinePersistRootfsRestart},
+		{`3`, MachinePersistRootfsAlways},
+	}
+	for _, testCase := range cases {
+		var s MachinePersistRootfs
+		if err := json.Unmarshal([]byte(testCase.input), &s); err != nil {
+			t.Errorf("input %s: unexpected error: %v", testCase.input, err)
+		} else if s != testCase.output {
+			t.Errorf("input %s: expected %v, got %v", testCase.input, testCase.output, s)
 		}
 	}
 }

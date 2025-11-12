@@ -364,10 +364,55 @@ var (
 type MachinePersistRootfs string
 
 var (
+	MachinePersistRootfsNone    MachinePersistRootfs = ""
 	MachinePersistRootfsNever   MachinePersistRootfs = "never"
-	MachinePersistRootfsAlways  MachinePersistRootfs = "always"
 	MachinePersistRootfsRestart MachinePersistRootfs = "restart"
+	MachinePersistRootfsAlways  MachinePersistRootfs = "always"
 )
+
+func (mpr *MachinePersistRootfs) UnmarshalJSON(raw []byte) error {
+	if bytes.Equal(raw, []byte("null")) {
+		return nil
+	}
+
+	var asString string
+	err := json.Unmarshal(raw, &asString)
+	if err == nil {
+		switch asString {
+		case "", "none":
+			*mpr = MachinePersistRootfsNone
+		case "never":
+			*mpr = MachinePersistRootfsNever
+		case "restart":
+			*mpr = MachinePersistRootfsRestart
+		case "always":
+			*mpr = MachinePersistRootfsAlways
+		default:
+			return fmt.Errorf("invalid persist_rootfs string value \"%s\"", asString)
+		}
+		return nil
+	}
+
+	parentErr := err
+
+	// Attempt protobuf integer based enums
+	var asInt int
+	switch err := json.Unmarshal(raw, &asInt); {
+	case err != nil:
+		return parentErr
+	case asInt == 0:
+		*mpr = MachinePersistRootfsNone
+	case asInt == 1:
+		*mpr = MachinePersistRootfsNever
+	case asInt == 2:
+		*mpr = MachinePersistRootfsRestart
+	case asInt == 3:
+		*mpr = MachinePersistRootfsAlways
+	default:
+		return fmt.Errorf("invalid persist_rootfs int value %d", asInt)
+	}
+	return nil
+}
 
 // @description The Machine restart policy defines whether and how flyd restarts a Machine after its main process exits. See https://fly.io/docs/machines/guides-examples/machine-restart-policy/.
 type MachineRestart struct {
