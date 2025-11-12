@@ -56,8 +56,14 @@ func (f *Client) GetApp(ctx context.Context, name string) (app *App, err error) 
 	return
 }
 
-func (f *Client) ListApps(ctx context.Context, org_slug string) (app []App, err error) {
-	err = f._sendRequest(ctx, http.MethodGet, "/apps?org_slug="+url.PathEscape(org_slug), nil, &app, nil)
+func (f *Client) ListApps(ctx context.Context, org_slug string) (apps []App, err error) {
+	var res struct {
+		Apps []App `json:"apps"`
+	}
+	err = f._sendRequest(ctx, http.MethodGet, "/apps?org_slug="+url.PathEscape(org_slug), nil, &res, nil)
+	if err == nil {
+		apps = res.Apps
+	}
 	return
 }
 
