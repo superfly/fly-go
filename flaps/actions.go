@@ -8,6 +8,7 @@ type flapsAction int
 const (
 	none flapsAction = iota
 	appCreate
+	appGet
 	machineLaunch
 	machineUpdate
 	machineStart
@@ -32,6 +33,9 @@ const (
 	appSecretSet
 	appSecretDelete
 	appSecretUpdate
+	ipAssignmentList
+	ipAssignmentCreate
+	ipAssignmentDelete
 	secretkeysList
 	secretkeyGet
 	secretkeySet

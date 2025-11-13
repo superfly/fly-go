@@ -12,10 +12,8 @@ import (
 	"net/url"
 	"os"
 	"regexp"
-	"slices"
 	"strings"
 
-	"github.com/cenkalti/backoff/v4"
 	fly "github.com/superfly/fly-go"
 	"github.com/superfly/fly-go/internal/tracing"
 	"github.com/superfly/fly-go/tokens"
@@ -40,7 +38,7 @@ type NewClientOpts struct {
 	AppName string
 
 	// optional, avoids API roundtrip when connecting to flaps by wireguard:
-	AppCompact *fly.AppCompact
+	AppData *App
 
 	// optional, sent with requests
 	UserAgent string
@@ -137,34 +135,6 @@ func newWithUsermodeWireguard(params wireguardConnectionParams, logger fly.Logge
 		httpClient: httpClient,
 		userAgent:  params.userAgent,
 	}, nil
-}
-
-func (f *Client) CreateApp(ctx context.Context, name string, org string) (err error) {
-	in := map[string]interface{}{
-		"app_name": name,
-		"org_slug": org,
-	}
-
-	ctx = contextWithAction(ctx, appCreate)
-
-	err = f._sendRequest(ctx, http.MethodPost, "/apps", in, nil, nil)
-	return
-}
-
-func (f *Client) WaitForApp(ctx context.Context, name string) error {
-	ctx = contextWithAction(ctx, machineGet)
-
-	var op = func() error {
-		err := f._sendRequest(ctx, http.MethodGet, "/apps/"+url.PathEscape(name), nil, nil, nil)
-		if err == nil {
-			return nil
-		}
-		if ferr, ok := err.(*FlapsError); ok && slices.Contains([]int{404, 401}, ferr.ResponseStatusCode) {
-			return err
-		}
-		return backoff.Permanent(err)
-	}
-	return Retry(ctx, op)
 }
 
 var snakeCasePattern = regexp.MustCompile("[A-Z]")
@@ -275,12 +245,18 @@ func (f *Client) NewRequest(ctx context.Context, method, path string, in interfa
 		return nil, fmt.Errorf("could not create new request, %w", err)
 	}
 	req.Header = headers
-	req.Header.Add("Authorization", f.tokens.FlapsHeader())
+	if f.tokens != nil {
+		req.Header.Add("Authorization", f.tokens.FlapsHeader())
+	}
 
 	return req, nil
 }
 
 func (f *Client) getCaveatNames() ([]string, error) {
+	if f.tokens == nil {
+		return []string{}, nil
+	}
+
 	tok := f.tokens.MacaroonsOnly().All()
 	raws, err := macaroon.Parse(tok)
 	if err != nil {
