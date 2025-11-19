@@ -5,6 +5,9 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"slices"
+
+	"github.com/cenkalti/backoff/v4"
 )
 
 type CreateAppRequest struct {
@@ -86,4 +89,20 @@ func (f *Client) AppNameAvailable(ctx context.Context, name string) (ok bool, er
 		err = nil
 	}
 	return
+}
+
+func (f *Client) WaitForApp(ctx context.Context, name string) error {
+	ctx = contextWithAction(ctx, appGet)
+
+	var op = func() error {
+		err := f._sendRequest(ctx, http.MethodGet, "/apps/"+url.PathEscape(name), nil, nil, nil)
+		if err == nil {
+			return nil
+		}
+		if ferr, ok := err.(*FlapsError); ok && slices.Contains([]int{404, 401}, ferr.ResponseStatusCode) {
+			return err
+		}
+		return backoff.Permanent(err)
+	}
+	return Retry(ctx, op)
 }
