@@ -24,8 +24,9 @@ func (f *Client) CreateApp(ctx context.Context, in CreateAppRequest) (app *App, 
 }
 
 type AppOrganizationInfo struct {
-	Name string `json:"name"`
-	Slug string `json:"slug"`
+	Name              string `json:"name"`
+	Slug              string `json:"slug"`
+	InternalNumericID int32  `json:"internal_numeric_id"`
 }
 
 type App struct {
