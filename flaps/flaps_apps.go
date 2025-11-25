@@ -60,11 +60,24 @@ func (f *Client) GetApp(ctx context.Context, name string) (app *App, err error) 
 	return
 }
 
-func (f *Client) ListApps(ctx context.Context, org_slug string) (apps []App, err error) {
+type ListAppsRequest struct {
+	OrgSlug string
+	// AppRole is optional
+	AppRole string
+}
+
+func (f *Client) ListApps(ctx context.Context, req ListAppsRequest) (apps []App, err error) {
 	var res struct {
 		Apps []App `json:"apps"`
 	}
-	err = f._sendRequest(ctx, http.MethodGet, "/apps?org_slug="+url.PathEscape(org_slug), nil, &res, nil)
+
+	query := url.Values{}
+	query.Set("org_slug", req.OrgSlug)
+	if req.AppRole != "" {
+		query.Set("app_role", req.AppRole)
+	}
+
+	err = f._sendRequest(ctx, http.MethodGet, "/apps?"+query.Encode(), nil, &res, nil)
 	if err == nil {
 		apps = res.Apps
 	}
