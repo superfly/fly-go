@@ -25,7 +25,6 @@ import (
 const headerFlyRequestId = "fly-request-id"
 
 type Client struct {
-	appName    string
 	baseUrl    *url.URL
 	tokens     *tokens.Tokens
 	httpClient *http.Client
@@ -33,9 +32,6 @@ type Client struct {
 }
 
 type NewClientOpts struct {
-	// required:
-	AppName string
-
 	// optional, sent with requests
 	UserAgent string
 
@@ -79,7 +75,6 @@ func NewWithOptions(ctx context.Context, opts NewClientOpts) (*Client, error) {
 	}
 
 	return &Client{
-		appName:    opts.AppName,
 		baseUrl:    flapsUrl,
 		tokens:     opts.Tokens,
 		httpClient: httpClient,
