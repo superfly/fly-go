@@ -151,6 +151,7 @@ func (c *Client) GetEgressIPAddresses(ctx context.Context, appName string) (map[
 								ip
 								version
 								region
+								updatedAt
 							}
 						}
 					}
@@ -219,6 +220,89 @@ func (c *Client) ReleaseIPAddress(ctx context.Context, appName string, ip string
 	req := c.NewRequest(query)
 	ctx = ctxWithAction(ctx, "release_ip_address")
 	req.Var("input", ReleaseIPAddressInput{AppID: &appName, IP: &ip})
+
+	_, err := c.RunWithContext(ctx, req)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *Client) GetAppScopedEgressIPAddresses(ctx context.Context, appName string) (map[string][]EgressIPAddress, error) {
+	query := `
+		query ($appName: String!) {
+			app(name: $appName) {
+				egressIpAddresses {
+					nodes {
+						id
+						ip
+						version
+						region
+						updatedAt
+					}
+				}
+			}
+		}
+	`
+
+	req := c.NewRequest(query)
+	ctx = ctxWithAction(ctx, "get_app_scoped_egress_ip_addresses")
+	req.Var("appName", appName)
+
+	data, err := c.RunWithContext(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	ret := make(map[string][]EgressIPAddress)
+	for _, ip := range data.App.EgressIpAddresses.Nodes {
+		if _, ok := ret[ip.Region]; !ok {
+			ret[ip.Region] = make([]EgressIPAddress, 0)
+		}
+
+		ret[ip.Region] = append(ret[ip.Region], *ip)
+	}
+
+	return ret, nil
+}
+
+func (c *Client) AllocateAppScopedEgressIPAddress(ctx context.Context, appName string, region string) (net.IP, net.IP, error) {
+	query := `
+		mutation($input: AllocateEgressIPAddressInput!) {
+			allocateEgressIpAddress(input: $input) {
+				v4,
+				v6
+			}
+		}
+	`
+
+	req := c.NewRequest(query)
+	ctx = ctxWithAction(ctx, "allocate_app_scoped_egress_ip_address")
+	req.Var("input", AllocateEgressIPAddressInput{AppID: appName, Region: region})
+
+	data, err := c.RunWithContext(ctx, req)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return net.ParseIP(data.AllocateEgressIPAddress.V4), net.ParseIP(data.AllocateEgressIPAddress.V6), nil
+}
+
+func (c *Client) ReleaseAppScopedEgressIPAddress(ctx context.Context, appName, ip string) error {
+	query := `
+		mutation($input: ReleaseEgressIPAddressInput!) {
+			releaseEgressIpAddress(input: $input) {
+				v4
+				v6
+				clientMutationId
+			}
+		}
+	`
+
+	req := c.NewRequest(query)
+	ctx = ctxWithAction(ctx, "release_app_scoped_egress_ip_address")
+	req.Var("input", ReleaseEgressIPAddressInput{AppID: appName, IP: ip})
 
 	_, err := c.RunWithContext(ctx, req)
 	if err != nil {
