@@ -245,6 +245,9 @@ type App struct {
 	IPAddresses struct {
 		Nodes []IPAddress
 	}
+	EgressIpAddresses struct {
+		Nodes []*EgressIPAddress
+	}
 	SharedIPAddress string
 	CNAMETarget     string
 	IPAddress       *IPAddress
@@ -482,10 +485,11 @@ type IPAddress struct {
 }
 
 type EgressIPAddress struct {
-	ID      string
-	IP      string
-	Version int
-	Region  string
+	ID        string
+	IP        string
+	Version   int
+	Region    string
+	UpdatedAt time.Time
 }
 
 type VMSize struct {
@@ -698,11 +702,17 @@ type AllocateIPAddressInput struct {
 type AllocateEgressIPAddressInput struct {
 	AppID     string `json:"appId"`
 	MachineID string `json:"machineId"`
+	// If set, allocates an app-scoped egress IP in the region
+	// Note that region cannot be set simultaneously with machine ID
+	Region string `json:"region"`
 }
 
 type ReleaseEgressIPAddressInput struct {
 	AppID     string `json:"appId"`
 	MachineID string `json:"machineId"`
+	// If set, releases the specified app-scoped egress IP
+	// Note that this cannot be set simultaneously with machine ID
+	IP string `json:"ip"`
 }
 
 type ReleaseIPAddressInput struct {
