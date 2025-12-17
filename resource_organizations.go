@@ -469,3 +469,92 @@ func (client *Client) GetOrganizationByApp(ctx context.Context, appName string) 
 
 	return &data.App.Organization, nil
 }
+
+func (client *Client) GetAllowedReplaySourceOrgSlugs(ctx context.Context, slug string) ([]string, error) {
+	q := `
+		query($slug: String!) {
+			organization(slug: $slug) {
+				allowedReplaySourceOrgSlugs
+			}
+		}
+	`
+
+	req := client.NewRequest(q)
+	req.Var("slug", slug)
+	ctx = ctxWithAction(ctx, "get_allowed_replay_source_org_slugs")
+
+	data, err := client.RunWithContext(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	if data.Organization == nil {
+		return nil, nil
+	}
+
+	return data.Organization.AllowedReplaySourceOrgSlugs, nil
+}
+
+func (client *Client) AddAllowedReplaySourceOrgs(ctx context.Context, orgSlug string, sourceOrgSlugs []string) (*Organization, error) {
+	q := `
+		mutation($input: AddAllowedReplaySourceOrgsInput!) {
+			addAllowedReplaySourceOrgs(input: $input) {
+				organization {
+					id
+					slug
+					name
+				}
+			}
+		}
+	`
+
+	if sourceOrgSlugs == nil {
+		sourceOrgSlugs = []string{}
+	}
+
+	req := client.NewRequest(q)
+	req.Var("input", map[string]interface{}{
+		"organizationSlug": orgSlug,
+		"allowedOrgSlugs":  sourceOrgSlugs,
+	})
+	ctx = ctxWithAction(ctx, "add_allowed_replay_source_orgs")
+
+	data, err := client.RunWithContext(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	return &data.AddAllowedReplaySourceOrgs.Organization, nil
+}
+
+func (client *Client) RemoveAllowedReplaySourceOrgs(ctx context.Context, orgSlug string, orgSlugsToRemove []string) (*Organization, error) {
+	q := `
+		mutation($input: RemoveAllowedReplaySourceOrgsInput!) {
+			removeAllowedReplaySourceOrgs(input: $input) {
+				organization {
+					id
+					slug
+					name
+				}
+			}
+		}
+	`
+
+	if orgSlugsToRemove == nil {
+		orgSlugsToRemove = []string{}
+	}
+
+	req := client.NewRequest(q)
+	req.Var("input", map[string]interface{}{
+		"organizationSlug":  orgSlug,
+		"orgSlugsToRemove": orgSlugsToRemove,
+	})
+	ctx = ctxWithAction(ctx, "remove_allowed_replay_source_orgs")
+
+	data, err := client.RunWithContext(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	return &data.RemoveAllowedReplaySourceOrgs.Organization, nil
+}
