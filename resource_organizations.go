@@ -546,7 +546,7 @@ func (client *Client) RemoveAllowedReplaySourceOrgs(ctx context.Context, orgSlug
 
 	req := client.NewRequest(q)
 	req.Var("input", map[string]interface{}{
-		"organizationSlug":  orgSlug,
+		"organizationSlug": orgSlug,
 		"orgSlugsToRemove": orgSlugsToRemove,
 	})
 	ctx = ctxWithAction(ctx, "remove_allowed_replay_source_orgs")
