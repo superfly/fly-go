@@ -143,6 +143,9 @@ type Query struct {
 	CanPerformBluegreenDeployment bool
 	AppNameAvailable              bool
 
+	AddAllowedReplaySourceOrgs    AddAllowedReplaySourceOrgsPayload
+	RemoveAllowedReplaySourceOrgs RemoveAllowedReplaySourceOrgsPayload
+
 	LockApp *LockApp
 }
 
@@ -370,6 +373,8 @@ type Organization struct {
 	PaidPlan           bool
 	Billable           bool
 	Settings           map[string]any
+
+	AllowedReplaySourceOrgSlugs []string
 
 	WireGuardPeer *WireGuardPeer
 
@@ -674,6 +679,14 @@ type CreateOrganizationPayload struct {
 
 type DeleteOrganizationPayload struct {
 	DeletedOrganizationId string
+}
+
+type AddAllowedReplaySourceOrgsPayload struct {
+	Organization Organization
+}
+
+type RemoveAllowedReplaySourceOrgsPayload struct {
+	Organization Organization
 }
 
 type HostnameCheck struct {
