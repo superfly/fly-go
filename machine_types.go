@@ -532,12 +532,17 @@ var MachinePresets map[string]*MachineGuest = map[string]*MachineGuest{
 	"shared-cpu-1x": {CPUKind: "shared", CPUs: 1, MemoryMB: 1 * MIN_MEMORY_MB_PER_SHARED_CPU},
 	"shared-cpu-2x": {CPUKind: "shared", CPUs: 2, MemoryMB: 2 * MIN_MEMORY_MB_PER_SHARED_CPU},
 	"shared-cpu-4x": {CPUKind: "shared", CPUs: 4, MemoryMB: 4 * MIN_MEMORY_MB_PER_SHARED_CPU},
+	"shared-cpu-6x": {CPUKind: "shared", CPUs: 6, MemoryMB: 6 * MIN_MEMORY_MB_PER_SHARED_CPU},
 	"shared-cpu-8x": {CPUKind: "shared", CPUs: 8, MemoryMB: 8 * MIN_MEMORY_MB_PER_SHARED_CPU},
 
 	"performance-1x":  {CPUKind: "performance", CPUs: 1, MemoryMB: 1 * MIN_MEMORY_MB_PER_CPU},
 	"performance-2x":  {CPUKind: "performance", CPUs: 2, MemoryMB: 2 * MIN_MEMORY_MB_PER_CPU},
 	"performance-4x":  {CPUKind: "performance", CPUs: 4, MemoryMB: 4 * MIN_MEMORY_MB_PER_CPU},
+	"performance-6x":  {CPUKind: "performance", CPUs: 6, MemoryMB: 6 * MIN_MEMORY_MB_PER_CPU},
 	"performance-8x":  {CPUKind: "performance", CPUs: 8, MemoryMB: 8 * MIN_MEMORY_MB_PER_CPU},
+	"performance-10x": {CPUKind: "performance", CPUs: 10, MemoryMB: 10 * MIN_MEMORY_MB_PER_CPU},
+	"performance-12x": {CPUKind: "performance", CPUs: 12, MemoryMB: 12 * MIN_MEMORY_MB_PER_CPU},
+	"performance-14x": {CPUKind: "performance", CPUs: 14, MemoryMB: 14 * MIN_MEMORY_MB_PER_CPU},
 	"performance-16x": {CPUKind: "performance", CPUs: 16, MemoryMB: 16 * MIN_MEMORY_MB_PER_CPU},
 
 	"a100-40gb": {GPUKind: "a100-pcie-40gb", GPUs: 1, CPUKind: "performance", CPUs: 8, MemoryMB: 16 * MIN_MEMORY_MB_PER_CPU},
