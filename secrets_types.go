@@ -12,9 +12,11 @@ const (
 )
 
 type AppSecret struct {
-	Name   string  `json:"name"`
-	Value  *string `json:"value,omitempty"`
-	Digest string  `json:"digest,omitempty"`
+	Name      string  `json:"name"`
+	Value     *string `json:"value,omitempty"`
+	Digest    string  `json:"digest,omitempty"`
+	UpdatedAt *string `json:"updated_at,omitempty"`
+	CreatedAt *string `json:"created_at,omitempty"`
 }
 
 type ListAppSecretsResp struct {
