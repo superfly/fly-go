@@ -495,3 +495,18 @@ func (f *Client) Suspend(ctx context.Context, appName, machineID, nonce string) 
 
 	return nil
 }
+
+func (f *Client) GetLogs(ctx context.Context, machineID string) ([]fly.AppLogEntry, error) {
+	ctx = contextWithAction(ctx, logsGet)
+	endpoint := "/apps/" + f.appName
+	if machineID != "" {
+		endpoint += "/machines/" + machineID
+		ctx = contextWithMachineID(ctx, machineID)
+	}
+	endpoint += "/logs"
+	var entries []fly.AppLogEntry
+	if err := f._sendRequest(ctx, http.MethodGet, endpoint, nil, &entries, nil); err != nil {
+		return nil, fmt.Errorf("failed to get %s: %w", endpoint, err)
+	}
+	return entries, nil
+}

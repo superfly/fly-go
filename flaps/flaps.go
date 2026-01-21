@@ -10,10 +10,12 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"reflect"
 	"regexp"
 	"strings"
 
 	fly "github.com/superfly/fly-go"
+	"github.com/superfly/fly-go/internal/ndjson"
 	"github.com/superfly/fly-go/internal/tracing"
 	"github.com/superfly/fly-go/tokens"
 	"github.com/superfly/macaroon"
@@ -148,6 +150,10 @@ func (f *Client) _sendRequest(ctx context.Context, method, endpoint string, in, 
 		}
 	}
 	if out != nil {
+		t := reflect.TypeOf(out)
+		if t.Kind() == reflect.Pointer && t.Elem().Kind() == reflect.Slice {
+			resp.Body = ndjson.Wrap(resp.Body)
+		}
 		if err := json.NewDecoder(resp.Body).Decode(out); err != nil {
 			return fmt.Errorf("failed decoding response: %w", err)
 		}
