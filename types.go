@@ -634,6 +634,7 @@ type PostDeploymentInfo struct {
 	Error         string `json:"error"`
 }
 type ReleaseMetadata struct {
+	ManifestID         *string            `json:"manifest_id,omitempty"`
 	PostDeploymentInfo PostDeploymentInfo `json:"post_deployment_info,omitempty"`
 }
 
