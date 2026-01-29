@@ -1,6 +1,7 @@
 package fly
 
 const (
+	SECRETKEY_TYPE_ES256          = "es256"
 	SECRETKEY_TYPE_HS256          = "hs256"
 	SECRETKEY_TYPE_HS384          = "hs384"
 	SECRETKEY_TYPE_HS512          = "hs512"
