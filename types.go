@@ -704,6 +704,106 @@ type DeleteCertificatePayload struct {
 	Certificate AppCertificate
 }
 
+type CreateCertificateRequest struct {
+	Hostname string `json:"hostname"`
+}
+
+type ImportCertificateRequest struct {
+	Hostname   string `json:"hostname"`
+	Fullchain  string `json:"fullchain"`
+	PrivateKey string `json:"private_key"`
+}
+
+type ListCertificatesResponse struct {
+	Certificates []CertificateSummary `json:"certificates"`
+}
+
+type CertificateSummary struct {
+	Hostname               string    `json:"hostname"`
+	Status                 string    `json:"status"`
+	DNSProvider            string    `json:"dns_provider,omitempty"`
+	AcmeDNSConfigured      bool      `json:"acme_dns_configured"`
+	AcmeALPNConfigured     bool      `json:"acme_alpn_configured"`
+	AcmeHTTPConfigured     bool      `json:"acme_http_configured"`
+	OwnershipTxtConfigured bool      `json:"ownership_txt_configured"`
+	Configured             bool      `json:"configured"`
+	AcmeRequested          bool      `json:"acme_requested"`
+	HasCustomCertificate   bool      `json:"has_custom_certificate"`
+	HasFlyCertificate      bool      `json:"has_fly_certificate"`
+	CreatedAt              time.Time `json:"created_at"`
+	UpdatedAt              time.Time `json:"updated_at"`
+}
+
+type CertificateValidation struct {
+	DNSConfigured          bool `json:"dns_configured"`
+	ALPNConfigured         bool `json:"alpn_configured"`
+	HTTPConfigured         bool `json:"http_configured"`
+	OwnershipTxtConfigured bool `json:"ownership_txt_configured"`
+}
+
+type ACMEChallengeRequirement struct {
+	Name   string `json:"name"`
+	Target string `json:"target"`
+}
+
+type OwnershipRequirement struct {
+	Name     string `json:"name"`
+	AppValue string `json:"app_value"`
+	OrgValue string `json:"org_value"`
+}
+
+type DNSRequirements struct {
+	A             []string                 `json:"a"`
+	AAAA          []string                 `json:"aaaa"`
+	CNAME         string                   `json:"cname"`
+	ACMEChallenge ACMEChallengeRequirement `json:"acme_challenge"`
+	Ownership     OwnershipRequirement     `json:"ownership"`
+}
+
+type DNSRecords struct {
+	A                  []string `json:"a"`
+	AAAA               []string `json:"aaaa"`
+	CNAME              []string `json:"cname"`
+	ResolvedAddresses  []string `json:"resolved_addresses"`
+	SOA                *string  `json:"soa"`
+	ACMEChallengeCNAME *string  `json:"acme_challenge_cname"`
+	OwnershipTXT       *string  `json:"ownership_txt"`
+}
+
+type CertificateDetailResponse struct {
+	Hostname         string                `json:"hostname"`
+	Configured       bool                  `json:"configured"`
+	AcmeRequested    bool                  `json:"acme_requested"`
+	Status           string                `json:"status"`
+	DNSProvider      string                `json:"dns_provider,omitempty"`
+	RateLimitedUntil *time.Time            `json:"rate_limited_until,omitempty"`
+	Certificates     []CertificateDetail   `json:"certificates"`
+	Validation       CertificateValidation `json:"validation"`
+	DNSRequirements  DNSRequirements       `json:"dns_requirements"`
+	DNSRecords       *DNSRecords           `json:"dns_records,omitempty"`
+	ValidationErrors []ValidationError     `json:"validation_errors,omitempty"`
+}
+
+type CertificateDetail struct {
+	Source    string           `json:"source"`
+	Status    string           `json:"status"`
+	ExpiresAt *time.Time       `json:"expires_at,omitempty"`
+	Issued    []IssuedCertInfo `json:"issued"`
+}
+
+type IssuedCertInfo struct {
+	Type                 string    `json:"type"`
+	ExpiresAt            time.Time `json:"expires_at"`
+	CertificateAuthority string    `json:"certificate_authority,omitempty"`
+}
+
+type ValidationError struct {
+	Code        *string   `json:"code"`
+	Message     string    `json:"message"`
+	Remediation string    `json:"remediation,omitempty"`
+	Timestamp   time.Time `json:"timestamp"`
+}
+
 type AllocateIPAddressInput struct {
 	AppID          string `json:"appId"`
 	Type           string `json:"type"`
