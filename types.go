@@ -788,6 +788,7 @@ type CertificateDetail struct {
 	Source    string           `json:"source"`
 	Status    string           `json:"status"`
 	ExpiresAt *time.Time       `json:"expires_at,omitempty"`
+	Issuer    string           `json:"issuer,omitempty"`
 	Issued    []IssuedCertInfo `json:"issued"`
 }
 
