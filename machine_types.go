@@ -414,6 +414,11 @@ func (mpr *MachinePersistRootfs) UnmarshalJSON(raw []byte) error {
 	return nil
 }
 
+type MachineRootfs struct {
+	Persist MachinePersistRootfs `toml:"persist,omitempty" json:"persist,omitempty" enums:"never,always,restart"`
+	SizeGB  uint64               `toml:"size_gb,omitempty" json:"size_gb,omitempty"`
+}
+
 // @description The Machine restart policy defines whether and how flyd restarts a Machine after its main process exits. See https://fly.io/docs/machines/guides-examples/machine-restart-policy/.
 type MachineRestart struct {
 	// * no - Never try to restart a Machine automatically when its main process exits, whether that’s on purpose or on a crash.
@@ -439,13 +444,14 @@ type MachineMount struct {
 }
 
 type MachineGuest struct {
-	CPUKind          string               `toml:"cpu_kind,omitempty" json:"cpu_kind,omitempty"`
-	CPUs             int                  `toml:"cpus,omitempty" json:"cpus,omitempty"`
-	MemoryMB         int                  `toml:"memory_mb,omitempty" json:"memory_mb,omitempty"`
-	GPUs             int                  `toml:"gpus,omitempty" json:"gpus,omitempty"`
-	GPUKind          string               `toml:"gpu_kind,omitempty" json:"gpu_kind,omitempty"`
-	HostDedicationID string               `toml:"host_dedication_id,omitempty" json:"host_dedication_id,omitempty"`
-	PersistRootfs    MachinePersistRootfs `toml:"persist_rootfs,omitempty" json:"persist_rootfs,omitempty" enums:"never,always,restart"`
+	CPUKind          string `toml:"cpu_kind,omitempty" json:"cpu_kind,omitempty"`
+	CPUs             int    `toml:"cpus,omitempty" json:"cpus,omitempty"`
+	MemoryMB         int    `toml:"memory_mb,omitempty" json:"memory_mb,omitempty"`
+	GPUs             int    `toml:"gpus,omitempty" json:"gpus,omitempty"`
+	GPUKind          string `toml:"gpu_kind,omitempty" json:"gpu_kind,omitempty"`
+	HostDedicationID string `toml:"host_dedication_id,omitempty" json:"host_dedication_id,omitempty"`
+	// Deprecated: use MachineConfig.Rootfs instead
+	PersistRootfs MachinePersistRootfs `toml:"persist_rootfs,omitempty" json:"persist_rootfs,omitempty" enums:"never,always,restart"`
 
 	KernelArgs []string `toml:"kernel_args,omitempty" json:"kernel_args,omitempty"`
 }
@@ -803,6 +809,8 @@ type MachineConfig struct {
 	// Volumes describe the set of volumes that can be attached to the machine. Used in conjuction
 	// with containers
 	Volumes []*VolumeConfig `toml:"volumes,omitempty" json:"volumes,omitempty"`
+
+	Rootfs *MachineRootfs `toml:"rootfs,omitempty" json:"rootfs,omitempty"`
 
 	// Deprecated: use Guest instead
 	VMSize string `toml:"size,omitempty" json:"size,omitempty"`

@@ -303,6 +303,77 @@ func TestMachinePersistRootfsUnmarshalJSON(t *testing.T) {
 	}
 }
 
+func TestMachineRootfsJSON(t *testing.T) {
+	t.Run("marshal", func(t *testing.T) {
+		cases := []struct {
+			name   string
+			input  MachineConfig
+			output string
+		}{
+			{
+				name:   "rootfs with persist and size",
+				input:  MachineConfig{Rootfs: &MachineRootfs{Persist: MachinePersistRootfsAlways, SizeGB: 10}},
+				output: `{"init":{},"rootfs":{"persist":"always","size_gb":10}}`,
+			},
+			{
+				name:   "rootfs with persist only",
+				input:  MachineConfig{Rootfs: &MachineRootfs{Persist: MachinePersistRootfsRestart}},
+				output: `{"init":{},"rootfs":{"persist":"restart"}}`,
+			},
+			{
+				name:   "nil rootfs omitted",
+				input:  MachineConfig{},
+				output: `{"init":{}}`,
+			},
+		}
+		for _, tc := range cases {
+			b, err := json.Marshal(tc.input)
+			if err != nil {
+				t.Errorf("%s: unexpected error: %v", tc.name, err)
+			} else if string(b) != tc.output {
+				t.Errorf("%s: got %s, want %s", tc.name, string(b), tc.output)
+			}
+		}
+	})
+
+	t.Run("unmarshal", func(t *testing.T) {
+		cases := []struct {
+			name    string
+			input   string
+			persist MachinePersistRootfs
+			sizeGB  uint64
+		}{
+			{"persist and size", `{"rootfs":{"persist":"always","size_gb":10}}`, MachinePersistRootfsAlways, 10},
+			{"persist only", `{"rootfs":{"persist":"restart"}}`, MachinePersistRootfsRestart, 0},
+			{"size only", `{"rootfs":{"size_gb":5}}`, MachinePersistRootfsNone, 5},
+			{"no rootfs", `{}`, MachinePersistRootfsNone, 0},
+		}
+		for _, tc := range cases {
+			var mc MachineConfig
+			if err := json.Unmarshal([]byte(tc.input), &mc); err != nil {
+				t.Errorf("%s: unexpected error: %v", tc.name, err)
+				continue
+			}
+			if tc.persist == MachinePersistRootfsNone && tc.sizeGB == 0 {
+				if mc.Rootfs != nil {
+					t.Errorf("%s: expected nil rootfs, got %+v", tc.name, mc.Rootfs)
+				}
+				continue
+			}
+			if mc.Rootfs == nil {
+				t.Errorf("%s: expected non-nil rootfs", tc.name)
+				continue
+			}
+			if mc.Rootfs.Persist != tc.persist {
+				t.Errorf("%s: persist got %v, want %v", tc.name, mc.Rootfs.Persist, tc.persist)
+			}
+			if mc.Rootfs.SizeGB != tc.sizeGB {
+				t.Errorf("%s: size_gb got %d, want %d", tc.name, mc.Rootfs.SizeGB, tc.sizeGB)
+			}
+		}
+	})
+}
+
 func TestMachineAutostopUnmarshalJSON(t *testing.T) {
 	type testcase struct {
 		input  string
