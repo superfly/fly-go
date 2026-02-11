@@ -60,11 +60,19 @@ func _() {
 	_ = x[metadataDel-49]
 	_ = x[regionsGet-50]
 	_ = x[placementPost-51]
+	_ = x[certificateList-52]
+	_ = x[certificateCreateACME-53]
+	_ = x[certificateCreateCustom-54]
+	_ = x[certificateGet-55]
+	_ = x[certificateCheck-56]
+	_ = x[certificateDelete-57]
+	_ = x[certificateDeleteACME-58]
+	_ = x[certificateDeleteCustom-59]
 }
 
-const _flapsAction_name = "noneappCreateappGetmachineLaunchmachineUpdatemachineStartmachineWaitmachineStopmachineRestartmachineGetmachineListmachineDestroymachineKillmachineFindLeasemachineAcquireLeasemachineRefreshLeasemachineReleaseLeasemachineExecmachinePsmachineCordonmachineUncordonmachineSuspendappSecretsListappSecretGetappSecretSetappSecretDeleteappSecretUpdateipAssignmentListipAssignmentCreateipAssignmentDeletesecretkeysListsecretkeyGetsecretkeySetsecretkeyGeneratesecretkeyDeletesecretkeyEncryptsecretkeyDecryptsecretkeySignsecretkeyVerifyvolumeListvolumeCreatevolumetUpdatevolumeGetvolumeSnapshotCreatevolumeSnapshotListvolumeExtendvolumeDeletemetadataSetmetadataGetmetadataDelregionsGetplacementPost"
+const _flapsAction_name = "noneappCreateappGetmachineLaunchmachineUpdatemachineStartmachineWaitmachineStopmachineRestartmachineGetmachineListmachineDestroymachineKillmachineFindLeasemachineAcquireLeasemachineRefreshLeasemachineReleaseLeasemachineExecmachinePsmachineCordonmachineUncordonmachineSuspendappSecretsListappSecretGetappSecretSetappSecretDeleteappSecretUpdateipAssignmentListipAssignmentCreateipAssignmentDeletesecretkeysListsecretkeyGetsecretkeySetsecretkeyGeneratesecretkeyDeletesecretkeyEncryptsecretkeyDecryptsecretkeySignsecretkeyVerifyvolumeListvolumeCreatevolumetUpdatevolumeGetvolumeSnapshotCreatevolumeSnapshotListvolumeExtendvolumeDeletemetadataSetmetadataGetmetadataDelregionsGetplacementPostcertificateListcertificateCreateACMEcertificateCreateCustomcertificateGetcertificateCheckcertificateDeletecertificateDeleteACMEcertificateDeleteCustom"
 
-var _flapsAction_index = [...]uint16{0, 4, 13, 19, 32, 45, 57, 68, 79, 93, 103, 114, 128, 139, 155, 174, 193, 212, 223, 232, 245, 260, 274, 288, 300, 312, 327, 342, 358, 376, 394, 408, 420, 432, 449, 464, 480, 496, 509, 524, 534, 546, 559, 568, 588, 606, 618, 630, 641, 652, 663, 673, 686}
+var _flapsAction_index = [...]uint16{0, 4, 13, 19, 32, 45, 57, 68, 79, 93, 103, 114, 128, 139, 155, 174, 193, 212, 223, 232, 245, 260, 274, 288, 300, 312, 327, 342, 358, 376, 394, 408, 420, 432, 449, 464, 480, 496, 509, 524, 534, 546, 559, 568, 588, 606, 618, 630, 641, 652, 663, 673, 686, 701, 722, 745, 759, 775, 792, 813, 836}
 
 func (i flapsAction) String() string {
 	idx := int(i) - 0
