@@ -58,4 +58,12 @@ const (
 	metadataDel
 	regionsGet
 	placementPost
+	certificateList
+	certificateCreateACME
+	certificateCreateCustom
+	certificateGet
+	certificateCheck
+	certificateDelete
+	certificateDeleteACME
+	certificateDeleteCustom
 )
