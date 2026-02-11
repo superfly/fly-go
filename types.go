@@ -716,6 +716,8 @@ type ImportCertificateRequest struct {
 
 type ListCertificatesResponse struct {
 	Certificates []CertificateSummary `json:"certificates"`
+	NextCursor   string               `json:"next_cursor,omitempty"`
+	TotalCount   int                  `json:"total_count,omitempty"`
 }
 
 type CertificateSummary struct {

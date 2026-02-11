@@ -14,11 +14,35 @@ func (f *Client) sendRequestCertificates(ctx context.Context, appName, method, e
 	return f._sendRequest(ctx, method, endpoint, in, out, headers)
 }
 
-func (f *Client) ListCertificates(ctx context.Context, appName string) (*fly.ListCertificatesResponse, error) {
+type ListCertificatesOpts struct {
+	Limit  int
+	Cursor string
+	Filter string
+}
+
+func (f *Client) ListCertificates(ctx context.Context, appName string, opts *ListCertificatesOpts) (*fly.ListCertificatesResponse, error) {
 	ctx = contextWithAction(ctx, certificateList)
 
+	params := url.Values{}
+	if opts != nil {
+		if opts.Limit > 0 {
+			params.Set("limit", fmt.Sprintf("%d", opts.Limit))
+		}
+		if opts.Cursor != "" {
+			params.Set("cursor", opts.Cursor)
+		}
+		if opts.Filter != "" {
+			params.Set("filter", opts.Filter)
+		}
+	}
+
+	endpoint := ""
+	if len(params) > 0 {
+		endpoint = "?" + params.Encode()
+	}
+
 	out := new(fly.ListCertificatesResponse)
-	if err := f.sendRequestCertificates(ctx, appName, http.MethodGet, "", nil, out, nil); err != nil {
+	if err := f.sendRequestCertificates(ctx, appName, http.MethodGet, endpoint, nil, out, nil); err != nil {
 		return nil, fmt.Errorf("failed to list certificates: %w", err)
 	}
 	return out, nil
