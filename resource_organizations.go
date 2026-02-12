@@ -248,7 +248,7 @@ func (client *Client) GetDetailedOrganizationBySlug(ctx context.Context, slug st
 	return &data.OrganizationDetails, nil
 }
 
-func (c *Client) CreateOrganization(ctx context.Context, organizationname string) (*Organization, error) {
+func (c *Client) createOrganization(ctx context.Context, organizationname string, billingParentOrganizationId string) (*Organization, error) {
 	query := `
 		mutation($input: CreateOrganizationInput!) {
 			createOrganization(input: $input) {
@@ -265,9 +265,13 @@ func (c *Client) CreateOrganization(ctx context.Context, organizationname string
 
 	req := c.NewRequest(query)
 
-	req.Var("input", map[string]string{
+	input := map[string]interface{}{
 		"name": organizationname,
-	})
+	}
+	if billingParentOrganizationId != "" {
+		input["billingParentOrganizationId"] = billingParentOrganizationId
+	}
+	req.Var("input", input)
 	ctx = ctxWithAction(ctx, "create_organization")
 
 	data, err := c.RunWithContext(ctx, req)
@@ -276,6 +280,14 @@ func (c *Client) CreateOrganization(ctx context.Context, organizationname string
 	}
 
 	return &data.CreateOrganization.Organization, nil
+}
+
+func (c *Client) CreateOrganization(ctx context.Context, organizationname string) (*Organization, error) {
+	return c.createOrganization(ctx, organizationname, "")
+}
+
+func (c *Client) CreateOrganizationLinked(ctx context.Context, organizationname string, billingParentOrganizationId string) (*Organization, error) {
+	return c.createOrganization(ctx, organizationname, billingParentOrganizationId)
 }
 
 func (c *Client) DeleteOrganization(ctx context.Context, id string) (deletedid string, err error) {
