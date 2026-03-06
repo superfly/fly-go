@@ -1106,6 +1106,8 @@ type LaunchMachineInput struct {
 
 	LeaseTTL int `toml:"lease_ttl,omitempty" json:"lease_ttl,omitempty"`
 
+	CurrentVersion string `toml:"current_version,omitempty" json:"current_version,omitempty"`
+
 	// Client side only
 	ID                  string `toml:"-" json:"-"`
 	SkipHealthChecks    bool   `toml:"-" json:"-"`
