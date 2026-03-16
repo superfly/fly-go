@@ -81,5 +81,6 @@ func (f *Client) Wait(ctx context.Context, appName string, machineID string, wai
 	if err := f.sendRequestMachines(ctx, appName, http.MethodGet, waitEndpoint, nil, nil, nil); err != nil {
 		return fmt.Errorf("failed to wait for VM %s in %v state: %w", machineID, opts.states, err)
 	}
+
 	return
 }
