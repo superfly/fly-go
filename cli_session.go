@@ -24,7 +24,10 @@ func StartCLISession(sessionName string, args map[string]interface{}) (CLISessio
 	}
 	args["name"] = sessionName
 
-	postData, _ := json.Marshal(args)
+	postData, err := json.Marshal(args)
+	if err != nil {
+		return result, err
+	}
 
 	url := fmt.Sprintf("%s/api/v1/cli_sessions", baseURL)
 
@@ -37,7 +40,7 @@ func StartCLISession(sessionName string, args map[string]interface{}) (CLISessio
 		return result, ErrUnknown
 	}
 
-	defer resp.Body.Close() //skipcq: GO-S2307
+	defer resp.Body.Close() // skipcq: GO-S2307
 
 	json.NewDecoder(resp.Body).Decode(&result)
 
@@ -45,7 +48,6 @@ func StartCLISession(sessionName string, args map[string]interface{}) (CLISessio
 }
 
 func GetCLISessionState(ctx context.Context, id string) (CLISession, error) {
-
 	var value CLISession
 
 	url := fmt.Sprintf("%s/api/v1/cli_sessions/%s", baseURL, id)
@@ -58,7 +60,7 @@ func GetCLISessionState(ctx context.Context, id string) (CLISession, error) {
 	if err != nil {
 		return value, err
 	}
-	defer res.Body.Close() //skipcq: GO-S2307
+	defer res.Body.Close() // skipcq: GO-S2307
 
 	switch res.StatusCode {
 	case http.StatusOK:
@@ -66,6 +68,7 @@ func GetCLISessionState(ctx context.Context, id string) (CLISession, error) {
 		if err = json.NewDecoder(res.Body).Decode(&auth); err != nil {
 			return value, fmt.Errorf("failed to decode session, please try again: %w", err)
 		}
+
 		return auth, nil
 	case http.StatusNotFound:
 		return value, ErrNotFound

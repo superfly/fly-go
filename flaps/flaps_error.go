@@ -6,9 +6,7 @@ import (
 	"net/http"
 )
 
-var (
-	FlapsErrorNotFound = &FlapsError{ResponseStatusCode: http.StatusNotFound}
-)
+var ErrFlapsNotFound = &FlapsError{ResponseStatusCode: http.StatusNotFound}
 
 type StatusCode string
 
@@ -34,6 +32,7 @@ func (fe *FlapsError) Error() string {
 	if fe.OriginalError == nil {
 		return ""
 	}
+
 	return fe.OriginalError.Error()
 }
 
@@ -64,6 +63,7 @@ func GetErrorStatusCode(err error) *StatusCode {
 	if errors.As(err, &ferr) {
 		return ferr.StatusCode()
 	}
+
 	return nil
 }
 
@@ -77,6 +77,7 @@ func GetErrorRequestID(err error) string {
 	if errors.As(err, &ferr) {
 		return ferr.ErrRequestID()
 	}
+
 	return ""
 }
 
@@ -89,6 +90,7 @@ func GetErrorTraceID(err error) string {
 	if errors.As(err, &ferr) {
 		return ferr.ErrTraceID()
 	}
+
 	return ""
 }
 
@@ -115,6 +117,7 @@ func (fe *FlapsError) Is(target error) bool {
 	if other, ok := target.(*FlapsError); ok {
 		return fe.ResponseStatusCode == other.ResponseStatusCode
 	}
+
 	return false
 }
 

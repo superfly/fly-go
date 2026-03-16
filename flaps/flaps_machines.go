@@ -46,6 +46,7 @@ func (f *Client) Update(ctx context.Context, appName string, builder fly.LaunchM
 		return nil, fmt.Errorf("failed to update VM %s: %w", builder.ID, err)
 	}
 	out.RemoveCompatChecks()
+
 	return out, nil
 }
 
@@ -65,6 +66,7 @@ func (f *Client) Start(ctx context.Context, appName, machineID string, nonce str
 	if err := f.sendRequestMachines(ctx, appName, http.MethodPost, startEndpoint, nil, out, headers); err != nil {
 		return nil, fmt.Errorf("failed to start VM %s: %w", machineID, err)
 	}
+
 	return out, nil
 }
 
@@ -108,6 +110,7 @@ func (f *Client) Wait(ctx context.Context, appName string, machine *fly.Machine,
 	if err := f.sendRequestMachines(ctx, appName, http.MethodGet, waitEndpoint, nil, nil, nil); err != nil {
 		return fmt.Errorf("failed to wait for VM %s in %s state: %w", machine.ID, state, err)
 	}
+
 	return
 }
 
@@ -125,6 +128,7 @@ func (f *Client) Stop(ctx context.Context, appName string, in fly.StopMachineInp
 	if err := f.sendRequestMachines(ctx, appName, http.MethodPost, stopEndpoint, in, nil, headers); err != nil {
 		return fmt.Errorf("failed to stop VM %s: %w", in.ID, err)
 	}
+
 	return
 }
 
@@ -150,6 +154,7 @@ func (f *Client) Restart(ctx context.Context, appName string, in fly.RestartMach
 	if err := f.sendRequestMachines(ctx, appName, http.MethodPost, restartEndpoint, nil, nil, headers); err != nil {
 		return fmt.Errorf("failed to restart VM %s: %w", in.ID, err)
 	}
+
 	return
 }
 
@@ -168,6 +173,7 @@ func (f *Client) Get(ctx context.Context, appName, machineID string) (*fly.Machi
 		return nil, fmt.Errorf("failed to get VM %s: %w", machineID, err)
 	}
 	out.RemoveCompatChecks()
+
 	return out, nil
 }
 
@@ -181,6 +187,7 @@ func (f *Client) GetMany(ctx context.Context, appName string, machineIDs []strin
 		m.RemoveCompatChecks()
 		machines = append(machines, m)
 	}
+
 	return machines, nil
 }
 
@@ -242,12 +249,13 @@ func (f *Client) ListFlyAppsMachines(ctx context.Context, appName string) ([]*fl
 	err := backoff.Retry(func() error {
 		err := f.sendRequestMachines(ctx, appName, http.MethodGet, "", nil, &allMachines, nil)
 		if err != nil {
-			if errors.Is(err, FlapsErrorNotFound) {
+			if errors.Is(err, ErrFlapsNotFound) {
 				return err
 			} else {
 				return backoff.Permanent(err)
 			}
 		}
+
 		return nil
 	}, backoff.WithContext(b, ctx))
 	if err != nil {
@@ -263,6 +271,7 @@ func (f *Client) ListFlyAppsMachines(ctx context.Context, appName string) ([]*fl
 			releaseCmdMachine = m
 		}
 	}
+
 	return machines, releaseCmdMachine, nil
 }
 
@@ -291,10 +300,10 @@ func (f *Client) Kill(ctx context.Context, appName, machineID string) (err error
 	ctx = contextWithMachineID(ctx, machineID)
 
 	err = f.sendRequestMachines(ctx, appName, http.MethodPost, fmt.Sprintf("/%s/signal", machineID), in, nil, nil)
-
 	if err != nil {
 		return fmt.Errorf("failed to kill VM %s: %w", machineID, err)
 	}
+
 	return
 }
 
@@ -309,6 +318,7 @@ func (f *Client) FindLease(ctx context.Context, appName, machineID string) (*fly
 	if err != nil {
 		return nil, fmt.Errorf("failed to get lease on VM %s: %w", machineID, err)
 	}
+
 	return out, nil
 }
 
@@ -331,11 +341,13 @@ func (f *Client) AcquireLease(ctx context.Context, appName, machineID string, tt
 		if ferr, ok := err.(*FlapsError); ok && slices.Contains([]int{409}, ferr.ResponseStatusCode) {
 			return err
 		}
+
 		return backoff.Permanent(err)
 	}
 	if err := Retry(ctx, op); err != nil {
 		return nil, err
 	}
+
 	return out, nil
 }
 
@@ -354,6 +366,7 @@ func (f *Client) RefreshLease(ctx context.Context, appName, machineID string, tt
 	if err != nil {
 		return nil, fmt.Errorf("failed to get lease on VM %s: %w", machineID, err)
 	}
+
 	return out, nil
 }
 
@@ -383,6 +396,7 @@ func (f *Client) Exec(ctx context.Context, appName, machineID string, in *fly.Ma
 	if err != nil {
 		return nil, fmt.Errorf("failed to exec on VM %s: %w", machineID, err)
 	}
+
 	return out, nil
 }
 

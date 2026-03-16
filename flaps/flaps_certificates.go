@@ -45,6 +45,7 @@ func (f *Client) ListCertificates(ctx context.Context, appName string, opts *Lis
 	if err := f.sendRequestCertificates(ctx, appName, http.MethodGet, endpoint, nil, out, nil); err != nil {
 		return nil, fmt.Errorf("failed to list certificates: %w", err)
 	}
+
 	return out, nil
 }
 
@@ -56,6 +57,7 @@ func (f *Client) CreateACMECertificate(ctx context.Context, appName string, req 
 	if err := f.sendRequestCertificates(ctx, appName, http.MethodPost, "/acme", req, out, nil); err != nil {
 		return nil, fmt.Errorf("failed to create ACME certificate: %w", err)
 	}
+
 	return out, nil
 }
 
@@ -67,6 +69,7 @@ func (f *Client) CreateCustomCertificate(ctx context.Context, appName string, re
 	if err := f.sendRequestCertificates(ctx, appName, http.MethodPost, "/custom", req, out, nil); err != nil {
 		return nil, fmt.Errorf("failed to import certificate: %w", err)
 	}
+
 	return out, nil
 }
 
@@ -78,6 +81,7 @@ func (f *Client) GetCertificate(ctx context.Context, appName, hostname string) (
 	if err := f.sendRequestCertificates(ctx, appName, http.MethodGet, endpoint, nil, out, nil); err != nil {
 		return nil, fmt.Errorf("failed to get certificate: %w", err)
 	}
+
 	return out, nil
 }
 
@@ -90,6 +94,7 @@ func (f *Client) CheckCertificate(ctx context.Context, appName, hostname string)
 	if err := f.sendRequestCertificates(ctx, appName, http.MethodPost, endpoint, nil, out, nil); err != nil {
 		return nil, fmt.Errorf("failed to check certificate: %w", err)
 	}
+
 	return out, nil
 }
 
@@ -101,6 +106,7 @@ func (f *Client) DeleteCertificate(ctx context.Context, appName, hostname string
 	if err := f.sendRequestCertificates(ctx, appName, http.MethodDelete, endpoint, nil, nil, nil); err != nil {
 		return fmt.Errorf("failed to delete certificate: %w", err)
 	}
+
 	return nil
 }
 
@@ -112,6 +118,7 @@ func (f *Client) DeleteACMECertificate(ctx context.Context, appName, hostname st
 	if err := f.sendRequestCertificates(ctx, appName, http.MethodDelete, endpoint, nil, nil, nil); err != nil {
 		return fmt.Errorf("failed to stop ACME certificate: %w", err)
 	}
+
 	return nil
 }
 
@@ -123,5 +130,6 @@ func (f *Client) DeleteCustomCertificate(ctx context.Context, appName, hostname 
 	if err := f.sendRequestCertificates(ctx, appName, http.MethodDelete, endpoint, nil, nil, nil); err != nil {
 		return fmt.Errorf("failed to delete custom certificate: %w", err)
 	}
+
 	return nil
 }

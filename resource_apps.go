@@ -381,6 +381,7 @@ func (client *Client) GetDeployerAppByOrg(ctx context.Context, orgID string) (*A
 			return &app, nil
 		}
 	}
+
 	return nil, fmt.Errorf("no deployer found")
 }
 
@@ -547,6 +548,7 @@ func (client *Client) DeleteApp(ctx context.Context, appName string) error {
 	ctx = ctxWithAction(ctx, "delete_app")
 
 	_, err := client.RunWithContext(ctx, req)
+
 	return err
 }
 
@@ -574,6 +576,7 @@ func (client *Client) MoveApp(ctx context.Context, appName string, orgID string)
 	ctx = ctxWithAction(ctx, "move_app")
 
 	data, err := client.RunWithContext(ctx, req)
+
 	return &data.App, err
 }
 

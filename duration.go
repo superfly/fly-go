@@ -19,6 +19,7 @@ func (d *Duration) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &v); err != nil {
 		return err
 	}
+
 	return d.ParseDuration(v)
 }
 
@@ -59,6 +60,7 @@ func (d *Duration) ParseDuration(v any) error {
 	default:
 		return fmt.Errorf("Unknown duration type: %T", value)
 	}
+
 	return nil
 }
 
@@ -68,6 +70,7 @@ func ParseDuration(v any) (*Duration, error) {
 	if err := d.ParseDuration(v); err != nil {
 		return nil, err
 	}
+
 	return d, nil
 }
 
@@ -79,5 +82,6 @@ func MustParseDuration(v any) *Duration {
 	if err != nil {
 		panic(err)
 	}
+
 	return d
 }

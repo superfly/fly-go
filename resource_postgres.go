@@ -47,6 +47,7 @@ func (client *Client) DetachPostgresCluster(ctx context.Context, input DetachPos
 	ctx = ctxWithAction(ctx, "detach_postgres_cluster")
 
 	_, err := client.RunWithContext(ctx, req)
+
 	return err
 }
 

@@ -40,6 +40,7 @@ func actionFromCtx(ctx context.Context) string {
 	if action != nil {
 		return action.(string)
 	}
+
 	return "unknown_actiom"
 }
 
@@ -147,6 +148,7 @@ func NewClientFromOptions(opts ClientOptions) *Client {
 	tracingGenqClient := &tracingGenqlientClient{
 		client: genqClient,
 	}
+
 	return &Client{httpClient, client, tracingGenqClient, opts.tokens(), opts.Logger}
 }
 
@@ -173,6 +175,7 @@ func (c *Client) getRequestType(r *graphql.Request) string {
 	if strings.Contains(query, "query") {
 		return "query"
 	}
+
 	return "unknown"
 }
 
@@ -292,6 +295,7 @@ func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	if t.EnableDebugTrace {
 		req.Header.Set("Fly-Force-Trace", "true")
 	}
+
 	return t.UnderlyingTransport.RoundTrip(req)
 }
 
@@ -299,6 +303,7 @@ func (t *Transport) tokens() *tokens.Tokens {
 	if t.Tokens == nil {
 		t.Tokens = tokens.Parse(t.Token)
 	}
+
 	return t.Tokens
 }
 

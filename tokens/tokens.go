@@ -54,7 +54,6 @@ func ParseFromFile(token, fromFile string) *Tokens {
 	ret := Parse(token)
 	ret.fromFile = fromFile
 	return ret
-
 }
 
 // FromFile returns the file path that was provided to ParseFromFile().
@@ -170,7 +169,6 @@ func (t *Tokens) Equal(other *Tokens) bool {
 }
 
 func (t *Tokens) equalUnlocked(other *Tokens) bool {
-
 	return slices.Equal(t.macaroons, other.macaroons) && slices.Equal(t.oauths, other.oauths) && t.fromFile == other.fromFile
 }
 
@@ -247,6 +245,7 @@ func (t *Tokens) normalized(macaroonsAndUserTokens, includeScheme bool) string {
 	if len(t.macaroons) == 0 {
 		return scheme + strings.Join(t.oauths, ",")
 	}
+
 	return scheme + strings.Join(t.macaroons, ",")
 }
 
@@ -377,6 +376,7 @@ func (t *Tokens) dischargeThirdPartyCaveats(ctx context.Context, options *update
 		defer t.m.Unlock()
 
 		t.macaroons = Parse(withDischarges).macaroons
+
 		return true, err
 	}
 

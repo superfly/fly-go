@@ -13,6 +13,7 @@ func (c *Client) CreateBuild(ctx context.Context, input CreateBuildInput) (*Crea
 		}
 	}
 	`
+
 	return CreateBuild(ctx, c.genqClient, input)
 }
 
@@ -26,5 +27,6 @@ func (c *Client) FinishBuild(ctx context.Context, input FinishBuildInput) (*Fini
 		}
 	}
 	`
+
 	return FinishBuild(ctx, c.genqClient, input)
 }

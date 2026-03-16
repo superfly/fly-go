@@ -26,6 +26,7 @@ func (f *Client) GetAllVolumes(ctx context.Context, appName string) ([]fly.Volum
 	if err != nil {
 		return nil, fmt.Errorf("failed to list volumes: %w", err)
 	}
+
 	return out, nil
 }
 
@@ -52,6 +53,7 @@ func (f *Client) CreateVolume(ctx context.Context, appName string, req fly.Creat
 	if err != nil {
 		return nil, fmt.Errorf("failed to create volume: %w", err)
 	}
+
 	return out, nil
 }
 
@@ -65,6 +67,7 @@ func (f *Client) UpdateVolume(ctx context.Context, appName, volumeId string, req
 	if err != nil {
 		return nil, fmt.Errorf("failed to update volume: %w", err)
 	}
+
 	return out, nil
 }
 
@@ -78,6 +81,7 @@ func (f *Client) GetVolume(ctx context.Context, appName, volumeId string) (*fly.
 	if err != nil {
 		return nil, fmt.Errorf("failed to get volume %s: %w", volumeId, err)
 	}
+
 	return out, nil
 }
 
@@ -91,6 +95,7 @@ func (f *Client) GetVolumeSnapshots(ctx context.Context, appName, volumeId strin
 	if err != nil {
 		return nil, fmt.Errorf("failed to get volume %s snapshots: %w", volumeId, err)
 	}
+
 	return out, nil
 }
 
@@ -104,6 +109,7 @@ func (f *Client) CreateVolumeSnapshot(ctx context.Context, appName, volumeId str
 	if err != nil {
 		return fmt.Errorf("failed to snapshot %s: %w", volumeId, err)
 	}
+
 	return nil
 }
 
@@ -130,6 +136,7 @@ func (f *Client) ExtendVolume(ctx context.Context, appName, volumeId string, siz
 	if err != nil {
 		return nil, false, fmt.Errorf("failed to extend volume %s: %w", volumeId, err)
 	}
+
 	return out.Volume, out.NeedsRestart, nil
 }
 
@@ -143,5 +150,6 @@ func (f *Client) DeleteVolume(ctx context.Context, appName, volumeId string) (*f
 	if err != nil {
 		return nil, fmt.Errorf("failed to destroy volume %s: %w", volumeId, err)
 	}
+
 	return out, nil
 }

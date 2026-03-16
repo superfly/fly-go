@@ -198,6 +198,7 @@ func DefinitionPtr(in map[string]interface{}) *Definition {
 	if len(in) > 0 {
 		return Pointer(Definition(in))
 	}
+
 	return nil
 }
 
@@ -598,6 +599,7 @@ func (p GeoRegion) String() string {
 	if name, ok := geoRegionNames[p]; ok {
 		return name
 	}
+
 	return ""
 }
 

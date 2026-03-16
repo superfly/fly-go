@@ -371,6 +371,7 @@ func TestMachineRootfsJSON(t *testing.T) {
 				if mc.Rootfs != nil {
 					t.Errorf("%s: expected nil rootfs, got %+v", tc.name, mc.Rootfs)
 				}
+
 				continue
 			}
 			if mc.Rootfs == nil {

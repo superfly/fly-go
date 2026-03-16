@@ -116,6 +116,7 @@ func (l *loggingReadCloser) Read(p []byte) (int, error) {
 	if n > 0 {
 		l.logger.Debugf("  <-- %s: %s", l.requestURL, string(p[:n]))
 	}
+
 	return n, err
 }
 
@@ -134,6 +135,7 @@ func shiftedDuration(d time.Duration, dicimal int) time.Duration {
 				break
 			}
 			d = d / div * div
+
 			break
 		}
 	}

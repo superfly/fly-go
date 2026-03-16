@@ -99,6 +99,7 @@ func (m *Machine) GetConfig() *MachineConfig {
 	if m.Config != nil {
 		return m.Config
 	}
+
 	return m.IncompleteConfig
 }
 
@@ -107,6 +108,7 @@ func (m *Machine) GetMetadataByKey(key string) string {
 	if c == nil || c.Metadata == nil {
 		return ""
 	}
+
 	return c.Metadata[key]
 }
 
@@ -142,6 +144,7 @@ func (m *Machine) ImageVersion() string {
 	if m.ImageRef.Labels == nil {
 		return ""
 	}
+
 	return m.ImageRef.Labels["fly.version"]
 }
 
@@ -169,6 +172,7 @@ func (m *Machine) TopLevelChecks() *HealthCheckStatus {
 	}
 
 	res.Total = total
+
 	return res
 }
 
@@ -194,6 +198,7 @@ func (m *Machine) AllHealthChecks() *HealthCheckStatus {
 			res.Critical += 1
 		}
 	}
+
 	return res
 }
 
@@ -215,6 +220,7 @@ func (m *Machine) GetLatestEventOfType(eventType string) *MachineEvent {
 			return event
 		}
 	}
+
 	return nil
 }
 
@@ -232,6 +238,7 @@ func (m *Machine) GetLatestEventOfTypeAfterType(latestEventType, firstEventType 
 			return e
 		}
 	}
+
 	return nil
 }
 
@@ -390,6 +397,7 @@ func (mpr *MachinePersistRootfs) UnmarshalJSON(raw []byte) error {
 		default:
 			return fmt.Errorf("invalid persist_rootfs string value \"%s\"", asString)
 		}
+
 		return nil
 	}
 
@@ -411,6 +419,7 @@ func (mpr *MachinePersistRootfs) UnmarshalJSON(raw []byte) error {
 	default:
 		return fmt.Errorf("invalid persist_rootfs int value %d", asInt)
 	}
+
 	return nil
 }
 
@@ -477,6 +486,7 @@ func (mg *MachineGuest) SetSize(size string) error {
 			}
 		}
 		sort.Strings(validSizes)
+
 		return fmt.Errorf("'%s' is an invalid machine size, choose one of: %v", size, validSizes)
 	}
 
@@ -485,6 +495,7 @@ func (mg *MachineGuest) SetSize(size string) error {
 	mg.MemoryMB = guest.MemoryMB
 	mg.GPUKind = guest.GPUKind
 	mg.GPUs = guest.GPUs
+
 	return nil
 }
 
@@ -523,6 +534,7 @@ func (mg *MachineGuest) String() string {
 	if gbRam == 0 {
 		return fmt.Sprintf("%s, %dMB RAM", size, mg.MemoryMB)
 	}
+
 	return fmt.Sprintf("%s, %dGB RAM", size, gbRam)
 }
 
@@ -674,6 +686,7 @@ func (mp *MachinePort) ContainsPort(port int) bool {
 	if mp.EndPort != nil {
 		endPort = *mp.EndPort
 	}
+
 	return startPort <= port && port <= endPort
 }
 
@@ -704,6 +717,7 @@ func (mp *MachinePort) HasNonHttpPorts() bool {
 	case portRangeCount == 1:
 		return !httpInRange && !httpsInRange
 	}
+
 	return false
 }
 
@@ -1220,6 +1234,7 @@ func (s *MachineAutostop) UnmarshalJSON(raw []byte) error {
 		} else {
 			*s = MachineAutostopOff
 		}
+
 		return nil
 	}
 

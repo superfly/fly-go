@@ -16,6 +16,7 @@ func machineIDFromContext(ctx context.Context) string {
 	if value == nil {
 		return ""
 	}
+
 	return value.(string)
 }
 
@@ -28,5 +29,6 @@ func actionFromContext(ctx context.Context) flapsAction {
 	if value == nil {
 		return none
 	}
+
 	return value.(flapsAction)
 }

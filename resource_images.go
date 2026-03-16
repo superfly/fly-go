@@ -46,6 +46,7 @@ func (client *Client) GetLatestImageDetails(ctx context.Context, image string, f
 	if err != nil {
 		return nil, err
 	}
+
 	return &data.LatestImageDetails, nil
 }
 
@@ -68,5 +69,6 @@ func (c *Client) LatestImage(ctx context.Context, appName string) (string, error
 	if resp.App.CurrentReleaseUnprocessed.ImageRef == "" {
 		return "", fmt.Errorf("current release not found for app %s", appName)
 	}
+
 	return resp.App.CurrentReleaseUnprocessed.ImageRef, nil
 }
