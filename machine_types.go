@@ -48,7 +48,7 @@ type Machine struct {
 	Name     string          `toml:"name,omitempty" json:"name,omitempty"`
 	State    string          `toml:"state,omitempty" json:"state,omitempty"`
 	Region   string          `toml:"region,omitempty" json:"region,omitempty"`
-	ImageRef MachineImageRef `toml:"image_ref,omitempty" json:"image_ref,omitempty"`
+	ImageRef MachineImageRef `toml:"image_ref,omitempty" json:"image_ref"`
 	// InstanceID is unique for each version of the machine
 	InstanceID string `toml:"instance_id,omitempty" json:"instance_id,omitempty"`
 	Version    string `toml:"version,omitempty" json:"version,omitempty"`
@@ -99,6 +99,7 @@ func (m *Machine) GetConfig() *MachineConfig {
 	if m.Config != nil {
 		return m.Config
 	}
+
 	return m.IncompleteConfig
 }
 
@@ -107,6 +108,7 @@ func (m *Machine) GetMetadataByKey(key string) string {
 	if c == nil || c.Metadata == nil {
 		return ""
 	}
+
 	return c.Metadata[key]
 }
 
@@ -142,6 +144,7 @@ func (m *Machine) ImageVersion() string {
 	if m.ImageRef.Labels == nil {
 		return ""
 	}
+
 	return m.ImageRef.Labels["fly.version"]
 }
 
@@ -169,6 +172,7 @@ func (m *Machine) TopLevelChecks() *HealthCheckStatus {
 	}
 
 	res.Total = total
+
 	return res
 }
 
@@ -194,6 +198,7 @@ func (m *Machine) AllHealthChecks() *HealthCheckStatus {
 			res.Critical += 1
 		}
 	}
+
 	return res
 }
 
@@ -215,6 +220,7 @@ func (m *Machine) GetLatestEventOfType(eventType string) *MachineEvent {
 			return event
 		}
 	}
+
 	return nil
 }
 
@@ -232,6 +238,7 @@ func (m *Machine) GetLatestEventOfTypeAfterType(latestEventType, firstEventType 
 			return e
 		}
 	}
+
 	return nil
 }
 
@@ -323,13 +330,13 @@ type MachineExitEvent struct {
 	RequestedStop bool      `toml:"requested_stop,omitempty" json:"requested_stop,omitempty"`
 	Restarting    bool      `toml:"restarting,omitempty" json:"restarting,omitempty"`
 	Signal        int       `toml:"signal,omitempty" json:"signal,omitempty"`
-	ExitedAt      time.Time `toml:"exited_at,omitempty" json:"exited_at,omitempty"`
+	ExitedAt      time.Time `toml:"exited_at,omitempty" json:"exited_at"`
 }
 
 type StopMachineInput struct {
 	ID      string   `toml:"id,omitempty" json:"id,omitempty"`
 	Signal  string   `toml:"signal,omitempty" json:"signal,omitempty"`
-	Timeout Duration `toml:"timeout,omitempty" json:"timeout,omitempty"`
+	Timeout Duration `toml:"timeout,omitempty" json:"timeout"`
 }
 
 type RestartMachineInput struct {
@@ -364,10 +371,63 @@ var (
 type MachinePersistRootfs string
 
 var (
+	MachinePersistRootfsNone    MachinePersistRootfs = ""
 	MachinePersistRootfsNever   MachinePersistRootfs = "never"
-	MachinePersistRootfsAlways  MachinePersistRootfs = "always"
 	MachinePersistRootfsRestart MachinePersistRootfs = "restart"
+	MachinePersistRootfsAlways  MachinePersistRootfs = "always"
 )
+
+func (mpr *MachinePersistRootfs) UnmarshalJSON(raw []byte) error {
+	if bytes.Equal(raw, []byte("null")) {
+		return nil
+	}
+
+	var asString string
+	err := json.Unmarshal(raw, &asString)
+	if err == nil {
+		switch asString {
+		case "", "none":
+			*mpr = MachinePersistRootfsNone
+		case "never":
+			*mpr = MachinePersistRootfsNever
+		case "restart":
+			*mpr = MachinePersistRootfsRestart
+		case "always":
+			*mpr = MachinePersistRootfsAlways
+		default:
+			return fmt.Errorf("invalid persist_rootfs string value \"%s\"", asString)
+		}
+
+		return nil
+	}
+
+	parentErr := err
+
+	// Attempt protobuf integer based enums
+	var asInt int
+	switch err := json.Unmarshal(raw, &asInt); {
+	case err != nil:
+		return parentErr
+	case asInt == 0:
+		*mpr = MachinePersistRootfsNone
+	case asInt == 1:
+		*mpr = MachinePersistRootfsNever
+	case asInt == 2:
+		*mpr = MachinePersistRootfsRestart
+	case asInt == 3:
+		*mpr = MachinePersistRootfsAlways
+	default:
+		return fmt.Errorf("invalid persist_rootfs int value %d", asInt)
+	}
+
+	return nil
+}
+
+type MachineRootfs struct {
+	Persist  MachinePersistRootfs `toml:"persist,omitempty" json:"persist,omitempty" enums:"never,always,restart"`
+	SizeGB   uint64               `toml:"size_gb,omitempty" json:"size_gb,omitempty"`
+	FsSizeGB uint64               `toml:"fs_size_gb,omitempty" json:"fs_size_gb,omitempty"`
+}
 
 // @description The Machine restart policy defines whether and how flyd restarts a Machine after its main process exits. See https://fly.io/docs/machines/guides-examples/machine-restart-policy/.
 type MachineRestart struct {
@@ -394,13 +454,14 @@ type MachineMount struct {
 }
 
 type MachineGuest struct {
-	CPUKind          string               `toml:"cpu_kind,omitempty" json:"cpu_kind,omitempty"`
-	CPUs             int                  `toml:"cpus,omitempty" json:"cpus,omitempty"`
-	MemoryMB         int                  `toml:"memory_mb,omitempty" json:"memory_mb,omitempty"`
-	GPUs             int                  `toml:"gpus,omitempty" json:"gpus,omitempty"`
-	GPUKind          string               `toml:"gpu_kind,omitempty" json:"gpu_kind,omitempty"`
-	HostDedicationID string               `toml:"host_dedication_id,omitempty" json:"host_dedication_id,omitempty"`
-	PersistRootfs    MachinePersistRootfs `toml:"persist_rootfs,omitempty" json:"persist_rootfs,omitempty" enums:"never,always,restart"`
+	CPUKind          string `toml:"cpu_kind,omitempty" json:"cpu_kind,omitempty"`
+	CPUs             int    `toml:"cpus,omitempty" json:"cpus,omitempty"`
+	MemoryMB         int    `toml:"memory_mb,omitempty" json:"memory_mb,omitempty"`
+	GPUs             int    `toml:"gpus,omitempty" json:"gpus,omitempty"`
+	GPUKind          string `toml:"gpu_kind,omitempty" json:"gpu_kind,omitempty"`
+	HostDedicationID string `toml:"host_dedication_id,omitempty" json:"host_dedication_id,omitempty"`
+	// Deprecated: use MachineConfig.Rootfs instead
+	PersistRootfs MachinePersistRootfs `toml:"persist_rootfs,omitempty" json:"persist_rootfs,omitempty" enums:"never,always,restart"`
 
 	KernelArgs []string `toml:"kernel_args,omitempty" json:"kernel_args,omitempty"`
 }
@@ -425,6 +486,7 @@ func (mg *MachineGuest) SetSize(size string) error {
 			}
 		}
 		sort.Strings(validSizes)
+
 		return fmt.Errorf("'%s' is an invalid machine size, choose one of: %v", size, validSizes)
 	}
 
@@ -433,6 +495,7 @@ func (mg *MachineGuest) SetSize(size string) error {
 	mg.MemoryMB = guest.MemoryMB
 	mg.GPUKind = guest.GPUKind
 	mg.GPUs = guest.GPUs
+
 	return nil
 }
 
@@ -471,6 +534,7 @@ func (mg *MachineGuest) String() string {
 	if gbRam == 0 {
 		return fmt.Sprintf("%s, %dMB RAM", size, mg.MemoryMB)
 	}
+
 	return fmt.Sprintf("%s, %dGB RAM", size, gbRam)
 }
 
@@ -487,12 +551,17 @@ var MachinePresets map[string]*MachineGuest = map[string]*MachineGuest{
 	"shared-cpu-1x": {CPUKind: "shared", CPUs: 1, MemoryMB: 1 * MIN_MEMORY_MB_PER_SHARED_CPU},
 	"shared-cpu-2x": {CPUKind: "shared", CPUs: 2, MemoryMB: 2 * MIN_MEMORY_MB_PER_SHARED_CPU},
 	"shared-cpu-4x": {CPUKind: "shared", CPUs: 4, MemoryMB: 4 * MIN_MEMORY_MB_PER_SHARED_CPU},
+	"shared-cpu-6x": {CPUKind: "shared", CPUs: 6, MemoryMB: 6 * MIN_MEMORY_MB_PER_SHARED_CPU},
 	"shared-cpu-8x": {CPUKind: "shared", CPUs: 8, MemoryMB: 8 * MIN_MEMORY_MB_PER_SHARED_CPU},
 
 	"performance-1x":  {CPUKind: "performance", CPUs: 1, MemoryMB: 1 * MIN_MEMORY_MB_PER_CPU},
 	"performance-2x":  {CPUKind: "performance", CPUs: 2, MemoryMB: 2 * MIN_MEMORY_MB_PER_CPU},
 	"performance-4x":  {CPUKind: "performance", CPUs: 4, MemoryMB: 4 * MIN_MEMORY_MB_PER_CPU},
+	"performance-6x":  {CPUKind: "performance", CPUs: 6, MemoryMB: 6 * MIN_MEMORY_MB_PER_CPU},
 	"performance-8x":  {CPUKind: "performance", CPUs: 8, MemoryMB: 8 * MIN_MEMORY_MB_PER_CPU},
+	"performance-10x": {CPUKind: "performance", CPUs: 10, MemoryMB: 10 * MIN_MEMORY_MB_PER_CPU},
+	"performance-12x": {CPUKind: "performance", CPUs: 12, MemoryMB: 12 * MIN_MEMORY_MB_PER_CPU},
+	"performance-14x": {CPUKind: "performance", CPUs: 14, MemoryMB: 14 * MIN_MEMORY_MB_PER_CPU},
 	"performance-16x": {CPUKind: "performance", CPUs: 16, MemoryMB: 16 * MIN_MEMORY_MB_PER_CPU},
 
 	"a100-40gb": {GPUKind: "a100-pcie-40gb", GPUs: 1, CPUKind: "performance", CPUs: 8, MemoryMB: 16 * MIN_MEMORY_MB_PER_CPU},
@@ -617,6 +686,7 @@ func (mp *MachinePort) ContainsPort(port int) bool {
 	if mp.EndPort != nil {
 		endPort = *mp.EndPort
 	}
+
 	return startPort <= port && port <= endPort
 }
 
@@ -641,12 +711,14 @@ func (mp *MachinePort) HasNonHttpPorts() bool {
 	}
 	httpInRange := startPort <= 80 && 80 <= endPort
 	httpsInRange := startPort <= 443 && 443 <= endPort
-	switch {
-	case portRangeCount == 2:
+
+	switch portRangeCount {
+	case 2:
 		return !httpInRange || !httpsInRange
-	case portRangeCount == 1:
+	case 1:
 		return !httpInRange && !httpsInRange
 	}
+
 	return false
 }
 
@@ -714,7 +786,7 @@ type MachineConfig struct {
 
 	// An object filled with key/value pairs to be set as environment variables
 	Env      map[string]string `toml:"env,omitempty" json:"env,omitempty"`
-	Init     MachineInit       `toml:"init,omitempty" json:"init,omitempty"`
+	Init     MachineInit       `toml:"init,omitempty" json:"init"`
 	Guest    *MachineGuest     `toml:"guest,omitempty" json:"guest,omitempty"`
 	Metadata map[string]string `toml:"metadata,omitempty" json:"metadata,omitempty"`
 	Mounts   []MachineMount    `toml:"mounts,omitempty" json:"mounts,omitempty"`
@@ -753,6 +825,8 @@ type MachineConfig struct {
 	// Volumes describe the set of volumes that can be attached to the machine. Used in conjuction
 	// with containers
 	Volumes []*VolumeConfig `toml:"volumes,omitempty" json:"volumes,omitempty"`
+
+	Rootfs *MachineRootfs `toml:"rootfs,omitempty" json:"rootfs,omitempty"`
 
 	// Deprecated: use Guest instead
 	VMSize string `toml:"size,omitempty" json:"size,omitempty"`
@@ -1161,6 +1235,7 @@ func (s *MachineAutostop) UnmarshalJSON(raw []byte) error {
 		} else {
 			*s = MachineAutostopOff
 		}
+
 		return nil
 	}
 

@@ -16,5 +16,6 @@ func Retry(ctx context.Context, op func() error) error {
 	bo.RandomizationFactor = 0.5
 	bo.Multiplier = 2
 	bo.Reset()
+
 	return backoff.Retry(op, backoff.WithContext(bo, ctx))
 }

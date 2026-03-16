@@ -206,42 +206,49 @@ func TestMachineMostRecentStartTimeAfterLaunch(t *testing.T) {
 	cases := []testcase{
 		{name: "nil machine", machine: nil, expectedErr: true},
 		{name: "no events", machine: &Machine{}, expectedErr: true},
-		{name: "launch only event", expectedErr: true,
+		{
+			name: "launch only event", expectedErr: true,
 			machine: &Machine{Events: []*MachineEvent{
 				{Type: "launch", Timestamp: time01.UnixMilli()},
 			}},
 		},
-		{name: "start only event", expectedErr: true,
+		{
+			name: "start only event", expectedErr: true,
 			machine: &Machine{Events: []*MachineEvent{
 				{Type: "start", Timestamp: time01.UnixMilli()},
 			}},
 		},
-		{name: "launch after start", expectedErr: true,
+		{
+			name: "launch after start", expectedErr: true,
 			machine: &Machine{Events: []*MachineEvent{
 				{Type: "launch", Timestamp: time05.UnixMilli()},
 				{Type: "start", Timestamp: time01.UnixMilli()},
 			}},
 		},
-		{name: "exit after start", expectedErr: true,
+		{
+			name: "exit after start", expectedErr: true,
 			machine: &Machine{Events: []*MachineEvent{
 				{Type: "exit", Timestamp: time05.UnixMilli()},
 				{Type: "start", Timestamp: time01.UnixMilli()},
 			}},
 		},
-		{name: "launch, start", expected: time17,
+		{
+			name: "launch, start", expected: time17,
 			machine: &Machine{Events: []*MachineEvent{
 				{Type: "start", Timestamp: time17.UnixMilli()},
 				{Type: "launch", Timestamp: time05.UnixMilli()},
 			}},
 		},
-		{name: "exit, launch, start", expected: time17,
+		{
+			name: "exit, launch, start", expected: time17,
 			machine: &Machine{Events: []*MachineEvent{
 				{Type: "start", Timestamp: time17.UnixMilli()},
 				{Type: "launch", Timestamp: time05.UnixMilli()},
 				{Type: "exit", Timestamp: time01.UnixMilli()},
 			}},
 		},
-		{name: "exit, launch, start, exit", expectedErr: true,
+		{
+			name: "exit, launch, start, exit", expectedErr: true,
 			machine: &Machine{Events: []*MachineEvent{
 				{Type: "exit", Timestamp: time99.UnixMilli()},
 				{Type: "start", Timestamp: time17.UnixMilli()},
@@ -267,6 +274,121 @@ func TestMachineMostRecentStartTimeAfterLaunch(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestMachinePersistRootfsUnmarshalJSON(t *testing.T) {
+	type testcase struct {
+		input  string
+		output MachinePersistRootfs
+	}
+	cases := []testcase{
+		{`null`, MachinePersistRootfsNone},
+		{`""`, MachinePersistRootfsNone},
+		{`"none"`, MachinePersistRootfsNone},
+		{`"never"`, MachinePersistRootfsNever},
+		{`"restart"`, MachinePersistRootfsRestart},
+		{`"always"`, MachinePersistRootfsAlways},
+		{`0`, MachinePersistRootfsNone},
+		{`1`, MachinePersistRootfsNever},
+		{`2`, MachinePersistRootfsRestart},
+		{`3`, MachinePersistRootfsAlways},
+	}
+	for _, testCase := range cases {
+		var s MachinePersistRootfs
+		if err := json.Unmarshal([]byte(testCase.input), &s); err != nil {
+			t.Errorf("input %s: unexpected error: %v", testCase.input, err)
+		} else if s != testCase.output {
+			t.Errorf("input %s: expected %v, got %v", testCase.input, testCase.output, s)
+		}
+	}
+}
+
+func TestMachineRootfsJSON(t *testing.T) {
+	t.Run("marshal", func(t *testing.T) {
+		cases := []struct {
+			name   string
+			input  MachineConfig
+			output string
+		}{
+			{
+				name:   "rootfs with persist and size",
+				input:  MachineConfig{Rootfs: &MachineRootfs{Persist: MachinePersistRootfsAlways, SizeGB: 10}},
+				output: `{"init":{},"rootfs":{"persist":"always","size_gb":10}}`,
+			},
+			{
+				name:   "rootfs with persist only",
+				input:  MachineConfig{Rootfs: &MachineRootfs{Persist: MachinePersistRootfsRestart}},
+				output: `{"init":{},"rootfs":{"persist":"restart"}}`,
+			},
+			{
+				name:   "rootfs with fs_size_gb",
+				input:  MachineConfig{Rootfs: &MachineRootfs{Persist: MachinePersistRootfsAlways, SizeGB: 10, FsSizeGB: 8}},
+				output: `{"init":{},"rootfs":{"persist":"always","size_gb":10,"fs_size_gb":8}}`,
+			},
+			{
+				name:   "rootfs with fs_size_gb only",
+				input:  MachineConfig{Rootfs: &MachineRootfs{FsSizeGB: 5}},
+				output: `{"init":{},"rootfs":{"fs_size_gb":5}}`,
+			},
+			{
+				name:   "nil rootfs omitted",
+				input:  MachineConfig{},
+				output: `{"init":{}}`,
+			},
+		}
+		for _, tc := range cases {
+			b, err := json.Marshal(tc.input)
+			if err != nil {
+				t.Errorf("%s: unexpected error: %v", tc.name, err)
+			} else if string(b) != tc.output {
+				t.Errorf("%s: got %s, want %s", tc.name, string(b), tc.output)
+			}
+		}
+	})
+
+	t.Run("unmarshal", func(t *testing.T) {
+		cases := []struct {
+			name     string
+			input    string
+			persist  MachinePersistRootfs
+			sizeGB   uint64
+			fsSizeGB uint64
+		}{
+			{"persist and size", `{"rootfs":{"persist":"always","size_gb":10}}`, MachinePersistRootfsAlways, 10, 0},
+			{"persist only", `{"rootfs":{"persist":"restart"}}`, MachinePersistRootfsRestart, 0, 0},
+			{"size only", `{"rootfs":{"size_gb":5}}`, MachinePersistRootfsNone, 5, 0},
+			{"fs_size_gb only", `{"rootfs":{"fs_size_gb":5}}`, MachinePersistRootfsNone, 0, 5},
+			{"all fields", `{"rootfs":{"persist":"always","size_gb":10,"fs_size_gb":8}}`, MachinePersistRootfsAlways, 10, 8},
+			{"no rootfs", `{}`, MachinePersistRootfsNone, 0, 0},
+		}
+		for _, tc := range cases {
+			var mc MachineConfig
+			if err := json.Unmarshal([]byte(tc.input), &mc); err != nil {
+				t.Errorf("%s: unexpected error: %v", tc.name, err)
+				continue
+			}
+			if tc.persist == MachinePersistRootfsNone && tc.sizeGB == 0 && tc.fsSizeGB == 0 {
+				if mc.Rootfs != nil {
+					t.Errorf("%s: expected nil rootfs, got %+v", tc.name, mc.Rootfs)
+				}
+
+				continue
+			}
+			if mc.Rootfs == nil {
+				t.Errorf("%s: expected non-nil rootfs", tc.name)
+				continue
+			}
+			if mc.Rootfs.Persist != tc.persist {
+				t.Errorf("%s: persist got %v, want %v", tc.name, mc.Rootfs.Persist, tc.persist)
+			}
+			if mc.Rootfs.SizeGB != tc.sizeGB {
+				t.Errorf("%s: size_gb got %d, want %d", tc.name, mc.Rootfs.SizeGB, tc.sizeGB)
+			}
+			if mc.Rootfs.FsSizeGB != tc.fsSizeGB {
+				t.Errorf("%s: fs_size_gb got %d, want %d", tc.name, mc.Rootfs.FsSizeGB, tc.fsSizeGB)
+			}
+		}
+	})
 }
 
 func TestMachineAutostopUnmarshalJSON(t *testing.T) {

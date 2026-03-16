@@ -7,15 +7,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
 	"net/url"
 	"os"
 	"regexp"
-	"slices"
 	"strings"
 
-	"github.com/cenkalti/backoff/v4"
 	fly "github.com/superfly/fly-go"
 	"github.com/superfly/fly-go/internal/tracing"
 	"github.com/superfly/fly-go/tokens"
@@ -28,7 +25,6 @@ import (
 const headerFlyRequestId = "fly-request-id"
 
 type Client struct {
-	appName    string
 	baseUrl    *url.URL
 	tokens     *tokens.Tokens
 	httpClient *http.Client
@@ -36,21 +32,8 @@ type Client struct {
 }
 
 type NewClientOpts struct {
-	// required:
-	AppName string
-
-	// optional, avoids API roundtrip when connecting to flaps by wireguard:
-	AppCompact *fly.AppCompact
-
 	// optional, sent with requests
 	UserAgent string
-
-	// optional, used to connect to machines API
-	DialContext func(ctx context.Context, network, address string) (net.Conn, error)
-	OrgSlug     string // required if DialContext set
-
-	// URL used when connecting via usermode wireguard.
-	BaseURL *url.URL
 
 	Tokens *tokens.Tokens
 
@@ -68,15 +51,7 @@ func NewWithOptions(ctx context.Context, opts NewClientOpts) (*Client, error) {
 		flapsBaseURL = "https://api.machines.dev"
 	}
 
-	if opts.DialContext != nil {
-		return newWithUsermodeWireguard(wireguardConnectionParams{
-			appName:     opts.AppName,
-			orgSlug:     opts.OrgSlug,
-			dialContext: opts.DialContext,
-			baseURL:     opts.BaseURL,
-			userAgent:   opts.UserAgent,
-		}, opts.Logger)
-	} else if flapsBaseURL == "" {
+	if flapsBaseURL == "" {
 		flapsBaseURL = "https://api.machines.dev"
 	}
 	flapsUrl, err := url.Parse(flapsBaseURL)
@@ -100,71 +75,11 @@ func NewWithOptions(ctx context.Context, opts NewClientOpts) (*Client, error) {
 	}
 
 	return &Client{
-		appName:    opts.AppName,
 		baseUrl:    flapsUrl,
 		tokens:     opts.Tokens,
 		httpClient: httpClient,
 		userAgent:  userAgent,
 	}, nil
-}
-
-type wireguardConnectionParams struct {
-	appName     string
-	orgSlug     string
-	userAgent   string
-	dialContext func(ctx context.Context, network, address string) (net.Conn, error)
-	baseURL     *url.URL
-	tokens      *tokens.Tokens
-}
-
-func newWithUsermodeWireguard(params wireguardConnectionParams, logger fly.Logger) (*Client, error) {
-	transport := &http.Transport{
-		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-			return params.dialContext(ctx, network, addr)
-		},
-	}
-	instrumentedTransport := otelhttp.NewTransport(transport)
-
-	httpClient, err := fly.NewHTTPClient(logger, instrumentedTransport)
-	if err != nil {
-		return nil, fmt.Errorf("flaps: can't setup HTTP client for %s: %w", params.orgSlug, err)
-	}
-
-	return &Client{
-		appName:    params.appName,
-		baseUrl:    params.baseURL,
-		tokens:     params.tokens,
-		httpClient: httpClient,
-		userAgent:  params.userAgent,
-	}, nil
-}
-
-func (f *Client) CreateApp(ctx context.Context, name string, org string) (err error) {
-	in := map[string]interface{}{
-		"app_name": name,
-		"org_slug": org,
-	}
-
-	ctx = contextWithAction(ctx, appCreate)
-
-	err = f._sendRequest(ctx, http.MethodPost, "/apps", in, nil, nil)
-	return
-}
-
-func (f *Client) WaitForApp(ctx context.Context, name string) error {
-	ctx = contextWithAction(ctx, machineGet)
-
-	var op = func() error {
-		err := f._sendRequest(ctx, http.MethodGet, "/apps/"+url.PathEscape(name), nil, nil, nil)
-		if err == nil {
-			return nil
-		}
-		if ferr, ok := err.(*FlapsError); ok && slices.Contains([]int{404, 401}, ferr.ResponseStatusCode) {
-			return err
-		}
-		return backoff.Permanent(err)
-	}
-	return Retry(ctx, op)
 }
 
 var snakeCasePattern = regexp.MustCompile("[A-Z]")
@@ -224,6 +139,7 @@ func (f *Client) _sendRequest(ctx context.Context, method, endpoint string, in, 
 		if err != nil {
 			responseBody = make([]byte, 0)
 		}
+
 		return &FlapsError{
 			OriginalError:      handleAPIError(resp.StatusCode, responseBody),
 			ResponseStatusCode: resp.StatusCode,
@@ -237,6 +153,7 @@ func (f *Client) _sendRequest(ctx context.Context, method, endpoint string, in, 
 			return fmt.Errorf("failed decoding response: %w", err)
 		}
 	}
+
 	return nil
 }
 
@@ -246,6 +163,7 @@ func (f *Client) urlFromBaseUrl(pathAndQueryString string) (*url.URL, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed parsing flaps path '%s' with error: %w", pathAndQueryString, err)
 	}
+
 	return newUrl.ResolveReference(&url.URL{Path: newPath.Path, RawQuery: newPath.RawQuery}), nil
 }
 
@@ -286,7 +204,8 @@ func (f *Client) getCaveatNames() ([]string, error) {
 	if f.tokens == nil {
 		return nil, nil
 	}
-	tok := f.tokens.MacaroonsOnly().All()
+
+  tok := f.tokens.MacaroonsOnly().All()
 	raws, err := macaroon.Parse(tok)
 	if err != nil {
 		return nil, err
@@ -323,6 +242,7 @@ func handleAPIError(statusCode int, responseBody []byte) error {
 		} else if apiErr.Message != "" {
 			return fmt.Errorf("%s", apiErr.Message)
 		}
+
 		return errors.New(apiErr.Error)
 	default:
 		return errors.New("something went terribly wrong")

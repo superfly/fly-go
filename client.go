@@ -40,6 +40,7 @@ func actionFromCtx(ctx context.Context) string {
 	if action != nil {
 		return action.(string)
 	}
+
 	return "unknown_actiom"
 }
 
@@ -125,7 +126,7 @@ func (t *Transport) setDefaults(opts *ClientOptions) {
 		t.EnableDebugTrace = *opts.EnableDebugTrace
 	} else {
 		v := os.Getenv("FLY_FORCE_TRACE")
-		t.EnableDebugTrace = !(v == "" || v == "0" || v == "false")
+		t.EnableDebugTrace = v != "" && v != "0" && v != "false"
 	}
 }
 
@@ -144,8 +145,11 @@ func NewClientFromOptions(opts ClientOptions) *Client {
 	url := fmt.Sprintf("%s/graphql", opts.BaseURL)
 	client := graphql.NewClient(url, graphql.WithHTTPClient(httpClient))
 	genqClient := genq.NewClient(url, httpClient)
+	tracingGenqClient := &tracingGenqlientClient{
+		client: genqClient,
+	}
 
-	return &Client{httpClient, client, genqClient, opts.tokens(), opts.Logger}
+	return &Client{httpClient, client, tracingGenqClient, opts.tokens(), opts.Logger}
 }
 
 // NewRequest - creates a new GraphQL request
@@ -171,6 +175,7 @@ func (c *Client) getRequestType(r *graphql.Request) string {
 	if strings.Contains(query, "query") {
 		return "query"
 	}
+
 	return "unknown"
 }
 
@@ -228,8 +233,8 @@ func compactQueryString(q string) string {
 // GetAccessToken - uses email, password and possible otp to get token
 func GetAccessToken(ctx context.Context, email, password, otp string) (token string, err error) {
 	var postData bytes.Buffer
-	if err = json.NewEncoder(&postData).Encode(map[string]interface{}{
-		"data": map[string]interface{}{
+	if err = json.NewEncoder(&postData).Encode(map[string]any{
+		"data": map[string]any{
 			"attributes": map[string]string{
 				"email":    email,
 				"password": password,
@@ -261,9 +266,9 @@ func GetAccessToken(ctx context.Context, email, password, otp string) (token str
 
 	switch {
 	case res.StatusCode >= http.StatusInternalServerError:
-		err = errors.New("An unknown server error occurred, please try again")
+		err = errors.New("an unknown server error occurred, please try again")
 	case res.StatusCode >= http.StatusBadRequest:
-		err = errors.New("Incorrect email and password combination")
+		err = errors.New("incorrect email and password combination")
 	default:
 		var result map[string]map[string]map[string]string
 
@@ -290,6 +295,7 @@ func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	if t.EnableDebugTrace {
 		req.Header.Set("Fly-Force-Trace", "true")
 	}
+
 	return t.UnderlyingTransport.RoundTrip(req)
 }
 
@@ -297,6 +303,7 @@ func (t *Transport) tokens() *tokens.Tokens {
 	if t.Tokens == nil {
 		t.Tokens = tokens.Parse(t.Token)
 	}
+
 	return t.Tokens
 }
 
@@ -306,4 +313,31 @@ func (t *Transport) addAuthorization(req *http.Request) {
 		hdr = t.tokens().GraphQLHeader()
 	}
 	req.Header.Set("Authorization", hdr)
+}
+
+// tracingGenqlientClient wraps a genqlient client to add OTEL tracing with operation names
+type tracingGenqlientClient struct {
+	client genq.Client
+}
+
+func (c *tracingGenqlientClient) MakeRequest(ctx context.Context, req *genq.Request, resp *genq.Response) error {
+	tracer := otel.GetTracerProvider().Tracer("github.com/superfly/fly-go")
+
+	// Create span name based on operation name if available, otherwise use generic name
+	spanName := "graphql.request"
+	if req.OpName != "" {
+		spanName = fmt.Sprintf("graphql.%s", req.OpName)
+	}
+
+	ctx, span := tracer.Start(ctx, spanName)
+	defer span.End()
+
+	if instrumenter != nil {
+		start := time.Now()
+		defer func() {
+			instrumenter.ReportCallTiming(time.Since(start))
+		}()
+	}
+
+	return c.client.MakeRequest(ctx, req, resp)
 }

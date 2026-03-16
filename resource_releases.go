@@ -89,6 +89,7 @@ func (c *Client) CreateRelease(ctx context.Context, input CreateReleaseInput) (*
 		}
 	}
 	`
+
 	return CreateRelease(ctx, c.genqClient, input)
 }
 
@@ -102,5 +103,6 @@ func (c *Client) UpdateRelease(ctx context.Context, input UpdateReleaseInput) (*
 		}
 	}
 	`
+
 	return UpdateRelease(ctx, c.genqClient, input)
 }

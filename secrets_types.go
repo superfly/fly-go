@@ -1,6 +1,7 @@
 package fly
 
 const (
+	SECRETKEY_TYPE_ES256          = "es256"
 	SECRETKEY_TYPE_HS256          = "hs256"
 	SECRETKEY_TYPE_HS384          = "hs384"
 	SECRETKEY_TYPE_HS512          = "hs512"
@@ -12,9 +13,11 @@ const (
 )
 
 type AppSecret struct {
-	Name   string  `json:"name"`
-	Value  *string `json:"value,omitempty"`
-	Digest string  `json:"digest,omitempty"`
+	Name      string  `json:"name"`
+	Value     *string `json:"value,omitempty"`
+	Digest    string  `json:"digest,omitempty"`
+	UpdatedAt *string `json:"updated_at,omitempty"`
+	CreatedAt *string `json:"created_at,omitempty"`
 }
 
 type ListAppSecretsResp struct {

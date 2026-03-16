@@ -37,10 +37,9 @@ type Query struct {
 			Nodes []VolumeSnapshotGql
 		}
 	}
-	Domain *Domain
 
-	Node  interface{}
-	Nodes []interface{}
+	Node  any
+	Nodes []any
 
 	Platform struct {
 		RequestRegion string
@@ -109,23 +108,6 @@ type Query struct {
 		App App
 	}
 
-	CreateDomain struct {
-		Domain *Domain
-	}
-	CreateAndRegisterDomain struct {
-		Domain *Domain
-	}
-
-	CheckDomain *CheckDomainResult
-
-	ExportDnsZone struct {
-		Contents string
-	}
-
-	ImportDnsZone struct {
-		Warnings []ImportDnsWarning
-		Changes  []ImportDnsChange
-	}
 	CreateOrganization CreateOrganizationPayload
 	DeleteOrganization DeleteOrganizationPayload
 
@@ -160,6 +142,9 @@ type Query struct {
 
 	CanPerformBluegreenDeployment bool
 	AppNameAvailable              bool
+
+	AddAllowedReplaySourceOrgs    AddAllowedReplaySourceOrgsPayload
+	RemoveAllowedReplaySourceOrgs RemoveAllowedReplaySourceOrgsPayload
 
 	LockApp *LockApp
 }
@@ -207,12 +192,13 @@ type IssuedCertificate struct {
 	Key         string
 }
 
-type Definition map[string]interface{}
+type Definition map[string]any
 
-func DefinitionPtr(in map[string]interface{}) *Definition {
+func DefinitionPtr(in map[string]any) *Definition {
 	if len(in) > 0 {
 		return Pointer(Definition(in))
 	}
+
 	return nil
 }
 
@@ -262,6 +248,9 @@ type App struct {
 	}
 	IPAddresses struct {
 		Nodes []IPAddress
+	}
+	EgressIpAddresses struct {
+		Nodes []*EgressIPAddress
 	}
 	SharedIPAddress string
 	CNAMETarget     string
@@ -331,16 +320,18 @@ type AppCertificateCompact struct {
 }
 
 type AppCompact struct {
-	ID              string
-	Name            string
-	Status          string
-	Deployed        bool
-	Hostname        string
-	Network         string
-	AppURL          string
-	Organization    *OrganizationBasic
-	PlatformVersion string
-	PostgresAppRole *struct {
+	ID                string
+	InternalNumericID int32
+	Name              string
+	Status            string
+	Deployed          bool
+	Hostname          string
+	CnameTarget       string
+	Network           string
+	AppURL            string
+	Organization      *OrganizationBasic
+	PlatformVersion   string
+	PostgresAppRole   *struct {
 		Name string
 	}
 }
@@ -384,13 +375,7 @@ type Organization struct {
 	Billable           bool
 	Settings           map[string]any
 
-	Domains struct {
-		Nodes *[]*Domain
-		Edges *[]*struct {
-			Cursor *string
-			Node   *Domain
-		}
-	}
+	AllowedReplaySourceOrgSlugs []string
 
 	WireGuardPeer *WireGuardPeer
 
@@ -458,11 +443,6 @@ func (o *OrganizationBasic) GetSlug() string {
 	return o.Slug
 }
 
-type OrganizationImpl interface {
-	GetID() string
-	GetSlug() string
-}
-
 type OrganizationDetails struct {
 	ID                 string
 	InternalNumericID  string
@@ -495,20 +475,6 @@ type Billable struct {
 	App      App
 }
 
-type DNSRecords struct {
-	ID         string
-	Name       string
-	Ttl        int
-	Values     []string
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
-	Fqdn       string
-	IsApex     bool
-	IsSystem   bool
-	IsWildcard bool
-	Domain     *Domain
-}
-
 type IPAddress struct {
 	ID          string
 	Address     string
@@ -525,10 +491,11 @@ type IPAddress struct {
 }
 
 type EgressIPAddress struct {
-	ID      string
-	IP      string
-	Version int
-	Region  string
+	ID        string
+	IP        string
+	Version   int
+	Region    string
+	UpdatedAt time.Time
 }
 
 type VMSize struct {
@@ -632,6 +599,7 @@ func (p GeoRegion) String() string {
 	if name, ok := geoRegionNames[p]; ok {
 		return name
 	}
+
 	return ""
 }
 
@@ -668,7 +636,7 @@ type PostDeploymentInfo struct {
 	Error         string `json:"error"`
 }
 type ReleaseMetadata struct {
-	PostDeploymentInfo PostDeploymentInfo `json:"post_deployment_info,omitempty"`
+	PostDeploymentInfo PostDeploymentInfo `json:"post_deployment_info"`
 }
 
 type SignedUrl struct {
@@ -715,6 +683,14 @@ type DeleteOrganizationPayload struct {
 	DeletedOrganizationId string
 }
 
+type AddAllowedReplaySourceOrgsPayload struct {
+	Organization Organization
+}
+
+type RemoveAllowedReplaySourceOrgsPayload struct {
+	Organization Organization
+}
+
 type HostnameCheck struct {
 	ARecords              []string `json:"aRecords"`
 	AAAARecords           []string `json:"aaaaRecords"`
@@ -730,6 +706,110 @@ type DeleteCertificatePayload struct {
 	Certificate AppCertificate
 }
 
+type CreateCertificateRequest struct {
+	Hostname string `json:"hostname"`
+}
+
+type ImportCertificateRequest struct {
+	Hostname   string `json:"hostname"`
+	Fullchain  string `json:"fullchain"`
+	PrivateKey string `json:"private_key"`
+}
+
+type ListCertificatesResponse struct {
+	Certificates []CertificateSummary `json:"certificates"`
+	NextCursor   string               `json:"next_cursor,omitempty"`
+	TotalCount   int                  `json:"total_count,omitempty"`
+}
+
+type CertificateSummary struct {
+	Hostname               string    `json:"hostname"`
+	Status                 string    `json:"status"`
+	DNSProvider            string    `json:"dns_provider,omitempty"`
+	AcmeDNSConfigured      bool      `json:"acme_dns_configured"`
+	AcmeALPNConfigured     bool      `json:"acme_alpn_configured"`
+	AcmeHTTPConfigured     bool      `json:"acme_http_configured"`
+	OwnershipTxtConfigured bool      `json:"ownership_txt_configured"`
+	Configured             bool      `json:"configured"`
+	AcmeRequested          bool      `json:"acme_requested"`
+	HasCustomCertificate   bool      `json:"has_custom_certificate"`
+	HasFlyCertificate      bool      `json:"has_fly_certificate"`
+	CreatedAt              time.Time `json:"created_at"`
+	UpdatedAt              time.Time `json:"updated_at"`
+}
+
+type CertificateValidation struct {
+	DNSConfigured          bool `json:"dns_configured"`
+	ALPNConfigured         bool `json:"alpn_configured"`
+	HTTPConfigured         bool `json:"http_configured"`
+	OwnershipTxtConfigured bool `json:"ownership_txt_configured"`
+}
+
+type ACMEChallengeRequirement struct {
+	Name   string `json:"name"`
+	Target string `json:"target"`
+}
+
+type OwnershipRequirement struct {
+	Name     string `json:"name"`
+	AppValue string `json:"app_value"`
+	OrgValue string `json:"org_value"`
+}
+
+type DNSRequirements struct {
+	A             []string                 `json:"a"`
+	AAAA          []string                 `json:"aaaa"`
+	CNAME         string                   `json:"cname"`
+	ACMEChallenge ACMEChallengeRequirement `json:"acme_challenge"`
+	Ownership     OwnershipRequirement     `json:"ownership"`
+}
+
+type DNSRecords struct {
+	A                  []string `json:"a"`
+	AAAA               []string `json:"aaaa"`
+	CNAME              []string `json:"cname"`
+	ResolvedAddresses  []string `json:"resolved_addresses"`
+	SOA                *string  `json:"soa"`
+	ACMEChallengeCNAME *string  `json:"acme_challenge_cname"`
+	OwnershipTXT       *string  `json:"ownership_txt"`
+}
+
+type CertificateDetailResponse struct {
+	Hostname         string                `json:"hostname"`
+	Configured       bool                  `json:"configured"`
+	AcmeRequested    bool                  `json:"acme_requested"`
+	Status           string                `json:"status"`
+	DNSProvider      string                `json:"dns_provider,omitempty"`
+	RateLimitedUntil *time.Time            `json:"rate_limited_until,omitempty"`
+	Certificates     []CertificateDetail   `json:"certificates"`
+	Validation       CertificateValidation `json:"validation"`
+	DNSRequirements  DNSRequirements       `json:"dns_requirements"`
+	DNSRecords       *DNSRecords           `json:"dns_records,omitempty"`
+	ValidationErrors []ValidationError     `json:"validation_errors,omitempty"`
+}
+
+type CertificateDetail struct {
+	Source    string           `json:"source"`
+	Status    string           `json:"status"`
+	CreatedAt *time.Time       `json:"created_at,omitempty"`
+	ExpiresAt *time.Time       `json:"expires_at,omitempty"`
+	Issuer    string           `json:"issuer,omitempty"`
+	Issued    []IssuedCertInfo `json:"issued"`
+}
+
+type IssuedCertInfo struct {
+	Type                 string    `json:"type"`
+	ExpiresAt            time.Time `json:"expires_at"`
+	CertificateAuthority string    `json:"certificate_authority,omitempty"`
+}
+
+type ValidationError struct {
+	Code        *string   `json:"code"`
+	Message     string    `json:"message"`
+	Remediation string    `json:"remediation,omitempty"`
+	Timestamp   time.Time `json:"timestamp"`
+}
+
 type AllocateIPAddressInput struct {
 	AppID          string `json:"appId"`
 	Type           string `json:"type"`
@@ -741,11 +821,17 @@ type AllocateIPAddressInput struct {
 type AllocateEgressIPAddressInput struct {
 	AppID     string `json:"appId"`
 	MachineID string `json:"machineId"`
+	// If set, allocates an app-scoped egress IP in the region
+	// Note that region cannot be set simultaneously with machine ID
+	Region string `json:"region"`
 }
 
 type ReleaseEgressIPAddressInput struct {
 	AppID     string `json:"appId"`
 	MachineID string `json:"machineId"`
+	// If set, releases the specified app-scoped egress IP
+	// Note that this cannot be set simultaneously with machine ID
+	IP string `json:"ip"`
 }
 
 type ReleaseIPAddressInput struct {
@@ -767,64 +853,6 @@ type Extensions struct {
 	ServiceName string
 	Query       string
 	Variables   map[string]string
-}
-
-type Domain struct {
-	ID                   string
-	Name                 string
-	CreatedAt            time.Time
-	Organization         *Organization
-	AutoRenew            *bool
-	DelegatedNameservers *[]string
-	ZoneNameservers      *[]string
-	DnsStatus            *string
-	RegistrationStatus   *string
-	ExpiresAt            time.Time
-	DnsRecords           *struct {
-		Nodes *[]*DNSRecord
-	}
-}
-
-type CheckDomainResult struct {
-	DomainName            string
-	TLD                   string
-	RegistrationSupported bool
-	RegistrationAvailable bool
-	RegistrationPrice     int
-	RegistrationPeriod    int
-	TransferAvailable     bool
-	DnsAvailable          bool
-}
-
-type DNSRecord struct {
-	ID         string
-	Name       string
-	FQDN       string
-	IsApex     bool
-	IsWildcard bool
-	IsSystem   bool
-	TTL        int
-	Type       string
-	RData      string
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
-}
-
-type ImportDnsChange struct {
-	Action  string
-	OldText string
-	NewText string
-}
-
-type ImportDnsWarning struct {
-	Action     string
-	Attributes struct {
-		Name  string
-		Type  string
-		TTL   int
-		Rdata string
-	}
-	Message string
 }
 
 type WireGuardPeer struct {
@@ -936,8 +964,8 @@ type GqlMachine struct {
 }
 
 type Logger interface {
-	Debug(v ...interface{})
-	Debugf(format string, v ...interface{})
+	Debug(v ...any)
+	Debugf(format string, v ...any)
 }
 
 type AppHostIssues struct {

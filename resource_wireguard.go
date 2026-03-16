@@ -60,7 +60,7 @@ query($slug: String!) {
 	return *data.Organization.WireGuardPeers.Nodes, nil
 }
 
-func (c *Client) CreateWireGuardPeer(ctx context.Context, org *Organization, region, name, pubkey, network string) (*CreatedWireGuardPeer, error) {
+func (c *Client) CreateWireGuardPeer(ctx context.Context, orgID string, region, name, pubkey, network string) (*CreatedWireGuardPeer, error) {
 	req := c.NewRequest(`
 mutation($input: AddWireGuardPeerInput!) {
   addWireGuardPeer(input: $input) {
@@ -78,8 +78,8 @@ mutation($input: AddWireGuardPeerInput!) {
 		fmt.Printf("Creating wiregard peer via NATS")
 	}
 
-	inputs := map[string]interface{}{
-		"organizationId": org.ID,
+	inputs := map[string]any{
+		"organizationId": orgID,
 		"name":           name,
 		"pubkey":         pubkey,
 		"nats":           nats,
@@ -104,7 +104,7 @@ mutation($input: AddWireGuardPeerInput!) {
 	return &data.AddWireGuardPeer, nil
 }
 
-func (c *Client) RemoveWireGuardPeer(ctx context.Context, org *Organization, name string) error {
+func (c *Client) RemoveWireGuardPeer(ctx context.Context, orgID string, name string) error {
 	req := c.NewRequest(`
 mutation($input: RemoveWireGuardPeerInput!) {
   removeWireGuardPeer(input: $input) {
@@ -114,8 +114,8 @@ mutation($input: RemoveWireGuardPeerInput!) {
   }
 }
 `)
-	req.Var("input", map[string]interface{}{
-		"organizationId": org.ID,
+	req.Var("input", map[string]any{
+		"organizationId": orgID,
 		"name":           name,
 	})
 	ctx = ctxWithAction(ctx, "remove_wg_peer")
@@ -125,7 +125,7 @@ mutation($input: RemoveWireGuardPeerInput!) {
 	return err
 }
 
-func (c *Client) CreateDelegatedWireGuardToken(ctx context.Context, org *Organization, name string) (*DelegatedWireGuardToken, error) {
+func (c *Client) CreateDelegatedWireGuardToken(ctx context.Context, orgID string, name string) (*DelegatedWireGuardToken, error) {
 	req := c.NewRequest(`
 mutation($input: CreateDelegatedWireGuardTokenInput!) {
   createDelegatedWireGuardToken(input: $input) {
@@ -133,8 +133,8 @@ mutation($input: CreateDelegatedWireGuardTokenInput!) {
   }
 }
 `)
-	req.Var("input", map[string]interface{}{
-		"organizationId": org.ID,
+	req.Var("input", map[string]any{
+		"organizationId": orgID,
 		"name":           name,
 	})
 	ctx = ctxWithAction(ctx, "create_deletegated_wg_token")
@@ -147,7 +147,7 @@ mutation($input: CreateDelegatedWireGuardTokenInput!) {
 	return &data.CreateDelegatedWireGuardToken, nil
 }
 
-func (c *Client) DeleteDelegatedWireGuardToken(ctx context.Context, org *Organization, name, token *string) error {
+func (c *Client) DeleteDelegatedWireGuardToken(ctx context.Context, orgID string, name, token *string) error {
 	query := `
 mutation($input: DeleteDelegatedWireGuardTokenInput!) {
   deleteDelegatedWireGuardToken(input: $input) {
@@ -156,8 +156,8 @@ mutation($input: DeleteDelegatedWireGuardTokenInput!) {
 }
 `
 
-	input := map[string]interface{}{
-		"organizationId": org.ID,
+	input := map[string]any{
+		"organizationId": orgID,
 	}
 
 	if name != nil {
@@ -230,7 +230,7 @@ mutation($input: ValidateWireGuardPeersInput!) {
 }
 `)
 
-	req.Var("input", map[string]interface{}{
+	req.Var("input", map[string]any{
 		"peerIps": peerIPs,
 	})
 	ctx = ctxWithAction(ctx, "validate_wg_peers")

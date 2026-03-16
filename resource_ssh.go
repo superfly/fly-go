@@ -32,7 +32,7 @@ query($slug: String!) {
 	return data.Organization.LoggedCertificates.Nodes, nil
 }
 
-func (c *Client) IssueSSHCertificate(ctx context.Context, org OrganizationImpl, principals []string, appNames []string, valid_hours *int, publicKey ed25519.PublicKey) (*IssuedCertificate, error) {
+func (c *Client) IssueSSHCertificate(ctx context.Context, orgID string, principals []string, appNames []string, valid_hours *int, publicKey ed25519.PublicKey) (*IssuedCertificate, error) {
 	req := c.NewRequest(`
 mutation($input: IssueCertificateInput!) {
   issueCertificate(input: $input) {
@@ -50,8 +50,8 @@ mutation($input: IssueCertificateInput!) {
 		pubStr = strings.TrimSpace(string(ssh.MarshalAuthorizedKey(sshPub)))
 	}
 
-	inputs := map[string]interface{}{
-		"organizationId": org.GetID(),
+	inputs := map[string]any{
+		"organizationId": orgID,
 		"principals":     principals,
 		"appNames":       appNames,
 		"publicKey":      pubStr,

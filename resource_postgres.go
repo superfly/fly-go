@@ -4,7 +4,7 @@ import (
 	"context"
 )
 
-func (client *Client) AttachPostgresCluster(ctx context.Context, input AttachPostgresClusterInput) (*AttachPostgresClusterPayload, error) {
+func (c *Client) AttachPostgresCluster(ctx context.Context, input AttachPostgresClusterInput) (*AttachPostgresClusterPayload, error) {
 	query := `
 		mutation($input: AttachPostgresClusterInput!) {
 			attachPostgresCluster(input: $input) {
@@ -21,11 +21,11 @@ func (client *Client) AttachPostgresCluster(ctx context.Context, input AttachPos
 		}
 		`
 
-	req := client.NewRequest(query)
+	req := c.NewRequest(query)
 	req.Var("input", input)
 	ctx = ctxWithAction(ctx, "attach_postgres_cluster")
 
-	data, err := client.RunWithContext(ctx, req)
+	data, err := c.RunWithContext(ctx, req)
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +33,7 @@ func (client *Client) AttachPostgresCluster(ctx context.Context, input AttachPos
 	return data.AttachPostgresCluster, nil
 }
 
-func (client *Client) DetachPostgresCluster(ctx context.Context, input DetachPostgresClusterInput) error {
+func (c *Client) DetachPostgresCluster(ctx context.Context, input DetachPostgresClusterInput) error {
 	query := `
 		mutation($input: DetachPostgresClusterInput!) {
 			detachPostgresCluster(input: $input) {
@@ -42,15 +42,16 @@ func (client *Client) DetachPostgresCluster(ctx context.Context, input DetachPos
 		}
 		`
 
-	req := client.NewRequest(query)
+	req := c.NewRequest(query)
 	req.Var("input", input)
 	ctx = ctxWithAction(ctx, "detach_postgres_cluster")
 
-	_, err := client.RunWithContext(ctx, req)
+	_, err := c.RunWithContext(ctx, req)
+
 	return err
 }
 
-func (client *Client) ListPostgresClusterAttachments(ctx context.Context, appName, postgresAppName string) ([]*PostgresClusterAttachment, error) {
+func (c *Client) ListPostgresClusterAttachments(ctx context.Context, appName, postgresAppName string) ([]*PostgresClusterAttachment, error) {
 	query := `
 		query($appName: String!, $postgresAppName: String!) {
 			postgresAttachments(appName: $appName, postgresAppName: $postgresAppName) {
@@ -64,12 +65,12 @@ func (client *Client) ListPostgresClusterAttachments(ctx context.Context, appNam
 		}
 		`
 
-	req := client.NewRequest(query)
+	req := c.NewRequest(query)
 	req.Var("appName", appName)
 	req.Var("postgresAppName", postgresAppName)
 	ctx = ctxWithAction(ctx, "list_postgres_cluster_attachments")
 
-	data, err := client.RunWithContext(ctx, req)
+	data, err := c.RunWithContext(ctx, req)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +78,7 @@ func (client *Client) ListPostgresClusterAttachments(ctx context.Context, appNam
 	return data.PostgresAttachments.Nodes, nil
 }
 
-func (client *Client) EnablePostgresConsul(ctx context.Context, appName string) (*PostgresEnableConsulPayload, error) {
+func (c *Client) EnablePostgresConsul(ctx context.Context, appName string) (*PostgresEnableConsulPayload, error) {
 	const query = `
 		mutation($appName: ID!) {
 			enablePostgresConsul(input: {appId: $appName}) {
@@ -85,11 +86,11 @@ func (client *Client) EnablePostgresConsul(ctx context.Context, appName string) 
 			}
 		}
 	`
-	req := client.NewRequest(query)
+	req := c.NewRequest(query)
 	req.Var("appName", appName)
 	ctx = ctxWithAction(ctx, "enable_postgres_consul")
 
-	data, err := client.RunWithContext(ctx, req)
+	data, err := c.RunWithContext(ctx, req)
 	if err != nil {
 		return nil, err
 	}

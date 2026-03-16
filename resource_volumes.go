@@ -90,5 +90,6 @@ query GetSnapshotsFromVolume($id: ID!) {
 		snapshot.Status = "created"
 		snapshots = append(snapshots, NewVolumeSnapshotFrom(snapshot))
 	}
+
 	return snapshots, nil
 }
