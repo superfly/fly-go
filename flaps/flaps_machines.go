@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff/v4"
-	"github.com/google/go-querystring/query"
 	fly "github.com/superfly/fly-go"
 )
 
@@ -68,50 +67,6 @@ func (f *Client) Start(ctx context.Context, appName, machineID string, nonce str
 	}
 
 	return out, nil
-}
-
-type waitQuerystring struct {
-	InstanceId     string `url:"instance_id,omitempty"`
-	TimeoutSeconds int    `url:"timeout,omitempty"`
-	State          string `url:"state,omitempty"`
-}
-
-const proxyTimeoutThreshold = 60 * time.Second
-
-func (f *Client) Wait(ctx context.Context, appName string, machine *fly.Machine, state string, timeout time.Duration) (err error) {
-	waitEndpoint := fmt.Sprintf("/%s/wait", machine.ID)
-	if state == "" {
-		state = "started"
-	}
-	version := machine.InstanceID
-	if machine.Version != "" {
-		version = machine.Version
-	}
-	if timeout > proxyTimeoutThreshold {
-		timeout = proxyTimeoutThreshold
-	}
-	if timeout < 1*time.Second {
-		timeout = 1 * time.Second
-	}
-	timeoutSeconds := int(timeout.Seconds())
-	waitQs := waitQuerystring{
-		InstanceId:     version,
-		TimeoutSeconds: timeoutSeconds,
-		State:          state,
-	}
-	qsVals, err := query.Values(waitQs)
-	if err != nil {
-		return fmt.Errorf("error making query string for wait request: %w", err)
-	}
-	ctx = contextWithAction(ctx, machineWait)
-	ctx = contextWithMachineID(ctx, machine.ID)
-
-	waitEndpoint += fmt.Sprintf("?%s", qsVals.Encode())
-	if err := f.sendRequestMachines(ctx, appName, http.MethodGet, waitEndpoint, nil, nil, nil); err != nil {
-		return fmt.Errorf("failed to wait for VM %s in %s state: %w", machine.ID, state, err)
-	}
-
-	return
 }
 
 func (f *Client) Stop(ctx context.Context, appName string, in fly.StopMachineInput, nonce string) (err error) {
