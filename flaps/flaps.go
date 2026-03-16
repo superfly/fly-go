@@ -205,7 +205,7 @@ func (f *Client) getCaveatNames() ([]string, error) {
 		return nil, nil
 	}
 
-  tok := f.tokens.MacaroonsOnly().All()
+	tok := f.tokens.MacaroonsOnly().All()
 	raws, err := macaroon.Parse(tok)
 	if err != nil {
 		return nil, err
