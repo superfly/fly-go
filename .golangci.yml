@@ -23,11 +23,6 @@ linters:
       checks:
         - all
         - -ST1003 # struct field ... should be ... (mostly acronyms such as Http -> HTTP)
-        - -ST1005 # error strings should not be capitalized
-        - -ST1016 # methods on the same type should have the same receiver name
-        - -QF1001 # could apply De Morgan's law
-        - -QF1002 # could use tagged switch
-        - -QF1008 # could remove embedded field ... from selector
     gomodguard:
       allowed:
         modules:

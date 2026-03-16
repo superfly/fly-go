@@ -126,7 +126,7 @@ func (t *Transport) setDefaults(opts *ClientOptions) {
 		t.EnableDebugTrace = *opts.EnableDebugTrace
 	} else {
 		v := os.Getenv("FLY_FORCE_TRACE")
-		t.EnableDebugTrace = !(v == "" || v == "0" || v == "false")
+		t.EnableDebugTrace = v != "" && v != "0" && v != "false"
 	}
 }
 
@@ -266,9 +266,9 @@ func GetAccessToken(ctx context.Context, email, password, otp string) (token str
 
 	switch {
 	case res.StatusCode >= http.StatusInternalServerError:
-		err = errors.New("An unknown server error occurred, please try again")
+		err = errors.New("an unknown server error occurred, please try again")
 	case res.StatusCode >= http.StatusBadRequest:
-		err = errors.New("Incorrect email and password combination")
+		err = errors.New("incorrect email and password combination")
 	default:
 		var result map[string]map[string]map[string]string
 

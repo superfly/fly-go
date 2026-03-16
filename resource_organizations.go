@@ -25,7 +25,7 @@ type OrganizationFilter func(*organizationFilter)
 
 var AdminOnly OrganizationFilter = func(f *organizationFilter) { f.admin = true }
 
-func (client *Client) GetOrganizations(ctx context.Context, filters ...OrganizationFilter) ([]Organization, error) {
+func (c *Client) GetOrganizations(ctx context.Context, filters ...OrganizationFilter) ([]Organization, error) {
 	q := `
 		query($admin: Boolean!) {
 			organizations(admin: $admin) {
@@ -49,12 +49,12 @@ func (client *Client) GetOrganizations(ctx context.Context, filters ...Organizat
 		f(filter)
 	}
 
-	req := client.NewRequest(q)
+	req := c.NewRequest(q)
 	filter.apply(req)
 
 	ctx = ctxWithAction(ctx, "get_organizations")
 
-	data, err := client.RunWithContext(ctx, req)
+	data, err := c.RunWithContext(ctx, req)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +62,7 @@ func (client *Client) GetOrganizations(ctx context.Context, filters ...Organizat
 	return data.Organizations.Nodes, nil
 }
 
-func (client *Client) GetOrganizationRemoteBuilderBySlug(ctx context.Context, slug string) (*Organization, error) {
+func (c *Client) GetOrganizationRemoteBuilderBySlug(ctx context.Context, slug string) (*Organization, error) {
 	q := `
 		query($slug: String!) {
 			organization(slug: $slug) {
@@ -157,11 +157,11 @@ func (client *Client) GetOrganizationRemoteBuilderBySlug(ctx context.Context, sl
 		}
 	`
 
-	req := client.NewRequest(q)
+	req := c.NewRequest(q)
 	ctx = ctxWithAction(ctx, "get_organization_by_slug")
 	req.Var("slug", slug)
 
-	data, err := client.RunWithContext(ctx, req)
+	data, err := c.RunWithContext(ctx, req)
 	if err != nil {
 		return nil, err
 	}
@@ -169,7 +169,7 @@ func (client *Client) GetOrganizationRemoteBuilderBySlug(ctx context.Context, sl
 	return data.Organization, nil
 }
 
-func (client *Client) GetOrganizationBySlug(ctx context.Context, slug string) (*Organization, error) {
+func (c *Client) GetOrganizationBySlug(ctx context.Context, slug string) (*Organization, error) {
 	q := `
 		query($slug: String!) {
 			organization(slug: $slug) {
@@ -195,11 +195,11 @@ func (client *Client) GetOrganizationBySlug(ctx context.Context, slug string) (*
 		}
 	`
 
-	req := client.NewRequest(q)
+	req := c.NewRequest(q)
 	ctx = ctxWithAction(ctx, "get_organization_by_slug")
 	req.Var("slug", slug)
 
-	data, err := client.RunWithContext(ctx, req)
+	data, err := c.RunWithContext(ctx, req)
 	if err != nil {
 		return nil, err
 	}
@@ -207,7 +207,7 @@ func (client *Client) GetOrganizationBySlug(ctx context.Context, slug string) (*
 	return data.Organization, nil
 }
 
-func (client *Client) GetDetailedOrganizationBySlug(ctx context.Context, slug string) (*OrganizationDetails, error) {
+func (c *Client) GetDetailedOrganizationBySlug(ctx context.Context, slug string) (*OrganizationDetails, error) {
 	query := `query($slug: String!) {
 		organizationdetails: organization(slug: $slug) {
 			id
@@ -237,10 +237,10 @@ func (client *Client) GetDetailedOrganizationBySlug(ctx context.Context, slug st
 	}
 	`
 
-	req := client.NewRequest(query)
+	req := c.NewRequest(query)
 	req.Var("slug", slug)
 	ctx = ctxWithAction(ctx, "get_detailed_organization")
-	data, err := client.RunWithContext(ctx, req)
+	data, err := c.RunWithContext(ctx, req)
 	if err != nil {
 		return nil, err
 	}
@@ -368,7 +368,7 @@ func (c *Client) DeleteOrganizationMembership(ctx context.Context, orgId, userId
 	return data.DeleteOrganizationMembership.Organization.Name, data.DeleteOrganizationMembership.User.Email, nil
 }
 
-func (client *Client) GetOrganizationByApp(ctx context.Context, appName string) (*Organization, error) {
+func (c *Client) GetOrganizationByApp(ctx context.Context, appName string) (*Organization, error) {
 	q := `
 		query ($appName: String!) {
 			app(name: $appName) {
@@ -457,12 +457,12 @@ func (client *Client) GetOrganizationByApp(ctx context.Context, appName string) 
 		}
 	`
 
-	req := client.NewRequest(q)
+	req := c.NewRequest(q)
 	req.Var("appName", appName)
 
 	ctx = ctxWithAction(ctx, "get_organization_by_app")
 
-	data, err := client.RunWithContext(ctx, req)
+	data, err := c.RunWithContext(ctx, req)
 	if err != nil {
 		return nil, err
 	}
@@ -470,7 +470,7 @@ func (client *Client) GetOrganizationByApp(ctx context.Context, appName string) 
 	return &data.App.Organization, nil
 }
 
-func (client *Client) GetAllowedReplaySourceOrgSlugs(ctx context.Context, slug string) ([]string, error) {
+func (c *Client) GetAllowedReplaySourceOrgSlugs(ctx context.Context, slug string) ([]string, error) {
 	q := `
 		query($slug: String!) {
 			organization(slug: $slug) {
@@ -479,11 +479,11 @@ func (client *Client) GetAllowedReplaySourceOrgSlugs(ctx context.Context, slug s
 		}
 	`
 
-	req := client.NewRequest(q)
+	req := c.NewRequest(q)
 	req.Var("slug", slug)
 	ctx = ctxWithAction(ctx, "get_allowed_replay_source_org_slugs")
 
-	data, err := client.RunWithContext(ctx, req)
+	data, err := c.RunWithContext(ctx, req)
 	if err != nil {
 		return nil, err
 	}
@@ -495,7 +495,7 @@ func (client *Client) GetAllowedReplaySourceOrgSlugs(ctx context.Context, slug s
 	return data.Organization.AllowedReplaySourceOrgSlugs, nil
 }
 
-func (client *Client) AddAllowedReplaySourceOrgs(ctx context.Context, orgSlug string, sourceOrgSlugs []string) (*Organization, error) {
+func (c *Client) AddAllowedReplaySourceOrgs(ctx context.Context, orgSlug string, sourceOrgSlugs []string) (*Organization, error) {
 	q := `
 		mutation($input: AddAllowedReplaySourceOrgsInput!) {
 			addAllowedReplaySourceOrgs(input: $input) {
@@ -512,14 +512,14 @@ func (client *Client) AddAllowedReplaySourceOrgs(ctx context.Context, orgSlug st
 		sourceOrgSlugs = []string{}
 	}
 
-	req := client.NewRequest(q)
+	req := c.NewRequest(q)
 	req.Var("input", map[string]any{
 		"organizationSlug": orgSlug,
 		"allowedOrgSlugs":  sourceOrgSlugs,
 	})
 	ctx = ctxWithAction(ctx, "add_allowed_replay_source_orgs")
 
-	data, err := client.RunWithContext(ctx, req)
+	data, err := c.RunWithContext(ctx, req)
 	if err != nil {
 		return nil, err
 	}
@@ -527,7 +527,7 @@ func (client *Client) AddAllowedReplaySourceOrgs(ctx context.Context, orgSlug st
 	return &data.AddAllowedReplaySourceOrgs.Organization, nil
 }
 
-func (client *Client) RemoveAllowedReplaySourceOrgs(ctx context.Context, orgSlug string, orgSlugsToRemove []string) (*Organization, error) {
+func (c *Client) RemoveAllowedReplaySourceOrgs(ctx context.Context, orgSlug string, orgSlugsToRemove []string) (*Organization, error) {
 	q := `
 		mutation($input: RemoveAllowedReplaySourceOrgsInput!) {
 			removeAllowedReplaySourceOrgs(input: $input) {
@@ -544,14 +544,14 @@ func (client *Client) RemoveAllowedReplaySourceOrgs(ctx context.Context, orgSlug
 		orgSlugsToRemove = []string{}
 	}
 
-	req := client.NewRequest(q)
+	req := c.NewRequest(q)
 	req.Var("input", map[string]any{
 		"organizationSlug": orgSlug,
 		"orgSlugsToRemove": orgSlugsToRemove,
 	})
 	ctx = ctxWithAction(ctx, "remove_allowed_replay_source_orgs")
 
-	data, err := client.RunWithContext(ctx, req)
+	data, err := c.RunWithContext(ctx, req)
 	if err != nil {
 		return nil, err
 	}

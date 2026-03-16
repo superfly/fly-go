@@ -2,7 +2,7 @@ package fly
 
 import "context"
 
-func (client *Client) GetMachine(ctx context.Context, machineId string) (*GqlMachine, error) {
+func (c *Client) GetMachine(ctx context.Context, machineId string) (*GqlMachine, error) {
 	query := `
 		query ($machineId: String!) {
 			gqlmachine:machine(machineId: $machineId) {
@@ -19,11 +19,11 @@ func (client *Client) GetMachine(ctx context.Context, machineId string) (*GqlMac
 		}
 	`
 
-	req := client.NewRequest(query)
+	req := c.NewRequest(query)
 	req.Var("machineId", machineId)
 	ctx = ctxWithAction(ctx, "get_machine")
 
-	data, err := client.RunWithContext(ctx, req)
+	data, err := c.RunWithContext(ctx, req)
 	if err != nil {
 		return nil, err
 	}

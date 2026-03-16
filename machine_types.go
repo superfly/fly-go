@@ -711,10 +711,11 @@ func (mp *MachinePort) HasNonHttpPorts() bool {
 	}
 	httpInRange := startPort <= 80 && 80 <= endPort
 	httpsInRange := startPort <= 443 && 443 <= endPort
-	switch {
-	case portRangeCount == 2:
+
+	switch portRangeCount {
+	case 2:
 		return !httpInRange || !httpsInRange
-	case portRangeCount == 1:
+	case 1:
 		return !httpInRange && !httpsInRange
 	}
 
