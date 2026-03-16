@@ -202,7 +202,7 @@ func (f *Client) NewRequest(ctx context.Context, method, path string, in interfa
 
 func (f *Client) getCaveatNames() ([]string, error) {
 	if f.tokens == nil {
-		return []string{}, nil
+		return nil, nil
 	}
 
 	tok := f.tokens.MacaroonsOnly().All()
