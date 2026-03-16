@@ -34,7 +34,6 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version-file: "go.mod"
-
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v9
         with:
@@ -51,7 +50,6 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version-file: "go.mod"
-          check-latest: true
       - name: Get go version
         id: go-version
         run: echo "name=version::$(go env GOVERSION)" >> $GITHUB_OUTPUT
