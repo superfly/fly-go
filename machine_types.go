@@ -48,7 +48,7 @@ type Machine struct {
 	Name     string          `toml:"name,omitempty" json:"name,omitempty"`
 	State    string          `toml:"state,omitempty" json:"state,omitempty"`
 	Region   string          `toml:"region,omitempty" json:"region,omitempty"`
-	ImageRef MachineImageRef `toml:"image_ref,omitempty" json:"image_ref,omitempty"`
+	ImageRef MachineImageRef `toml:"image_ref,omitempty" json:"image_ref"`
 	// InstanceID is unique for each version of the machine
 	InstanceID string `toml:"instance_id,omitempty" json:"instance_id,omitempty"`
 	Version    string `toml:"version,omitempty" json:"version,omitempty"`
@@ -330,13 +330,13 @@ type MachineExitEvent struct {
 	RequestedStop bool      `toml:"requested_stop,omitempty" json:"requested_stop,omitempty"`
 	Restarting    bool      `toml:"restarting,omitempty" json:"restarting,omitempty"`
 	Signal        int       `toml:"signal,omitempty" json:"signal,omitempty"`
-	ExitedAt      time.Time `toml:"exited_at,omitempty" json:"exited_at,omitempty"`
+	ExitedAt      time.Time `toml:"exited_at,omitempty" json:"exited_at"`
 }
 
 type StopMachineInput struct {
 	ID      string   `toml:"id,omitempty" json:"id,omitempty"`
 	Signal  string   `toml:"signal,omitempty" json:"signal,omitempty"`
-	Timeout Duration `toml:"timeout,omitempty" json:"timeout,omitempty"`
+	Timeout Duration `toml:"timeout,omitempty" json:"timeout"`
 }
 
 type RestartMachineInput struct {
@@ -785,7 +785,7 @@ type MachineConfig struct {
 
 	// An object filled with key/value pairs to be set as environment variables
 	Env      map[string]string `toml:"env,omitempty" json:"env,omitempty"`
-	Init     MachineInit       `toml:"init,omitempty" json:"init,omitempty"`
+	Init     MachineInit       `toml:"init,omitempty" json:"init"`
 	Guest    *MachineGuest     `toml:"guest,omitempty" json:"guest,omitempty"`
 	Metadata map[string]string `toml:"metadata,omitempty" json:"metadata,omitempty"`
 	Mounts   []MachineMount    `toml:"mounts,omitempty" json:"mounts,omitempty"`

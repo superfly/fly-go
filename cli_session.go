@@ -9,18 +9,18 @@ import (
 )
 
 type CLISession struct {
-	ID          string                 `json:"id"`
-	URL         string                 `json:"auth_url,omitempty"`
-	AccessToken string                 `json:"access_token,omitempty"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	ID          string         `json:"id"`
+	URL         string         `json:"auth_url,omitempty"`
+	AccessToken string         `json:"access_token,omitempty"`
+	Metadata    map[string]any `json:"metadata,omitempty"`
 }
 
 // StartCLISession starts a session with the platform via web
-func StartCLISession(sessionName string, args map[string]interface{}) (CLISession, error) {
+func StartCLISession(sessionName string, args map[string]any) (CLISession, error) {
 	var result CLISession
 
 	if args == nil {
-		args = make(map[string]interface{})
+		args = make(map[string]any)
 	}
 	args["name"] = sessionName
 

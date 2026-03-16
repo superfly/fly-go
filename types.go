@@ -38,8 +38,8 @@ type Query struct {
 		}
 	}
 
-	Node  interface{}
-	Nodes []interface{}
+	Node  any
+	Nodes []any
 
 	Platform struct {
 		RequestRegion string
@@ -192,9 +192,9 @@ type IssuedCertificate struct {
 	Key         string
 }
 
-type Definition map[string]interface{}
+type Definition map[string]any
 
-func DefinitionPtr(in map[string]interface{}) *Definition {
+func DefinitionPtr(in map[string]any) *Definition {
 	if len(in) > 0 {
 		return Pointer(Definition(in))
 	}
@@ -636,7 +636,7 @@ type PostDeploymentInfo struct {
 	Error         string `json:"error"`
 }
 type ReleaseMetadata struct {
-	PostDeploymentInfo PostDeploymentInfo `json:"post_deployment_info,omitempty"`
+	PostDeploymentInfo PostDeploymentInfo `json:"post_deployment_info"`
 }
 
 type SignedUrl struct {
@@ -964,8 +964,8 @@ type GqlMachine struct {
 }
 
 type Logger interface {
-	Debug(v ...interface{})
-	Debugf(format string, v ...interface{})
+	Debug(v ...any)
+	Debugf(format string, v ...any)
 }
 
 type AppHostIssues struct {

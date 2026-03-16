@@ -513,7 +513,7 @@ func (client *Client) AddAllowedReplaySourceOrgs(ctx context.Context, orgSlug st
 	}
 
 	req := client.NewRequest(q)
-	req.Var("input", map[string]interface{}{
+	req.Var("input", map[string]any{
 		"organizationSlug": orgSlug,
 		"allowedOrgSlugs":  sourceOrgSlugs,
 	})
@@ -545,7 +545,7 @@ func (client *Client) RemoveAllowedReplaySourceOrgs(ctx context.Context, orgSlug
 	}
 
 	req := client.NewRequest(q)
-	req.Var("input", map[string]interface{}{
+	req.Var("input", map[string]any{
 		"organizationSlug": orgSlug,
 		"orgSlugsToRemove": orgSlugsToRemove,
 	})

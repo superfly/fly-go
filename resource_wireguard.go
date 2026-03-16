@@ -78,7 +78,7 @@ mutation($input: AddWireGuardPeerInput!) {
 		fmt.Printf("Creating wiregard peer via NATS")
 	}
 
-	inputs := map[string]interface{}{
+	inputs := map[string]any{
 		"organizationId": orgID,
 		"name":           name,
 		"pubkey":         pubkey,
@@ -114,7 +114,7 @@ mutation($input: RemoveWireGuardPeerInput!) {
   }
 }
 `)
-	req.Var("input", map[string]interface{}{
+	req.Var("input", map[string]any{
 		"organizationId": orgID,
 		"name":           name,
 	})
@@ -133,7 +133,7 @@ mutation($input: CreateDelegatedWireGuardTokenInput!) {
   }
 }
 `)
-	req.Var("input", map[string]interface{}{
+	req.Var("input", map[string]any{
 		"organizationId": orgID,
 		"name":           name,
 	})
@@ -156,7 +156,7 @@ mutation($input: DeleteDelegatedWireGuardTokenInput!) {
 }
 `
 
-	input := map[string]interface{}{
+	input := map[string]any{
 		"organizationId": orgID,
 	}
 
@@ -230,7 +230,7 @@ mutation($input: ValidateWireGuardPeersInput!) {
 }
 `)
 
-	req.Var("input", map[string]interface{}{
+	req.Var("input", map[string]any{
 		"peerIps": peerIPs,
 	})
 	ctx = ctxWithAction(ctx, "validate_wg_peers")

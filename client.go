@@ -233,8 +233,8 @@ func compactQueryString(q string) string {
 // GetAccessToken - uses email, password and possible otp to get token
 func GetAccessToken(ctx context.Context, email, password, otp string) (token string, err error) {
 	var postData bytes.Buffer
-	if err = json.NewEncoder(&postData).Encode(map[string]interface{}{
-		"data": map[string]interface{}{
+	if err = json.NewEncoder(&postData).Encode(map[string]any{
+		"data": map[string]any{
 			"attributes": map[string]string{
 				"email":    email,
 				"password": password,
