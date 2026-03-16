@@ -40,6 +40,7 @@ func actionFromCtx(ctx context.Context) string {
 	if action != nil {
 		return action.(string)
 	}
+
 	return "unknown_actiom"
 }
 
@@ -125,7 +126,7 @@ func (t *Transport) setDefaults(opts *ClientOptions) {
 		t.EnableDebugTrace = *opts.EnableDebugTrace
 	} else {
 		v := os.Getenv("FLY_FORCE_TRACE")
-		t.EnableDebugTrace = !(v == "" || v == "0" || v == "false")
+		t.EnableDebugTrace = v != "" && v != "0" && v != "false"
 	}
 }
 
@@ -147,6 +148,7 @@ func NewClientFromOptions(opts ClientOptions) *Client {
 	tracingGenqClient := &tracingGenqlientClient{
 		client: genqClient,
 	}
+
 	return &Client{httpClient, client, tracingGenqClient, opts.tokens(), opts.Logger}
 }
 
@@ -173,6 +175,7 @@ func (c *Client) getRequestType(r *graphql.Request) string {
 	if strings.Contains(query, "query") {
 		return "query"
 	}
+
 	return "unknown"
 }
 
@@ -230,8 +233,8 @@ func compactQueryString(q string) string {
 // GetAccessToken - uses email, password and possible otp to get token
 func GetAccessToken(ctx context.Context, email, password, otp string) (token string, err error) {
 	var postData bytes.Buffer
-	if err = json.NewEncoder(&postData).Encode(map[string]interface{}{
-		"data": map[string]interface{}{
+	if err = json.NewEncoder(&postData).Encode(map[string]any{
+		"data": map[string]any{
 			"attributes": map[string]string{
 				"email":    email,
 				"password": password,
@@ -263,9 +266,9 @@ func GetAccessToken(ctx context.Context, email, password, otp string) (token str
 
 	switch {
 	case res.StatusCode >= http.StatusInternalServerError:
-		err = errors.New("An unknown server error occurred, please try again")
+		err = errors.New("an unknown server error occurred, please try again")
 	case res.StatusCode >= http.StatusBadRequest:
-		err = errors.New("Incorrect email and password combination")
+		err = errors.New("incorrect email and password combination")
 	default:
 		var result map[string]map[string]map[string]string
 
@@ -292,6 +295,7 @@ func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	if t.EnableDebugTrace {
 		req.Header.Set("Fly-Force-Trace", "true")
 	}
+
 	return t.UnderlyingTransport.RoundTrip(req)
 }
 
@@ -299,6 +303,7 @@ func (t *Transport) tokens() *tokens.Tokens {
 	if t.Tokens == nil {
 		t.Tokens = tokens.Parse(t.Token)
 	}
+
 	return t.Tokens
 }
 

@@ -19,6 +19,7 @@ func (d *Duration) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &v); err != nil {
 		return err
 	}
+
 	return d.ParseDuration(v)
 }
 
@@ -27,12 +28,12 @@ func (d *Duration) UnmarshalTOML(v any) error {
 }
 
 func (d Duration) MarshalTOML() ([]byte, error) {
-	v := fmt.Sprintf("\"%s\"", d.Duration.String())
+	v := fmt.Sprintf("\"%s\"", d.String())
 	return []byte(v), nil
 }
 
 func (d *Duration) MarshalText() ([]byte, error) {
-	return []byte(d.Duration.String()), nil
+	return []byte(d.String()), nil
 }
 
 func (d *Duration) UnmarshalText(text []byte) error {
@@ -57,8 +58,9 @@ func (d *Duration) ParseDuration(v any) error {
 			return err
 		}
 	default:
-		return fmt.Errorf("Unknown duration type: %T", value)
+		return fmt.Errorf("unknown duration type: %T", value)
 	}
+
 	return nil
 }
 
@@ -68,6 +70,7 @@ func ParseDuration(v any) (*Duration, error) {
 	if err := d.ParseDuration(v); err != nil {
 		return nil, err
 	}
+
 	return d, nil
 }
 
@@ -79,5 +82,6 @@ func MustParseDuration(v any) *Duration {
 	if err != nil {
 		panic(err)
 	}
+
 	return d
 }

@@ -46,7 +46,7 @@ func (c *Client) RevokeLimitedAccessToken(ctx context.Context, id string) error 
 	`
 	req := c.NewRequest(query)
 
-	req.Var("input", map[string]interface{}{
+	req.Var("input", map[string]any{
 		"id": id,
 	})
 	ctx = ctxWithAction(ctx, "revoke_limited_access_token")

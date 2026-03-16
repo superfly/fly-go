@@ -38,6 +38,7 @@ func (f *Client) sendRequestIpAssignments(ctx context.Context, appName, method, 
 	if len(qs) > 0 {
 		endpoint += "?" + qs.Encode()
 	}
+
 	return f._sendRequest(ctx, method, endpoint, in, out, headers)
 }
 

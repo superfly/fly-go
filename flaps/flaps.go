@@ -139,6 +139,7 @@ func (f *Client) _sendRequest(ctx context.Context, method, endpoint string, in, 
 		if err != nil {
 			responseBody = make([]byte, 0)
 		}
+
 		return &FlapsError{
 			OriginalError:      handleAPIError(resp.StatusCode, responseBody),
 			ResponseStatusCode: resp.StatusCode,
@@ -152,6 +153,7 @@ func (f *Client) _sendRequest(ctx context.Context, method, endpoint string, in, 
 			return fmt.Errorf("failed decoding response: %w", err)
 		}
 	}
+
 	return nil
 }
 
@@ -161,6 +163,7 @@ func (f *Client) urlFromBaseUrl(pathAndQueryString string) (*url.URL, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed parsing flaps path '%s' with error: %w", pathAndQueryString, err)
 	}
+
 	return newUrl.ResolveReference(&url.URL{Path: newPath.Path, RawQuery: newPath.RawQuery}), nil
 }
 
@@ -239,6 +242,7 @@ func handleAPIError(statusCode int, responseBody []byte) error {
 		} else if apiErr.Message != "" {
 			return fmt.Errorf("%s", apiErr.Message)
 		}
+
 		return errors.New(apiErr.Error)
 	default:
 		return errors.New("something went terribly wrong")

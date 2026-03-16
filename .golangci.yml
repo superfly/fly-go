@@ -11,16 +11,18 @@ linters:
     - staticcheck
     - unconvert
     - unused
+    - nlreturn
+    - bodyclose
+    - gocheckcompilerdirectives
+    - errname
+    - errchkjson
   settings:
+    nlreturn:
+      block-size: 3
     staticcheck:
       checks:
         - all
         - -ST1003 # struct field ... should be ... (mostly acronyms such as Http -> HTTP)
-        - -ST1005 # error strings should not be capitalized
-        - -ST1016 # methods on the same type should have the same receiver name
-        - -QF1001 # could apply De Morgan's law
-        - -QF1002 # could use tagged switch
-        - -QF1008 # could remove embedded field ... from selector
     gomodguard:
       allowed:
         modules:
@@ -38,7 +40,7 @@ linters:
       blocked:
         modules:
           - github.com/superfly/flyctl:
-              reason: '`api` can not depend on flyctl project because it pulls tons of dependencies'
+              reason: "`api` can not depend on flyctl project because it pulls tons of dependencies"
   exclusions:
     generated: lax
     presets:
@@ -52,7 +54,7 @@ linters:
       - examples$
 formatters:
   enable:
-    - goimports
+    - gofumpt
   settings:
     gofumpt:
       module-path: github.com/superfly/flyctl

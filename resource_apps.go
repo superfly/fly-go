@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func (client *Client) GetApps(ctx context.Context, role *string) ([]App, error) {
+func (c *Client) GetApps(ctx context.Context, role *string) ([]App, error) {
 	more := true
 	apps := []App{}
 	var cursor string
@@ -15,7 +15,7 @@ func (client *Client) GetApps(ctx context.Context, role *string) ([]App, error) 
 		var appPage []App
 		var err error
 
-		appPage, more, cursor, err = client.getAppsPage(ctx, nil, role, &cursor)
+		appPage, more, cursor, err = c.getAppsPage(ctx, nil, role, &cursor)
 		if err != nil {
 			return nil, err
 		}
@@ -25,7 +25,7 @@ func (client *Client) GetApps(ctx context.Context, role *string) ([]App, error) 
 	return apps, nil
 }
 
-func (client *Client) GetAppsForOrganization(ctx context.Context, orgID string) ([]App, error) {
+func (c *Client) GetAppsForOrganization(ctx context.Context, orgID string) ([]App, error) {
 	more := true
 	apps := []App{}
 	var cursor string
@@ -34,7 +34,7 @@ func (client *Client) GetAppsForOrganization(ctx context.Context, orgID string) 
 		var appPage []App
 		var err error
 
-		appPage, more, cursor, err = client.getAppsPage(ctx, &orgID, nil, &cursor)
+		appPage, more, cursor, err = c.getAppsPage(ctx, &orgID, nil, &cursor)
 		if err != nil {
 			return nil, err
 		}
@@ -44,7 +44,7 @@ func (client *Client) GetAppsForOrganization(ctx context.Context, orgID string) 
 	return apps, nil
 }
 
-func (client *Client) getAppsPage(ctx context.Context, orgID *string, role *string, after *string) ([]App, bool, string, error) {
+func (c *Client) getAppsPage(ctx context.Context, orgID *string, role *string, after *string) ([]App, bool, string, error) {
 	query := `
 		query($org: ID, $role: String, $after: String) {
 			apps(type: "container", first: 200, after: $after, organizationId: $org, role: $role) {
@@ -72,7 +72,7 @@ func (client *Client) getAppsPage(ctx context.Context, orgID *string, role *stri
 		}
 		`
 
-	req := client.NewRequest(query)
+	req := c.NewRequest(query)
 	ctx = ctxWithAction(ctx, "get_apps_page")
 	if orgID != nil {
 		req.Var("org", *orgID)
@@ -84,7 +84,7 @@ func (client *Client) getAppsPage(ctx context.Context, orgID *string, role *stri
 		req.Var("after", *after)
 	}
 
-	data, err := client.RunWithContext(ctx, req)
+	data, err := c.RunWithContext(ctx, req)
 	if err != nil {
 		return nil, false, "", err
 	}
@@ -92,7 +92,7 @@ func (client *Client) getAppsPage(ctx context.Context, orgID *string, role *stri
 	return data.Apps.Nodes, data.Apps.PageInfo.HasNextPage, data.Apps.PageInfo.EndCursor, nil
 }
 
-func (client *Client) GetApp(ctx context.Context, appName string) (*App, error) {
+func (c *Client) GetApp(ctx context.Context, appName string) (*App, error) {
 	query := `
 		query ($appName: String!) {
 			app(name: $appName) {
@@ -183,11 +183,11 @@ func (client *Client) GetApp(ctx context.Context, appName string) (*App, error) 
 		}
 	`
 
-	req := client.NewRequest(query)
+	req := c.NewRequest(query)
 	req.Var("appName", appName)
 	ctx = ctxWithAction(ctx, "get_app")
 
-	data, err := client.RunWithContext(ctx, req)
+	data, err := c.RunWithContext(ctx, req)
 	if err != nil {
 		return nil, err
 	}
@@ -195,7 +195,7 @@ func (client *Client) GetApp(ctx context.Context, appName string) (*App, error) 
 	return &data.App, nil
 }
 
-func (client *Client) GetAppRemoteBuilder(ctx context.Context, appName string) (*App, error) {
+func (c *Client) GetAppRemoteBuilder(ctx context.Context, appName string) (*App, error) {
 	query := `
 		query ($appName: String!) {
 			app(name: $appName) {
@@ -354,11 +354,11 @@ func (client *Client) GetAppRemoteBuilder(ctx context.Context, appName string) (
 		}
 	`
 
-	req := client.NewRequest(query)
+	req := c.NewRequest(query)
 	req.Var("appName", appName)
 	ctx = ctxWithAction(ctx, "get_app")
 
-	data, err := client.RunWithContext(ctx, req)
+	data, err := c.RunWithContext(ctx, req)
 	if err != nil {
 		return nil, err
 	}
@@ -366,8 +366,8 @@ func (client *Client) GetAppRemoteBuilder(ctx context.Context, appName string) (
 	return &data.App, nil
 }
 
-func (client *Client) GetDeployerAppByOrg(ctx context.Context, orgID string) (*App, error) {
-	apps, err := client.GetAppsForOrganization(ctx, orgID)
+func (c *Client) GetDeployerAppByOrg(ctx context.Context, orgID string) (*App, error) {
+	apps, err := c.GetAppsForOrganization(ctx, orgID)
 	if err != nil {
 		return nil, err
 	}
@@ -381,10 +381,11 @@ func (client *Client) GetDeployerAppByOrg(ctx context.Context, orgID string) (*A
 			return &app, nil
 		}
 	}
+
 	return nil, fmt.Errorf("no deployer found")
 }
 
-func (client *Client) GetAppNetwork(ctx context.Context, appName string) (*string, error) {
+func (c *Client) GetAppNetwork(ctx context.Context, appName string) (*string, error) {
 	query := `
 		query ($appName: String!) {
 			app(name: $appName) {
@@ -393,11 +394,11 @@ func (client *Client) GetAppNetwork(ctx context.Context, appName string) (*strin
 		}
 	`
 
-	req := client.NewRequest(query)
+	req := c.NewRequest(query)
 	req.Var("appName", appName)
 	ctx = ctxWithAction(ctx, "get_app_network")
 
-	data, err := client.RunWithContext(ctx, req)
+	data, err := c.RunWithContext(ctx, req)
 	if err != nil {
 		return nil, err
 	}
@@ -405,7 +406,7 @@ func (client *Client) GetAppNetwork(ctx context.Context, appName string) (*strin
 	return &data.App.Network, nil
 }
 
-func (client *Client) GetAppCNAMETarget(ctx context.Context, appName string) (string, error) {
+func (c *Client) GetAppCNAMETarget(ctx context.Context, appName string) (string, error) {
 	query := `
 		query ($appName: String!) {
 			app(name: $appName) {
@@ -414,11 +415,11 @@ func (client *Client) GetAppCNAMETarget(ctx context.Context, appName string) (st
 		}
 	`
 
-	req := client.NewRequest(query)
+	req := c.NewRequest(query)
 	req.Var("appName", appName)
 	ctx = ctxWithAction(ctx, "get_app_cname_target")
 
-	data, err := client.RunWithContext(ctx, req)
+	data, err := c.RunWithContext(ctx, req)
 	if err != nil {
 		return "", err
 	}
@@ -426,7 +427,7 @@ func (client *Client) GetAppCNAMETarget(ctx context.Context, appName string) (st
 	return data.App.CNAMETarget, nil
 }
 
-func (client *Client) GetAppCompact(ctx context.Context, appName string) (*AppCompact, error) {
+func (c *Client) GetAppCompact(ctx context.Context, appName string) (*AppCompact, error) {
 	query := `
 		query ($appName: String!) {
 			appcompact:app(name: $appName) {
@@ -453,11 +454,11 @@ func (client *Client) GetAppCompact(ctx context.Context, appName string) (*AppCo
 		}
 	`
 
-	req := client.NewRequest(query)
+	req := c.NewRequest(query)
 	req.Var("appName", appName)
 	ctx = ctxWithAction(ctx, "get_app_compact")
 
-	data, err := client.RunWithContext(ctx, req)
+	data, err := c.RunWithContext(ctx, req)
 	if err != nil {
 		return nil, err
 	}
@@ -465,7 +466,7 @@ func (client *Client) GetAppCompact(ctx context.Context, appName string) (*AppCo
 	return &data.AppCompact, nil
 }
 
-func (client *Client) GetAppBasic(ctx context.Context, appName string) (*AppBasic, error) {
+func (c *Client) GetAppBasic(ctx context.Context, appName string) (*AppBasic, error) {
 	query := `
 		query ($appName: String!) {
 			appbasic:app(name: $appName) {
@@ -483,11 +484,11 @@ func (client *Client) GetAppBasic(ctx context.Context, appName string) (*AppBasi
 		}
 	`
 
-	req := client.NewRequest(query)
+	req := c.NewRequest(query)
 	req.Var("appName", appName)
 	ctx = ctxWithAction(ctx, "get_app_basic")
 
-	data, err := client.RunWithContext(ctx, req)
+	data, err := c.RunWithContext(ctx, req)
 	if err != nil {
 		return nil, err
 	}
@@ -495,7 +496,7 @@ func (client *Client) GetAppBasic(ctx context.Context, appName string) (*AppBasi
 	return &data.AppBasic, nil
 }
 
-func (client *Client) CreateApp(ctx context.Context, input CreateAppInput) (*App, error) {
+func (c *Client) CreateApp(ctx context.Context, input CreateAppInput) (*App, error) {
 	query := `
 		mutation($input: CreateAppInput!) {
 			createApp(input: $input) {
@@ -517,12 +518,12 @@ func (client *Client) CreateApp(ctx context.Context, input CreateAppInput) (*App
 		}
 	`
 
-	req := client.NewRequest(query)
+	req := c.NewRequest(query)
 
 	req.Var("input", input)
 	ctx = ctxWithAction(ctx, "create_app")
 
-	data, err := client.RunWithContext(ctx, req)
+	data, err := c.RunWithContext(ctx, req)
 	if err != nil {
 		return nil, err
 	}
@@ -530,7 +531,7 @@ func (client *Client) CreateApp(ctx context.Context, input CreateAppInput) (*App
 	return &data.CreateApp.App, nil
 }
 
-func (client *Client) DeleteApp(ctx context.Context, appName string) error {
+func (c *Client) DeleteApp(ctx context.Context, appName string) error {
 	query := `
 			mutation($appId: ID!) {
 				deleteApp(appId: $appId) {
@@ -541,16 +542,17 @@ func (client *Client) DeleteApp(ctx context.Context, appName string) error {
 			}
 		`
 
-	req := client.NewRequest(query)
+	req := c.NewRequest(query)
 
 	req.Var("appId", appName)
 	ctx = ctxWithAction(ctx, "delete_app")
 
-	_, err := client.RunWithContext(ctx, req)
+	_, err := c.RunWithContext(ctx, req)
+
 	return err
 }
 
-func (client *Client) MoveApp(ctx context.Context, appName string, orgID string) (*App, error) {
+func (c *Client) MoveApp(ctx context.Context, appName string, orgID string) (*App, error) {
 	query := `
 		mutation ($input: MoveAppInput!) {
 			moveApp(input: $input) {
@@ -565,7 +567,7 @@ func (client *Client) MoveApp(ctx context.Context, appName string, orgID string)
 		}
 	`
 
-	req := client.NewRequest(query)
+	req := c.NewRequest(query)
 
 	req.Var("input", map[string]string{
 		"appId":          appName,
@@ -573,11 +575,12 @@ func (client *Client) MoveApp(ctx context.Context, appName string, orgID string)
 	})
 	ctx = ctxWithAction(ctx, "move_app")
 
-	data, err := client.RunWithContext(ctx, req)
+	data, err := c.RunWithContext(ctx, req)
+
 	return &data.App, err
 }
 
-func (client *Client) ResolveImageForApp(ctx context.Context, appName, imageRef string) (*Image, error) {
+func (c *Client) ResolveImageForApp(ctx context.Context, appName, imageRef string) (*Image, error) {
 	query := `
 		query ($appName: String!, $imageRef: String!) {
 			app(name: $appName) {
@@ -593,12 +596,12 @@ func (client *Client) ResolveImageForApp(ctx context.Context, appName, imageRef 
 		}
 	`
 
-	req := client.NewRequest(query)
+	req := c.NewRequest(query)
 	req.Var("appName", appName)
 	req.Var("imageRef", imageRef)
 	ctx = ctxWithAction(ctx, "resolve_image")
 
-	data, err := client.RunWithContext(ctx, req)
+	data, err := c.RunWithContext(ctx, req)
 	if err != nil {
 		return nil, err
 	}
@@ -606,19 +609,19 @@ func (client *Client) ResolveImageForApp(ctx context.Context, appName, imageRef 
 	return data.App.Image, nil
 }
 
-func (client *Client) AppNameAvailable(ctx context.Context, appName string) (bool, error) {
+func (c *Client) AppNameAvailable(ctx context.Context, appName string) (bool, error) {
 	query := `
 		query ($appName: String!) {
 			appNameAvailable(name: $appName)
 		}
 	`
 
-	req := client.NewRequest(query)
+	req := c.NewRequest(query)
 
 	req.Var("appName", appName)
 	ctx = ctxWithAction(ctx, "app_name_available")
 
-	data, err := client.RunWithContext(ctx, req)
+	data, err := c.RunWithContext(ctx, req)
 	if err != nil {
 		return false, err
 	}
@@ -626,7 +629,7 @@ func (client *Client) AppNameAvailable(ctx context.Context, appName string) (boo
 	return data.AppNameAvailable, nil
 }
 
-func (client *Client) LockApp(ctx context.Context, input LockAppInput) (*LockApp, error) {
+func (c *Client) LockApp(ctx context.Context, input LockAppInput) (*LockApp, error) {
 	query := `
 		mutation($input: LockAppInput!) {
 			lockApp(input: $input) {
@@ -636,14 +639,14 @@ func (client *Client) LockApp(ctx context.Context, input LockAppInput) (*LockApp
 		}
 	`
 
-	req := client.NewRequest(query)
+	req := c.NewRequest(query)
 
 	req.Var("input", map[string]string{
 		"appId": input.AppID,
 	})
 	ctx = ctxWithAction(ctx, "lock_app")
 
-	data, err := client.RunWithContext(ctx, req)
+	data, err := c.RunWithContext(ctx, req)
 	if err != nil {
 		return nil, err
 	}
@@ -651,7 +654,7 @@ func (client *Client) LockApp(ctx context.Context, input LockAppInput) (*LockApp
 	return data.LockApp, nil
 }
 
-func (client *Client) UnlockApp(ctx context.Context, input UnlockAppInput) (*App, error) {
+func (c *Client) UnlockApp(ctx context.Context, input UnlockAppInput) (*App, error) {
 	query := `
 		mutation($input: UnlockAppInput!) {
 			unlockApp(input: $input) {
@@ -662,7 +665,7 @@ func (client *Client) UnlockApp(ctx context.Context, input UnlockAppInput) (*App
 		}
 	`
 
-	req := client.NewRequest(query)
+	req := c.NewRequest(query)
 
 	req.Var("input", map[string]string{
 		"appId":  input.AppID,
@@ -670,7 +673,7 @@ func (client *Client) UnlockApp(ctx context.Context, input UnlockAppInput) (*App
 	})
 	ctx = ctxWithAction(ctx, "unlock_app")
 
-	data, err := client.RunWithContext(ctx, req)
+	data, err := c.RunWithContext(ctx, req)
 	if err != nil {
 		return nil, err
 	}
@@ -678,7 +681,7 @@ func (client *Client) UnlockApp(ctx context.Context, input UnlockAppInput) (*App
 	return &data.App, nil
 }
 
-func (client *Client) GetAppLock(ctx context.Context, name string) (*App, error) {
+func (c *Client) GetAppLock(ctx context.Context, name string) (*App, error) {
 	query := `
 	query($name: String!) {
 		app(name: $name) {
@@ -690,11 +693,11 @@ func (client *Client) GetAppLock(ctx context.Context, name string) (*App, error)
 	  }
 	`
 
-	req := client.NewRequest(query)
+	req := c.NewRequest(query)
 	req.Var("name", name)
 	ctx = ctxWithAction(ctx, "get_app_lock")
 
-	data, err := client.RunWithContext(ctx, req)
+	data, err := c.RunWithContext(ctx, req)
 	if err != nil {
 		return nil, err
 	}

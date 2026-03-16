@@ -14,6 +14,7 @@ func (f *Client) sendRequestSecretKeys(ctx context.Context, appName, method, end
 	if qs != nil {
 		endpoint += "?" + qs.Encode()
 	}
+
 	return f._sendRequest(ctx, method, endpoint, in, out, headers)
 }
 

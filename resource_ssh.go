@@ -50,7 +50,7 @@ mutation($input: IssueCertificateInput!) {
 		pubStr = strings.TrimSpace(string(ssh.MarshalAuthorizedKey(sshPub)))
 	}
 
-	inputs := map[string]interface{}{
+	inputs := map[string]any{
 		"organizationId": orgID,
 		"principals":     principals,
 		"appNames":       appNames,

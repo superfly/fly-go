@@ -20,6 +20,7 @@ func (f *Client) GetRegions(ctx context.Context) (*RegionData, error) {
 	if err := f._sendRequest(ctx, http.MethodGet, endpoint, nil, data, nil); err != nil {
 		return nil, fmt.Errorf("failed to get regions: %w", err)
 	}
+
 	return data, nil
 }
 
@@ -66,5 +67,6 @@ func (f *Client) GetPlacements(ctx context.Context, request *GetPlacementsReques
 	if err := f._sendRequest(ctx, http.MethodPost, endpoint, request, regions, nil); err != nil {
 		return nil, fmt.Errorf("failed to get placements: %w", err)
 	}
+
 	return regions.Regions, nil
 }

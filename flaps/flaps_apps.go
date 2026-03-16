@@ -81,6 +81,7 @@ func (f *Client) ListApps(ctx context.Context, req ListAppsRequest) (apps []App,
 	if err == nil {
 		apps = res.Apps
 	}
+
 	return
 }
 
@@ -102,13 +103,14 @@ func (f *Client) AppNameAvailable(ctx context.Context, name string) (ok bool, er
 		ok = true
 		err = nil
 	}
+
 	return
 }
 
 func (f *Client) WaitForApp(ctx context.Context, name string) error {
 	ctx = contextWithAction(ctx, appGet)
 
-	var op = func() error {
+	op := func() error {
 		err := f._sendRequest(ctx, http.MethodGet, "/apps/"+url.PathEscape(name), nil, nil, nil)
 		if err == nil {
 			return nil
@@ -116,7 +118,9 @@ func (f *Client) WaitForApp(ctx context.Context, name string) error {
 		if ferr, ok := err.(*FlapsError); ok && slices.Contains([]int{404, 401}, ferr.ResponseStatusCode) {
 			return err
 		}
+
 		return backoff.Permanent(err)
 	}
+
 	return Retry(ctx, op)
 }

@@ -3,9 +3,9 @@ package fly
 import "errors"
 
 // ErrNotFound - Error to return when something is not found
-var ErrNotFound = errors.New("Not Found")
+var ErrNotFound = errors.New("not found")
 
 // ErrUnknown - Error to return when an unknown server error occurs
-var ErrUnknown = errors.New("An unknown server error occurred, please try again")
+var ErrUnknown = errors.New("an unknown server error occurred, please try again")
 
-var ErrNoAuthToken = errors.New("No access token available. Please login with 'flyctl auth login'")
+var ErrNoAuthToken = errors.New("no access token available. Please login with 'flyctl auth login'")
