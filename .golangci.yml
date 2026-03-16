@@ -11,7 +11,14 @@ linters:
     - staticcheck
     - unconvert
     - unused
+    - nlreturn
+    - bodyclose
+    - gocheckcompilerdirectives
+    - errname
+    - errchkjson
   settings:
+    nlreturn:
+      block-size: 3
     staticcheck:
       checks:
         - all
@@ -38,7 +45,7 @@ linters:
       blocked:
         modules:
           - github.com/superfly/flyctl:
-              reason: '`api` can not depend on flyctl project because it pulls tons of dependencies'
+              reason: "`api` can not depend on flyctl project because it pulls tons of dependencies"
   exclusions:
     generated: lax
     presets:
@@ -52,7 +59,7 @@ linters:
       - examples$
 formatters:
   enable:
-    - goimports
+    - gofumpt
   settings:
     gofumpt:
       module-path: github.com/superfly/flyctl
