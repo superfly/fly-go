@@ -101,6 +101,7 @@ type ClientOptions struct {
 	BaseURL          string
 	Logger           Logger
 	EnableDebugTrace *bool
+	FlyForceRegion   *string
 	Transport        *Transport
 }
 
@@ -116,17 +117,28 @@ func (t *Transport) setDefaults(opts *ClientOptions) {
 	if t.UnderlyingTransport == nil {
 		t.UnderlyingTransport = defaultTransport
 	}
+
 	if t.Tokens == nil && t.Token == "" {
 		t.Tokens = opts.tokens()
 	}
+
 	if t.UserAgent == "" {
 		t.UserAgent = fmt.Sprintf("%s/%s", opts.Name, opts.Version)
 	}
+
 	if opts.EnableDebugTrace != nil {
 		t.EnableDebugTrace = *opts.EnableDebugTrace
 	} else {
 		v := os.Getenv("FLY_FORCE_TRACE")
 		t.EnableDebugTrace = v != "" && v != "0" && v != "false"
+	}
+
+	if opts.FlyForceRegion != nil {
+		t.FlyForceRegion = *opts.FlyForceRegion
+	} else if t.FlyForceRegion == "" {
+		if v := os.Getenv("FLY_FORCE_REGION"); v != "" {
+			t.FlyForceRegion = v
+		}
 	}
 }
 
@@ -286,6 +298,7 @@ type Transport struct {
 	Token               string // deprecated
 	Tokens              *tokens.Tokens
 	EnableDebugTrace    bool
+	FlyForceRegion      string
 }
 
 func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
@@ -294,6 +307,10 @@ func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	req.Header.Set("User-Agent", t.UserAgent)
 	if t.EnableDebugTrace {
 		req.Header.Set("Fly-Force-Trace", "true")
+	}
+
+	if t.FlyForceRegion != "" {
+		req.Header.Set("Fly-Force-Region", t.FlyForceRegion)
 	}
 
 	return t.UnderlyingTransport.RoundTrip(req)
