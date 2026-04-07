@@ -375,6 +375,67 @@ func TestMachineRootfsJSON(t *testing.T) {
 	})
 }
 
+func TestMachineCacheDriveJSON(t *testing.T) {
+	t.Run("marshal", func(t *testing.T) {
+		cases := []struct {
+			name   string
+			input  MachineConfig
+			output string
+		}{
+			{
+				name:   "cache drive with size",
+				input:  MachineConfig{CacheDrive: &MachineCacheDrive{SizeMB: 1024}},
+				output: `{"init":{},"cache_drive":{"size_mb":1024}}`,
+			},
+			{
+				name:   "nil cache drive omitted",
+				input:  MachineConfig{},
+				output: `{"init":{}}`,
+			},
+		}
+		for _, tc := range cases {
+			b, err := json.Marshal(tc.input)
+			if err != nil {
+				t.Errorf("%s: unexpected error: %v", tc.name, err)
+			} else if string(b) != tc.output {
+				t.Errorf("%s: got %s, want %s", tc.name, string(b), tc.output)
+			}
+		}
+	})
+
+	t.Run("unmarshal", func(t *testing.T) {
+		cases := []struct {
+			name   string
+			input  string
+			sizeMB uint64
+		}{
+			{"with size", `{"cache_drive":{"size_mb":2048}}`, 2048},
+			{"no cache drive", `{}`, 0},
+		}
+		for _, tc := range cases {
+			var mc MachineConfig
+			if err := json.Unmarshal([]byte(tc.input), &mc); err != nil {
+				t.Errorf("%s: unexpected error: %v", tc.name, err)
+				continue
+			}
+			if tc.sizeMB == 0 {
+				if mc.CacheDrive != nil {
+					t.Errorf("%s: expected nil cache_drive, got %+v", tc.name, mc.CacheDrive)
+				}
+
+				continue
+			}
+			if mc.CacheDrive == nil {
+				t.Errorf("%s: expected non-nil cache_drive", tc.name)
+				continue
+			}
+			if mc.CacheDrive.SizeMB != tc.sizeMB {
+				t.Errorf("%s: size_mb got %d, want %d", tc.name, mc.CacheDrive.SizeMB, tc.sizeMB)
+			}
+		}
+	})
+}
+
 func TestMachineAutostopUnmarshalJSON(t *testing.T) {
 	type testcase struct {
 		input  string
