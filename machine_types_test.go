@@ -321,16 +321,6 @@ func TestMachineRootfsJSON(t *testing.T) {
 				output: `{"init":{},"rootfs":{"persist":"restart"}}`,
 			},
 			{
-				name:   "rootfs with fs_size_gb",
-				input:  MachineConfig{Rootfs: &MachineRootfs{Persist: MachinePersistRootfsAlways, SizeGB: 10, FsSizeGB: 8}},
-				output: `{"init":{},"rootfs":{"persist":"always","size_gb":10,"fs_size_gb":8}}`,
-			},
-			{
-				name:   "rootfs with fs_size_gb only",
-				input:  MachineConfig{Rootfs: &MachineRootfs{FsSizeGB: 5}},
-				output: `{"init":{},"rootfs":{"fs_size_gb":5}}`,
-			},
-			{
 				name:   "nil rootfs omitted",
 				input:  MachineConfig{},
 				output: `{"init":{}}`,
@@ -348,18 +338,15 @@ func TestMachineRootfsJSON(t *testing.T) {
 
 	t.Run("unmarshal", func(t *testing.T) {
 		cases := []struct {
-			name     string
-			input    string
-			persist  MachinePersistRootfs
-			sizeGB   uint64
-			fsSizeGB uint64
+			name    string
+			input   string
+			persist MachinePersistRootfs
+			sizeGB  uint64
 		}{
-			{"persist and size", `{"rootfs":{"persist":"always","size_gb":10}}`, MachinePersistRootfsAlways, 10, 0},
-			{"persist only", `{"rootfs":{"persist":"restart"}}`, MachinePersistRootfsRestart, 0, 0},
-			{"size only", `{"rootfs":{"size_gb":5}}`, MachinePersistRootfsNone, 5, 0},
-			{"fs_size_gb only", `{"rootfs":{"fs_size_gb":5}}`, MachinePersistRootfsNone, 0, 5},
-			{"all fields", `{"rootfs":{"persist":"always","size_gb":10,"fs_size_gb":8}}`, MachinePersistRootfsAlways, 10, 8},
-			{"no rootfs", `{}`, MachinePersistRootfsNone, 0, 0},
+			{"persist and size", `{"rootfs":{"persist":"always","size_gb":10}}`, MachinePersistRootfsAlways, 10},
+			{"persist only", `{"rootfs":{"persist":"restart"}}`, MachinePersistRootfsRestart, 0},
+			{"size only", `{"rootfs":{"size_gb":5}}`, MachinePersistRootfsNone, 5},
+			{"no rootfs", `{}`, MachinePersistRootfsNone, 0},
 		}
 		for _, tc := range cases {
 			var mc MachineConfig
@@ -367,7 +354,7 @@ func TestMachineRootfsJSON(t *testing.T) {
 				t.Errorf("%s: unexpected error: %v", tc.name, err)
 				continue
 			}
-			if tc.persist == MachinePersistRootfsNone && tc.sizeGB == 0 && tc.fsSizeGB == 0 {
+			if tc.persist == MachinePersistRootfsNone && tc.sizeGB == 0 {
 				if mc.Rootfs != nil {
 					t.Errorf("%s: expected nil rootfs, got %+v", tc.name, mc.Rootfs)
 				}
@@ -383,9 +370,6 @@ func TestMachineRootfsJSON(t *testing.T) {
 			}
 			if mc.Rootfs.SizeGB != tc.sizeGB {
 				t.Errorf("%s: size_gb got %d, want %d", tc.name, mc.Rootfs.SizeGB, tc.sizeGB)
-			}
-			if mc.Rootfs.FsSizeGB != tc.fsSizeGB {
-				t.Errorf("%s: fs_size_gb got %d, want %d", tc.name, mc.Rootfs.FsSizeGB, tc.fsSizeGB)
 			}
 		}
 	})

@@ -425,9 +425,8 @@ func (mpr *MachinePersistRootfs) UnmarshalJSON(raw []byte) error {
 }
 
 type MachineRootfs struct {
-	Persist  MachinePersistRootfs `toml:"persist,omitempty" json:"persist,omitempty" enums:"never,always,restart"`
-	SizeGB   uint64               `toml:"size_gb,omitempty" json:"size_gb,omitempty"`
-	FsSizeGB uint64               `toml:"fs_size_gb,omitempty" json:"fs_size_gb,omitempty"`
+	Persist MachinePersistRootfs `toml:"persist,omitempty" json:"persist,omitempty" enums:"never,always,restart"`
+	SizeGB  uint64               `toml:"size_gb,omitempty" json:"size_gb,omitempty"`
 }
 
 // @description The Machine restart policy defines whether and how flyd restarts a Machine after its main process exits. See https://fly.io/docs/machines/guides-examples/machine-restart-policy/.
