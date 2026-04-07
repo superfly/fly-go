@@ -429,6 +429,10 @@ type MachineRootfs struct {
 	SizeGB  uint64               `toml:"size_gb,omitempty" json:"size_gb,omitempty"`
 }
 
+type MachineCacheDrive struct {
+	SizeMB uint64 `toml:"size_mb,omitempty" json:"size_mb,omitempty"`
+}
+
 // @description The Machine restart policy defines whether and how flyd restarts a Machine after its main process exits. See https://fly.io/docs/machines/guides-examples/machine-restart-policy/.
 type MachineRestart struct {
 	// * no - Never try to restart a Machine automatically when its main process exits, whether that’s on purpose or on a crash.
@@ -832,7 +836,8 @@ type MachineConfig struct {
 	// with containers
 	Volumes []*VolumeConfig `toml:"volumes,omitempty" json:"volumes,omitempty"`
 
-	Rootfs *MachineRootfs `toml:"rootfs,omitempty" json:"rootfs,omitempty"`
+	Rootfs     *MachineRootfs     `toml:"rootfs,omitempty" json:"rootfs,omitempty"`
+	CacheDrive *MachineCacheDrive `toml:"cache_drive,omitempty" json:"cache_drive,omitempty"`
 
 	// Deprecated: use Guest instead
 	VMSize string `toml:"size,omitempty" json:"size,omitempty"`
