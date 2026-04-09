@@ -336,13 +336,13 @@ type MachineExitEvent struct {
 
 type StopMachineInput struct {
 	ID      string   `toml:"id,omitempty" json:"id,omitempty"`
-	Signal  string   `toml:"signal,omitempty" json:"signal,omitempty" enums:"SIGABRT,SIGALRM,SIGFPE,SIGHUP,SIGILL,SIGINT,SIGKILL,SIGPIPE,SIGQUIT,SIGSEGV,SIGTERM,SIGTRAP,SIGUSR1"`
+	Signal  string   `toml:"signal,omitempty" json:"signal,omitempty" enums:"SIGINT,SIGTERM,SIGQUIT,SIGUSR1"`
 	Timeout Duration `toml:"timeout,omitempty" json:"timeout"`
 }
 
 type RestartMachineInput struct {
 	ID               string        `toml:"id,omitempty" json:"id,omitempty"`
-	Signal           string        `toml:"signal,omitempty" json:"signal,omitempty" enums:"SIGABRT,SIGALRM,SIGFPE,SIGHUP,SIGILL,SIGINT,SIGKILL,SIGPIPE,SIGQUIT,SIGSEGV,SIGTERM,SIGTRAP,SIGUSR1"`
+	Signal           string        `toml:"signal,omitempty" json:"signal,omitempty" enums:"SIGINT,SIGTERM,SIGQUIT,SIGUSR1"`
 	Timeout          time.Duration `toml:"timeout,omitempty" json:"timeout,omitempty"`
 	ForceStop        bool          `toml:"force_stop,omitempty" json:"force_stop,omitempty"`
 	SkipHealthChecks bool          `toml:"skip_health_checks,omitempty" json:"skip_health_checks,omitempty"`
@@ -903,7 +903,7 @@ type dnsOption struct {
 
 type StopConfig struct {
 	Timeout *Duration `toml:"timeout,omitempty" json:"timeout,omitempty"`
-	Signal  *string   `toml:"signal,omitempty" json:"signal,omitempty" enums:"SIGABRT,SIGALRM,SIGFPE,SIGHUP,SIGILL,SIGINT,SIGKILL,SIGPIPE,SIGQUIT,SIGSEGV,SIGTERM,SIGTRAP,SIGUSR1"`
+	Signal  *string   `toml:"signal,omitempty" json:"signal,omitempty" enums:"SIGINT,SIGTERM,SIGQUIT,SIGUSR1"`
 }
 
 // @description A file that will be written to the Machine. One of RawValue or SecretName must be set.
