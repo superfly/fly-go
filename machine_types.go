@@ -337,7 +337,7 @@ type MachineExitEvent struct {
 type StopMachineInput struct {
 	ID      string   `toml:"id,omitempty" json:"id,omitempty"`
 	Signal  string   `toml:"signal,omitempty" json:"signal,omitempty" enums:"SIGHUP,SIGINT,SIGQUIT,SIGKILL,SIGUSR1,SIGUSR2,SIGTERM"`
-	Timeout Duration `toml:"timeout,omitempty" json:"timeout" swaggertype:"string" example:"10s"`
+	Timeout Duration `toml:"timeout,omitempty" json:"timeout,omitempty" swaggertype:"string" example:"10s"`
 }
 
 type RestartMachineInput struct {
