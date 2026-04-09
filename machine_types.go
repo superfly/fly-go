@@ -337,7 +337,7 @@ type MachineExitEvent struct {
 type StopMachineInput struct {
 	ID      string   `toml:"id,omitempty" json:"id,omitempty"`
 	Signal  string   `toml:"signal,omitempty" json:"signal,omitempty" enums:"SIGHUP,SIGINT,SIGQUIT,SIGKILL,SIGUSR1,SIGUSR2,SIGTERM"`
-	Timeout Duration `toml:"timeout,omitempty" json:"timeout"`
+	Timeout Duration `toml:"timeout,omitempty" json:"timeout" swaggertype:"string" example:"1s"`
 }
 
 type RestartMachineInput struct {
@@ -600,11 +600,11 @@ type MachineCheck struct {
 	// Kind of the check (informational, readiness)
 	Kind *MachineCheckKind `toml:"kind,omitempty" json:"kind,omitempty" enums:"informational,readiness"`
 	// The time between connectivity checks
-	Interval *Duration `toml:"interval,omitempty" json:"interval,omitempty"`
+	Interval *Duration `toml:"interval,omitempty" json:"interval,omitempty" swaggertype:"string" example:"15s"`
 	// The maximum time a connection can take before being reported as failing its health check
-	Timeout *Duration `toml:"timeout,omitempty" json:"timeout,omitempty"`
+	Timeout *Duration `toml:"timeout,omitempty" json:"timeout,omitempty" swaggertype:"string" example:"2s"`
 	// The time to wait after a VM starts before checking its health
-	GracePeriod *Duration `toml:"grace_period,omitempty" json:"grace_period,omitempty"`
+	GracePeriod *Duration `toml:"grace_period,omitempty" json:"grace_period,omitempty" swaggertype:"string" example:"1s"`
 	// For http checks, the HTTP method to use to when making the request
 	HTTPMethod *string `toml:"method,omitempty" json:"method,omitempty"`
 	// For http checks, the path to send the request to
@@ -624,11 +624,11 @@ type MachineServiceCheck struct {
 	// tcp or http
 	Type *string `toml:"type,omitempty" json:"type,omitempty"`
 	// The time between connectivity checks
-	Interval *Duration `toml:"interval,omitempty" json:"interval,omitempty"`
+	Interval *Duration `toml:"interval,omitempty" json:"interval,omitempty" swaggertype:"string" example:"15s"`
 	// The maximum time a connection can take before being reported as failing its health check
-	Timeout *Duration `toml:"timeout,omitempty" json:"timeout,omitempty"`
+	Timeout *Duration `toml:"timeout,omitempty" json:"timeout,omitempty" swaggertype:"string" example:"2s"`
 	// The time to wait after a VM starts before checking its health
-	GracePeriod *Duration `toml:"grace_period,omitempty" json:"grace_period,omitempty"`
+	GracePeriod *Duration `toml:"grace_period,omitempty" json:"grace_period,omitempty" swaggertype:"string" example:"1s"`
 	// For http checks, the HTTP method to use to when making the request
 	HTTPMethod *string `toml:"method,omitempty" json:"method,omitempty"`
 	// For http checks, the path to send the request to
@@ -902,7 +902,7 @@ type dnsOption struct {
 }
 
 type StopConfig struct {
-	Timeout *Duration `toml:"timeout,omitempty" json:"timeout,omitempty"`
+	Timeout *Duration `toml:"timeout,omitempty" json:"timeout,omitempty" swaggertype:"string" example:"1s"`
 	Signal  *string   `toml:"signal,omitempty" json:"signal,omitempty" enums:"SIGHUP,SIGINT,SIGQUIT,SIGKILL,SIGUSR1,SIGUSR2,SIGTERM"`
 }
 
