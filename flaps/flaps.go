@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/cookiejar"
 	"net/url"
 	"os"
 	"regexp"
@@ -68,6 +69,12 @@ func NewWithOptions(ctx context.Context, opts NewClientOpts) (*Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("flaps: can't setup HTTP client to %s: %w", flapsUrl.String(), err)
 	}
+
+	jar, err := cookiejar.New(nil)
+	if err != nil {
+		return nil, fmt.Errorf("flaps: can't setup cookie jar for %s: %w", flapsUrl.String(), err)
+	}
+	httpClient.Jar = jar
 
 	userAgent := "fly-go"
 	if opts.UserAgent != "" {
