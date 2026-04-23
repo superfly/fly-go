@@ -16,7 +16,12 @@ type Query struct {
 		}
 		Nodes []App
 	}
-	App             App
+	App                    App
+	AppLimitedAccessTokens *struct {
+		LimitedAccessTokens struct {
+			Nodes []LimitedAccessToken
+		}
+	}
 	AppCompact      AppCompact
 	AppBasic        AppBasic
 	AppCertsCompact AppCertsCompact
@@ -26,9 +31,15 @@ type Query struct {
 		Nodes []Organization
 	}
 
-	Organization        *Organization
+	Organization           *Organization
+	OrgLimitedAccessTokens *struct {
+		LimitedAccessTokens struct {
+			Nodes []LimitedAccessToken
+		}
+	}
 	OrganizationDetails OrganizationDetails
-	Volume              struct {
+
+	Volume struct {
 		App struct {
 			Name string
 		}
@@ -269,10 +280,7 @@ type App struct {
 	ImageDetails                ImageVersion
 	LatestImageDetails          ImageVersion
 
-	PlatformVersion     string
-	LimitedAccessTokens *struct {
-		Nodes []LimitedAccessToken
-	}
+	PlatformVersion string
 
 	Machines struct {
 		Nodes []GqlMachine
@@ -397,10 +405,6 @@ type Organization struct {
 
 	LoggedCertificates *struct {
 		Nodes []LoggedCertificate
-	}
-
-	LimitedAccessTokens *struct {
-		Nodes []LimitedAccessToken
 	}
 }
 

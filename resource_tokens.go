@@ -4,10 +4,45 @@ import (
 	"context"
 )
 
+func (c *Client) GetOrgLimitedAccessTokens(ctx context.Context, orgSlug string) ([]LimitedAccessToken, error) {
+	query := `
+		query ($slug: String!) {
+			orgLimitedAccessTokens: organization(slug: $slug) {
+				limitedAccessTokens {
+					nodes {
+						id
+						name
+						expiresAt
+						revokedAt
+						user {
+							email
+						}
+					}
+				}
+			}
+		}
+	`
+
+	req := c.NewRequest(query)
+	req.Var("slug", orgSlug)
+	ctx = ctxWithAction(ctx, "get_org_limited_access_tokens")
+
+	data, err := c.RunWithContext(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	if data.OrgLimitedAccessTokens == nil {
+		return nil, nil
+	}
+
+	return data.OrgLimitedAccessTokens.LimitedAccessTokens.Nodes, nil
+}
+
 func (c *Client) GetAppLimitedAccessTokens(ctx context.Context, appName string) ([]LimitedAccessToken, error) {
 	query := `
 		query ($appName: String!) {
-			app(name: $appName) {
+			appLimitedAccessTokens: app(name: $appName) {
 				limitedAccessTokens {
 					nodes {
 						id
@@ -33,7 +68,11 @@ func (c *Client) GetAppLimitedAccessTokens(ctx context.Context, appName string) 
 		return nil, err
 	}
 
-	return data.App.LimitedAccessTokens.Nodes, nil
+	if data.AppLimitedAccessTokens == nil {
+		return nil, nil
+	}
+
+	return data.AppLimitedAccessTokens.LimitedAccessTokens.Nodes, nil
 }
 
 func (c *Client) RevokeLimitedAccessToken(ctx context.Context, id string) error {

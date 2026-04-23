@@ -72,16 +72,6 @@ func (c *Client) GetOrganizationRemoteBuilderBySlug(ctx context.Context, slug st
 				name
 				type
 				billable
-				limitedAccessTokens {
-					nodes {
-					    id
-					    name
-					    expiresAt
-						user {
-							email
-						}
-					}
-				}
 				remoteBuilderImage
 				remoteBuilderApp {
 					id
@@ -145,13 +135,6 @@ func (c *Client) GetOrganizationRemoteBuilderBySlug(ctx context.Context, slug st
 					postgresAppRole: role {
 						name
 					}
-					limitedAccessTokens {
-						nodes {
-							id
-							name
-							expiresAt
-						}
-					}
 				}
 			}
 		}
@@ -180,17 +163,6 @@ func (c *Client) GetOrganizationBySlug(ctx context.Context, slug string) (*Organ
 				name
 				type
 				billable
-                limitedAccessTokens {
-					nodes {
-					    id
-					    name
-					    expiresAt
-						revokedAt
-						user {
-							email
-						}
-					}
-                }
 			}
 		}
 	`
@@ -441,13 +413,6 @@ func (c *Client) GetOrganizationByApp(ctx context.Context, appName string) (*Org
 						}
 						postgresAppRole: role {
 							name
-						}
-						limitedAccessTokens {
-							nodes {
-								id
-								name
-								expiresAt
-							}
 						}
 					}
 

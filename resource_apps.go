@@ -172,13 +172,6 @@ func (c *Client) GetApp(ctx context.Context, appName string) (*App, error) {
 				postgresAppRole: role {
 					name
 				}
-				limitedAccessTokens {
-					nodes {
-						id
-						name
-						expiresAt
-					}
-				}
 			}
 		}
 	`
@@ -282,13 +275,6 @@ func (c *Client) GetAppRemoteBuilder(ctx context.Context, appName string) (*App,
 						postgresAppRole: role {
 							name
 						}
-						limitedAccessTokens {
-							nodes {
-								id
-								name
-								expiresAt
-							}
-						}
 					}
 
 				}
@@ -342,13 +328,6 @@ func (c *Client) GetAppRemoteBuilder(ctx context.Context, appName string) (*App,
 				}
 				postgresAppRole: role {
 					name
-				}
-				limitedAccessTokens {
-					nodes {
-						id
-						name
-						expiresAt
-					}
 				}
 			}
 		}
