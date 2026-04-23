@@ -9,6 +9,8 @@ import (
 )
 
 func TestNewWithOptionsSetsCookieJar(t *testing.T) {
+	t.Setenv("FLY_FLAPS_BASE_URL", "http://example.com")
+
 	client, err := NewWithOptions(context.Background(), NewClientOpts{})
 	if err != nil {
 		t.Fatalf("NewWithOptions() error = %v", err)
@@ -41,13 +43,13 @@ func TestFlapsClientPersistsPathScopedCookiesPerApp(t *testing.T) {
 			switch req.AppName {
 			case "app-a":
 				http.SetCookie(w, &http.Cookie{
-					Name:  "flaps_app_affinity",
+					Name:  "fly_flaps_affinity",
 					Value: "creator-node-a",
 					Path:  "/v1/apps/app-a",
 				})
 			case "app-b":
 				http.SetCookie(w, &http.Cookie{
-					Name:  "flaps_app_affinity",
+					Name:  "fly_flaps_affinity",
 					Value: "creator-node-b",
 					Path:  "/v1/apps/app-b",
 				})
@@ -57,11 +59,9 @@ func TestFlapsClientPersistsPathScopedCookiesPerApp(t *testing.T) {
 			}
 			w.WriteHeader(http.StatusOK)
 		case "/v1/apps/app-a/status":
-			assertCookieHeader(t, r, "flaps_app_affinity=creator-node-a")
-			w.WriteHeader(http.StatusOK)
+			assertCookieHeader(w, r, "fly_flaps_affinity=creator-node-a")
 		case "/v1/apps/app-b/status":
-			assertCookieHeader(t, r, "flaps_app_affinity=creator-node-b")
-			w.WriteHeader(http.StatusOK)
+			assertCookieHeader(w, r, "fly_flaps_affinity=creator-node-b")
 		default:
 			http.Error(w, "unexpected path", http.StatusNotFound)
 		}
@@ -92,13 +92,14 @@ func TestFlapsClientPersistsPathScopedCookiesPerApp(t *testing.T) {
 	}
 }
 
-func assertCookieHeader(t *testing.T, r *http.Request, want string) {
-	t.Helper()
-
+func assertCookieHeader(w http.ResponseWriter, r *http.Request, want string) {
 	got := r.Header.Get("Cookie")
 	if got != want {
-		t.Fatalf("cookie header = %q, want %q", got, want)
+		http.Error(w, "cookie header = \""+got+"\", want \""+want+"\"", http.StatusBadRequest)
+		return
 	}
+
+	w.WriteHeader(http.StatusOK)
 }
 
 func TestSnakeCase(t *testing.T) {
