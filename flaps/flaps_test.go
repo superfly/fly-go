@@ -3,8 +3,14 @@ package flaps
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
+	"sync"
+	"syscall"
 	"testing"
 )
 
@@ -100,6 +106,126 @@ func assertCookieHeader(w http.ResponseWriter, r *http.Request, want string) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+// step describes one scripted RoundTrip outcome. If err is non-nil, the
+// RoundTrip returns (nil, err); otherwise it returns a 200 response whose body
+// is body.
+type step struct {
+	err  error
+	body string
+}
+
+type scriptedTripper struct {
+	mu    sync.Mutex
+	calls int
+	steps []step
+}
+
+func (s *scriptedTripper) RoundTrip(*http.Request) (*http.Response, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.calls >= len(s.steps) {
+		return nil, fmt.Errorf("scriptedTripper: unexpected call %d", s.calls+1)
+	}
+	st := s.steps[s.calls]
+	s.calls++
+
+	if st.err != nil {
+		return nil, st.err
+	}
+
+	return &http.Response{
+		StatusCode: http.StatusOK,
+		Body:       io.NopCloser(strings.NewReader(st.body)),
+		Header:     make(http.Header),
+	}, nil
+}
+
+func (s *scriptedTripper) callCount() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.calls
+}
+
+func connReset() error {
+	return fmt.Errorf("read tcp: %w", syscall.ECONNRESET)
+}
+
+func newTestFlapsClient(t *testing.T, transport http.RoundTripper) *Client {
+	t.Setenv("FLY_FLAPS_BASE_URL", "http://example.test")
+	client, err := NewWithOptions(context.Background(), NewClientOpts{Transport: transport})
+	if err != nil {
+		t.Fatalf("NewWithOptions: %v", err)
+	}
+
+	return client
+}
+
+func TestFlaps_GetRetriesOnConnReset(t *testing.T) {
+	tripper := &scriptedTripper{steps: []step{
+		{err: connReset()},
+		{err: connReset()},
+		{body: `{}`},
+	}}
+	client := newTestFlapsClient(t, tripper)
+
+	if err := client._sendRequest(context.Background(), http.MethodGet, "/apps", nil, nil, nil); err != nil {
+		t.Fatalf("_sendRequest: %v", err)
+	}
+	if got := tripper.callCount(); got != 3 {
+		t.Fatalf("call count = %d, want 3", got)
+	}
+}
+
+func TestFlaps_GetGivesUpAfterMaxRetries(t *testing.T) {
+	tripper := &scriptedTripper{steps: []step{
+		{err: connReset()},
+		{err: connReset()},
+		{err: connReset()},
+	}}
+	client := newTestFlapsClient(t, tripper)
+
+	err := client._sendRequest(context.Background(), http.MethodGet, "/apps", nil, nil, nil)
+	if err == nil {
+		t.Fatal("expected error after retries exhausted, got nil")
+	}
+	if !errors.Is(err, syscall.ECONNRESET) {
+		t.Fatalf("error chain does not contain ECONNRESET: %v", err)
+	}
+	if got := tripper.callCount(); got != 3 {
+		t.Fatalf("call count = %d, want 3 (1 + 2 retries)", got)
+	}
+}
+
+func TestFlaps_PostDoesNotRetry(t *testing.T) {
+	tripper := &scriptedTripper{steps: []step{
+		{err: connReset()},
+	}}
+	client := newTestFlapsClient(t, tripper)
+
+	err := client._sendRequest(context.Background(), http.MethodPost, "/apps", map[string]string{"name": "x"}, nil, nil)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if got := tripper.callCount(); got != 1 {
+		t.Fatalf("call count = %d, want 1 (no retry for POST)", got)
+	}
+}
+
+func TestFlaps_GetDoesNotRetryNonConnReset(t *testing.T) {
+	tripper := &scriptedTripper{steps: []step{
+		{err: errors.New("some other error")},
+	}}
+	client := newTestFlapsClient(t, tripper)
+
+	err := client._sendRequest(context.Background(), http.MethodGet, "/apps", nil, nil, nil)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if got := tripper.callCount(); got != 1 {
+		t.Fatalf("call count = %d, want 1 (no retry for non-ECONNRESET)", got)
+	}
 }
 
 func TestSnakeCase(t *testing.T) {
