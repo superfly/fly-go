@@ -10,10 +10,12 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"syscall"
 	"time"
 
 	_ "github.com/Khan/genqlient/generate"
 	genq "github.com/Khan/genqlient/graphql"
+	"github.com/cenkalti/backoff/v4"
 	"github.com/superfly/fly-go/tokens"
 	"github.com/superfly/graphql"
 	"go.opentelemetry.io/otel"
@@ -21,6 +23,70 @@ import (
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 )
+
+// graphQLOperationKind returns "query", "mutation", "subscription", or
+// "unknown" if body does not begin with a recognizable operation.
+func graphQLOperationKind(body string) string {
+	// Drop leading whitespace and comments
+	i := 0
+	for i < len(body) {
+		switch body[i] {
+		case ' ', '\t', '\n', '\r', ',':
+			i++
+
+			continue
+		case '#':
+			for i < len(body) && body[i] != '\n' {
+				i++
+			}
+
+			continue
+		}
+
+		break
+	}
+	rest := body[i:]
+	switch {
+	case strings.HasPrefix(rest, "mutation"):
+		return "mutation"
+	case strings.HasPrefix(rest, "subscription"):
+		return "subscription"
+	case strings.HasPrefix(rest, "query"), strings.HasPrefix(rest, "{"):
+		return "query"
+	}
+
+	return "unknown"
+}
+
+// retryQueryOnConnReset runs op, retrying ECONNRESET failures when the request
+// is a query. Mutations and other errors return immediately.
+//
+// This is a separate layer from the rehttp retries in NewHTTPClient because
+// rehttp operates at the HTTP transport and has no way to tell a query from a
+// mutation; retrying ECONNRESET safely requires the idempotency signal that
+// only exists here.
+func retryQueryOnConnReset(ctx context.Context, isQuery bool, op func() error) error {
+	if !isQuery {
+		return op()
+	}
+
+	b := backoff.NewExponentialBackOff()
+	b.InitialInterval = 100 * time.Millisecond
+	b.MaxInterval = 500 * time.Millisecond
+	b.RandomizationFactor = 0.5
+
+	return backoff.Retry(func() error {
+		err := op()
+		switch {
+		case err == nil:
+			return nil
+		case errors.Is(err, syscall.ECONNRESET):
+			return err
+		default:
+			return backoff.Permanent(err)
+		}
+	}, backoff.WithContext(backoff.WithMaxRetries(b, 2), ctx))
+}
 
 var (
 	baseURL          string
@@ -178,17 +244,7 @@ func (c *Client) Run(req *graphql.Request) (Query, error) {
 func (c *Client) Logger() Logger { return c.logger }
 
 func (c *Client) getRequestType(r *graphql.Request) string {
-	query := r.Query()
-
-	if strings.Contains(query, "mutation") {
-		return "mutation"
-	}
-
-	if strings.Contains(query, "query") {
-		return "query"
-	}
-
-	return "unknown"
+	return graphQLOperationKind(r.Query())
 }
 
 func (c *Client) getErrorFromErrors(errors Errors) string {
@@ -217,7 +273,11 @@ func (c *Client) RunWithContext(ctx context.Context, req *graphql.Request) (Quer
 	}
 
 	var resp Query
-	err := c.client.Run(ctx, req, &resp)
+	isQuery := c.getRequestType(req) == "query"
+	err := retryQueryOnConnReset(ctx, isQuery, func() error {
+		resp = Query{}
+		return c.client.Run(ctx, req, &resp)
+	})
 
 	if resp.Errors != nil {
 		span.RecordError(errors.New(c.getErrorFromErrors(resp.Errors)))
@@ -356,5 +416,9 @@ func (c *tracingGenqlientClient) MakeRequest(ctx context.Context, req *genq.Requ
 		}()
 	}
 
-	return c.client.MakeRequest(ctx, req, resp)
+	isQuery := graphQLOperationKind(req.Query) == "query"
+
+	return retryQueryOnConnReset(ctx, isQuery, func() error {
+		return c.client.MakeRequest(ctx, req, resp)
+	})
 }
