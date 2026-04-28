@@ -13,7 +13,10 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"syscall"
+	"time"
 
+	"github.com/cenkalti/backoff/v4"
 	fly "github.com/superfly/fly-go"
 	"github.com/superfly/fly-go/internal/tracing"
 	"github.com/superfly/fly-go/tokens"
@@ -117,14 +120,8 @@ func (f *Client) _sendRequest(ctx context.Context, method, endpoint string, in, 
 	// timing := instrument.Flaps.Begin()
 	// defer timing.End()
 
-	req, err := f.NewRequest(ctx, method, endpoint, in, headers)
-	if err != nil {
-		tracing.RecordError(span, err, "failed to prepare request")
-		return err
-	}
-	req.Header.Set("User-Agent", f.userAgent)
-
-	resp, err := f.httpClient.Do(req)
+	safeToRetry := method == http.MethodGet
+	resp, err := f.do(ctx, method, endpoint, in, headers, safeToRetry)
 	if err != nil {
 		tracing.RecordError(span, err, "failed to do request")
 		return err
@@ -162,6 +159,49 @@ func (f *Client) _sendRequest(ctx context.Context, method, endpoint string, in, 
 	}
 
 	return nil
+}
+
+// do issues a single HTTP request. When safeToRetry is true, transient network
+// failures are retried.
+//
+// Retry lives here rather than in the shared rehttp transport so in the future
+// we can opt-in other non-GET endpoints that are known to be idempotent.
+func (f *Client) do(ctx context.Context, method, endpoint string, in interface{}, headers map[string][]string, safeToRetry bool) (*http.Response, error) {
+	send := func() (*http.Response, error) {
+		req, err := f.NewRequest(ctx, method, endpoint, in, headers)
+		if err != nil {
+			return nil, err
+		}
+		req.Header.Set("User-Agent", f.userAgent)
+
+		return f.httpClient.Do(req)
+	}
+
+	if !safeToRetry {
+		return send()
+	}
+
+	b := backoff.NewExponentialBackOff()
+	b.InitialInterval = 100 * time.Millisecond
+	b.MaxInterval = 500 * time.Millisecond
+	b.RandomizationFactor = 0.5
+
+	var resp *http.Response
+	err := backoff.Retry(func() error {
+		var err error
+		// Body is closed by the caller of do()
+		resp, err = send() //nolint:bodyclose
+		switch {
+		case err == nil:
+			return nil
+		case errors.Is(err, syscall.ECONNRESET):
+			return err
+		default:
+			return backoff.Permanent(err)
+		}
+	}, backoff.WithContext(backoff.WithMaxRetries(b, 2), ctx))
+
+	return resp, err
 }
 
 func (f *Client) urlFromBaseUrl(pathAndQueryString string) (*url.URL, error) {
