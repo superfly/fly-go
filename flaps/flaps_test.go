@@ -122,6 +122,10 @@ type scriptedTripper struct {
 	steps []step
 }
 
+type captureTripper struct {
+	req *http.Request
+}
+
 func (s *scriptedTripper) RoundTrip(*http.Request) (*http.Response, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -146,6 +150,16 @@ func (s *scriptedTripper) callCount() int {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.calls
+}
+
+func (c *captureTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	c.req = req.Clone(req.Context())
+	c.req.Header = req.Header.Clone()
+	return &http.Response{
+		StatusCode: http.StatusOK,
+		Body:       io.NopCloser(strings.NewReader("{}")),
+		Header:     make(http.Header),
+	}, nil
 }
 
 func connReset() error {
@@ -210,6 +224,43 @@ func TestFlaps_PostDoesNotRetry(t *testing.T) {
 	}
 	if got := tripper.callCount(); got != 1 {
 		t.Fatalf("call count = %d, want 1 (no retry for POST)", got)
+	}
+}
+
+func TestFlaps_NewRequestSetsFlyForceInstanceIDHeaderFromOpts(t *testing.T) {
+	capture := &captureTripper{}
+	client, err := NewWithOptions(context.Background(), NewClientOpts{
+		Transport:          capture,
+		FlyForceInstanceID: "worker-2",
+	})
+	if err != nil {
+		t.Fatalf("NewWithOptions() error = %v", err)
+	}
+
+	if err := client._sendRequest(context.Background(), http.MethodGet, "/apps", nil, nil, nil); err != nil {
+		t.Fatalf("_sendRequest() error = %v", err)
+	}
+
+	if got := capture.req.Header.Get("Fly-Force-Instance-Id"); got != "worker-2" {
+		t.Fatalf("Fly-Force-Instance-Id header = %q, want %q", got, "worker-2")
+	}
+}
+
+func TestFlaps_NewRequestSetsFlyForceInstanceIDHeaderFromEnv(t *testing.T) {
+	t.Setenv("FLY_FORCE_INSTANCE_ID", "worker-1")
+
+	capture := &captureTripper{}
+	client, err := NewWithOptions(context.Background(), NewClientOpts{Transport: capture})
+	if err != nil {
+		t.Fatalf("NewWithOptions() error = %v", err)
+	}
+
+	if err := client._sendRequest(context.Background(), http.MethodGet, "/apps", nil, nil, nil); err != nil {
+		t.Fatalf("_sendRequest() error = %v", err)
+	}
+
+	if got := capture.req.Header.Get("Fly-Force-Instance-Id"); got != "worker-1" {
+		t.Fatalf("Fly-Force-Instance-Id header = %q, want %q", got, "worker-1")
 	}
 }
 

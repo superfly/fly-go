@@ -167,8 +167,7 @@ type ClientOptions struct {
 	BaseURL          string
 	Logger           Logger
 	EnableDebugTrace *bool
-	FlyForceRegion     *string
-	FlyForceInstanceID *string
+	FlyForceRegion   *string
 	Transport        *Transport
 }
 
@@ -208,13 +207,6 @@ func (t *Transport) setDefaults(opts *ClientOptions) {
 		}
 	}
 
-	if opts.FlyForceInstanceID != nil {
-		t.FlyForceInstanceID = *opts.FlyForceInstanceID
-	} else if t.FlyForceInstanceID == "" {
-		if v := os.Getenv("FLY_FORCE_INSTANCE_ID"); v != "" {
-			t.FlyForceInstanceID = v
-		}
-	}
 }
 
 func NewClientFromOptions(opts ClientOptions) *Client {
@@ -368,7 +360,6 @@ type Transport struct {
 	Tokens              *tokens.Tokens
 	EnableDebugTrace    bool
 	FlyForceRegion      string
-	FlyForceInstanceID  string
 }
 
 func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
@@ -382,10 +373,6 @@ func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	if t.FlyForceRegion != "" {
 		req.Header.Set("Fly-Force-Region", t.FlyForceRegion)
 	}
-	if t.FlyForceInstanceID != "" {
-		req.Header.Set("Fly-Force-Instance-Id", t.FlyForceInstanceID)
-	}
-
 	return t.UnderlyingTransport.RoundTrip(req)
 }
 
