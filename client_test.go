@@ -96,6 +96,19 @@ func TestTransportSetDefaults_DoesNotOverrideFlyForceInstanceFromTransport(t *te
 	}
 }
 
+func TestTransportSetDefaults_SetsFlyForceInstanceFromEnv(t *testing.T) {
+	t.Setenv("FLY_FORCE_INSTANCE", "worker-1")
+
+	transport := &Transport{}
+	opts := ClientOptions{Transport: transport}
+
+	transport.setDefaults(&opts)
+
+	if transport.FlyForceInstance != "worker-1" {
+		t.Fatalf("expected FlyForceInstance to be %q, got %q", "worker-1", transport.FlyForceInstance)
+	}
+}
+
 type captureTripper struct {
 	req *http.Request
 }
