@@ -84,7 +84,7 @@ func TestTransportSetDefaults_DoesNotOverrideFlyForceRegionFromTransport(t *test
 }
 
 func TestTransportSetDefaults_DoesNotOverrideFlyForceInstanceFromTransport(t *testing.T) {
-	t.Setenv("FLY_FORCE_INSTANCE", "worker-1")
+	t.Setenv("FLY_FORCE_INSTANCE_ID", "worker-1")
 
 	transport := &Transport{FlyForceInstance: "worker-2"}
 	opts := ClientOptions{Transport: transport}
@@ -97,7 +97,7 @@ func TestTransportSetDefaults_DoesNotOverrideFlyForceInstanceFromTransport(t *te
 }
 
 func TestTransportSetDefaults_SetsFlyForceInstanceFromEnv(t *testing.T) {
-	t.Setenv("FLY_FORCE_INSTANCE", "worker-1")
+	t.Setenv("FLY_FORCE_INSTANCE_ID", "worker-1")
 
 	transport := &Transport{}
 	opts := ClientOptions{Transport: transport}
@@ -123,7 +123,7 @@ func (c *captureTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 	}, nil
 }
 
-func TestTransportRoundTrip_SetsFlyForceInstanceHeader(t *testing.T) {
+func TestTransportRoundTrip_SetsFlyForceInstanceIDHeader(t *testing.T) {
 	capture := &captureTripper{}
 	transport := &Transport{
 		UnderlyingTransport: capture,
@@ -143,8 +143,8 @@ func TestTransportRoundTrip_SetsFlyForceInstanceHeader(t *testing.T) {
 	}
 	defer resp.Body.Close()
 
-	if got := capture.req.Header.Get("Fly-Force-Instance"); got != "worker-2" {
-		t.Fatalf("Fly-Force-Instance header = %q, want %q", got, "worker-2")
+	if got := capture.req.Header.Get("Fly-Force-Instance-Id"); got != "worker-2" {
+		t.Fatalf("Fly-Force-Instance-Id header = %q, want %q", got, "worker-2")
 	}
 }
 

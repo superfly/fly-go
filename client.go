@@ -211,7 +211,7 @@ func (t *Transport) setDefaults(opts *ClientOptions) {
 	if opts.FlyForceInstance != nil {
 		t.FlyForceInstance = *opts.FlyForceInstance
 	} else if t.FlyForceInstance == "" {
-		if v := os.Getenv("FLY_FORCE_INSTANCE"); v != "" {
+		if v := os.Getenv("FLY_FORCE_INSTANCE_ID"); v != "" {
 			t.FlyForceInstance = v
 		}
 	}
@@ -383,7 +383,7 @@ func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 		req.Header.Set("Fly-Force-Region", t.FlyForceRegion)
 	}
 	if t.FlyForceInstance != "" {
-		req.Header.Set("Fly-Force-Instance", t.FlyForceInstance)
+		req.Header.Set("Fly-Force-Instance-Id", t.FlyForceInstance)
 	}
 
 	return t.UnderlyingTransport.RoundTrip(req)
