@@ -124,9 +124,11 @@ func TestTransportRoundTrip_SetsFlyForceInstanceHeader(t *testing.T) {
 		t.Fatalf("NewRequest returned error: %v", err)
 	}
 
-	if _, err := transport.RoundTrip(req); err != nil {
+	resp, err := transport.RoundTrip(req)
+	if err != nil {
 		t.Fatalf("RoundTrip returned error: %v", err)
 	}
+	defer resp.Body.Close()
 
 	if got := capture.req.Header.Get("Fly-Force-Instance"); got != "worker-2" {
 		t.Fatalf("Fly-Force-Instance header = %q, want %q", got, "worker-2")
