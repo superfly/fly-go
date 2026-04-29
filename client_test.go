@@ -83,6 +83,56 @@ func TestTransportSetDefaults_DoesNotOverrideFlyForceRegionFromTransport(t *test
 	}
 }
 
+func TestTransportSetDefaults_DoesNotOverrideFlyForceInstanceFromTransport(t *testing.T) {
+	t.Setenv("FLY_FORCE_INSTANCE", "worker-1")
+
+	transport := &Transport{FlyForceInstance: "worker-2"}
+	opts := ClientOptions{Transport: transport}
+
+	transport.setDefaults(&opts)
+
+	if transport.FlyForceInstance != "worker-2" {
+		t.Fatalf("expected FlyForceInstance to remain %q, got %q", "worker-2", transport.FlyForceInstance)
+	}
+}
+
+type captureTripper struct {
+	req *http.Request
+}
+
+func (c *captureTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	c.req = req.Clone(req.Context())
+	c.req.Header = req.Header.Clone()
+	return &http.Response{
+		StatusCode: http.StatusOK,
+		Body:       io.NopCloser(strings.NewReader("{}")),
+		Header:     make(http.Header),
+	}, nil
+}
+
+func TestTransportRoundTrip_SetsFlyForceInstanceHeader(t *testing.T) {
+	capture := &captureTripper{}
+	transport := &Transport{
+		UnderlyingTransport: capture,
+		UserAgent:           "test/0",
+		Token:               "token",
+		FlyForceInstance:    "worker-2",
+	}
+
+	req, err := http.NewRequest(http.MethodGet, "http://example.test", nil)
+	if err != nil {
+		t.Fatalf("NewRequest returned error: %v", err)
+	}
+
+	if _, err := transport.RoundTrip(req); err != nil {
+		t.Fatalf("RoundTrip returned error: %v", err)
+	}
+
+	if got := capture.req.Header.Get("Fly-Force-Instance"); got != "worker-2" {
+		t.Fatalf("Fly-Force-Instance header = %q, want %q", got, "worker-2")
+	}
+}
+
 func TestGraphQLOperationKind(t *testing.T) {
 	cases := []struct {
 		name string

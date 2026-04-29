@@ -168,6 +168,7 @@ type ClientOptions struct {
 	Logger           Logger
 	EnableDebugTrace *bool
 	FlyForceRegion   *string
+	FlyForceInstance *string
 	Transport        *Transport
 }
 
@@ -204,6 +205,14 @@ func (t *Transport) setDefaults(opts *ClientOptions) {
 	} else if t.FlyForceRegion == "" {
 		if v := os.Getenv("FLY_FORCE_REGION"); v != "" {
 			t.FlyForceRegion = v
+		}
+	}
+
+	if opts.FlyForceInstance != nil {
+		t.FlyForceInstance = *opts.FlyForceInstance
+	} else if t.FlyForceInstance == "" {
+		if v := os.Getenv("FLY_FORCE_INSTANCE"); v != "" {
+			t.FlyForceInstance = v
 		}
 	}
 }
@@ -359,6 +368,7 @@ type Transport struct {
 	Tokens              *tokens.Tokens
 	EnableDebugTrace    bool
 	FlyForceRegion      string
+	FlyForceInstance    string
 }
 
 func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
@@ -371,6 +381,9 @@ func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 
 	if t.FlyForceRegion != "" {
 		req.Header.Set("Fly-Force-Region", t.FlyForceRegion)
+	}
+	if t.FlyForceInstance != "" {
+		req.Header.Set("Fly-Force-Instance", t.FlyForceInstance)
 	}
 
 	return t.UnderlyingTransport.RoundTrip(req)
