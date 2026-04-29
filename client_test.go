@@ -83,20 +83,20 @@ func TestTransportSetDefaults_DoesNotOverrideFlyForceRegionFromTransport(t *test
 	}
 }
 
-func TestTransportSetDefaults_DoesNotOverrideFlyForceInstanceFromTransport(t *testing.T) {
+func TestTransportSetDefaults_DoesNotOverrideFlyForceInstanceIDFromTransport(t *testing.T) {
 	t.Setenv("FLY_FORCE_INSTANCE_ID", "worker-1")
 
-	transport := &Transport{FlyForceInstance: "worker-2"}
+	transport := &Transport{FlyForceInstanceID: "worker-2"}
 	opts := ClientOptions{Transport: transport}
 
 	transport.setDefaults(&opts)
 
-	if transport.FlyForceInstance != "worker-2" {
-		t.Fatalf("expected FlyForceInstance to remain %q, got %q", "worker-2", transport.FlyForceInstance)
+	if transport.FlyForceInstanceID != "worker-2" {
+		t.Fatalf("expected FlyForceInstanceID to remain %q, got %q", "worker-2", transport.FlyForceInstanceID)
 	}
 }
 
-func TestTransportSetDefaults_SetsFlyForceInstanceFromEnv(t *testing.T) {
+func TestTransportSetDefaults_SetsFlyForceInstanceIDFromEnv(t *testing.T) {
 	t.Setenv("FLY_FORCE_INSTANCE_ID", "worker-1")
 
 	transport := &Transport{}
@@ -104,8 +104,8 @@ func TestTransportSetDefaults_SetsFlyForceInstanceFromEnv(t *testing.T) {
 
 	transport.setDefaults(&opts)
 
-	if transport.FlyForceInstance != "worker-1" {
-		t.Fatalf("expected FlyForceInstance to be %q, got %q", "worker-1", transport.FlyForceInstance)
+	if transport.FlyForceInstanceID != "worker-1" {
+		t.Fatalf("expected FlyForceInstanceID to be %q, got %q", "worker-1", transport.FlyForceInstanceID)
 	}
 }
 
@@ -129,7 +129,7 @@ func TestTransportRoundTrip_SetsFlyForceInstanceIDHeader(t *testing.T) {
 		UnderlyingTransport: capture,
 		UserAgent:           "test/0",
 		Token:               "token",
-		FlyForceInstance:    "worker-2",
+		FlyForceInstanceID:  "worker-2",
 	}
 
 	req, err := http.NewRequest(http.MethodGet, "http://example.test", nil)
