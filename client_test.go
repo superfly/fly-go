@@ -83,29 +83,29 @@ func TestTransportSetDefaults_DoesNotOverrideFlyForceRegionFromTransport(t *test
 	}
 }
 
-func TestTransportSetDefaults_DoesNotOverrideFlyForceInstanceFromTransport(t *testing.T) {
-	t.Setenv("FLY_FORCE_INSTANCE", "worker-1")
+func TestTransportSetDefaults_DoesNotOverrideFlyForceInstanceIDFromTransport(t *testing.T) {
+	t.Setenv("FLY_FORCE_INSTANCE_ID", "worker-1")
 
-	transport := &Transport{FlyForceInstance: "worker-2"}
+	transport := &Transport{FlyForceInstanceID: "worker-2"}
 	opts := ClientOptions{Transport: transport}
 
 	transport.setDefaults(&opts)
 
-	if transport.FlyForceInstance != "worker-2" {
-		t.Fatalf("expected FlyForceInstance to remain %q, got %q", "worker-2", transport.FlyForceInstance)
+	if transport.FlyForceInstanceID != "worker-2" {
+		t.Fatalf("expected FlyForceInstanceID to remain %q, got %q", "worker-2", transport.FlyForceInstanceID)
 	}
 }
 
-func TestTransportSetDefaults_SetsFlyForceInstanceFromEnv(t *testing.T) {
-	t.Setenv("FLY_FORCE_INSTANCE", "worker-1")
+func TestTransportSetDefaults_SetsFlyForceInstanceIDFromEnv(t *testing.T) {
+	t.Setenv("FLY_FORCE_INSTANCE_ID", "worker-1")
 
 	transport := &Transport{}
 	opts := ClientOptions{Transport: transport}
 
 	transport.setDefaults(&opts)
 
-	if transport.FlyForceInstance != "worker-1" {
-		t.Fatalf("expected FlyForceInstance to be %q, got %q", "worker-1", transport.FlyForceInstance)
+	if transport.FlyForceInstanceID != "worker-1" {
+		t.Fatalf("expected FlyForceInstanceID to be %q, got %q", "worker-1", transport.FlyForceInstanceID)
 	}
 }
 
@@ -123,13 +123,13 @@ func (c *captureTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 	}, nil
 }
 
-func TestTransportRoundTrip_SetsFlyForceInstanceHeader(t *testing.T) {
+func TestTransportRoundTrip_SetsFlyForceInstanceIDHeader(t *testing.T) {
 	capture := &captureTripper{}
 	transport := &Transport{
 		UnderlyingTransport: capture,
 		UserAgent:           "test/0",
 		Token:               "token",
-		FlyForceInstance:    "worker-2",
+		FlyForceInstanceID:  "worker-2",
 	}
 
 	req, err := http.NewRequest(http.MethodGet, "http://example.test", nil)
@@ -143,8 +143,8 @@ func TestTransportRoundTrip_SetsFlyForceInstanceHeader(t *testing.T) {
 	}
 	defer resp.Body.Close()
 
-	if got := capture.req.Header.Get("Fly-Force-Instance"); got != "worker-2" {
-		t.Fatalf("Fly-Force-Instance header = %q, want %q", got, "worker-2")
+	if got := capture.req.Header.Get("Fly-Force-Instance-Id"); got != "worker-2" {
+		t.Fatalf("Fly-Force-Instance-Id header = %q, want %q", got, "worker-2")
 	}
 }
 
