@@ -83,7 +83,6 @@ func TestTransportSetDefaults_DoesNotOverrideFlyForceRegionFromTransport(t *test
 	}
 }
 
-
 type captureTripper struct {
 	req *http.Request
 }

@@ -206,7 +206,6 @@ func (t *Transport) setDefaults(opts *ClientOptions) {
 			t.FlyForceRegion = v
 		}
 	}
-
 }
 
 func NewClientFromOptions(opts ClientOptions) *Client {
@@ -373,6 +372,7 @@ func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	if t.FlyForceRegion != "" {
 		req.Header.Set("Fly-Force-Region", t.FlyForceRegion)
 	}
+
 	return t.UnderlyingTransport.RoundTrip(req)
 }
 
