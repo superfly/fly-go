@@ -154,8 +154,9 @@ type Query struct {
 	CanPerformBluegreenDeployment bool
 	AppNameAvailable              bool
 
-	AddAllowedReplaySourceOrgs    AddAllowedReplaySourceOrgsPayload
-	RemoveAllowedReplaySourceOrgs RemoveAllowedReplaySourceOrgsPayload
+	AddAllowedReplaySourceOrgs     AddAllowedReplaySourceOrgsPayload
+	RemoveAllowedReplaySourceOrgs  RemoveAllowedReplaySourceOrgsPayload
+	SetAllowAllCrossNetworkReplays SetAllowAllCrossNetworkReplaysPayload
 
 	LockApp *LockApp
 }
@@ -384,6 +385,7 @@ type Organization struct {
 	Settings           map[string]any
 
 	AllowedReplaySourceOrgSlugs []string
+	AllowAllCrossNetworkReplays bool
 
 	WireGuardPeer *WireGuardPeer
 
@@ -692,6 +694,10 @@ type AddAllowedReplaySourceOrgsPayload struct {
 }
 
 type RemoveAllowedReplaySourceOrgsPayload struct {
+	Organization Organization
+}
+
+type SetAllowAllCrossNetworkReplaysPayload struct {
 	Organization Organization
 }
 

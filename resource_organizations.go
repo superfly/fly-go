@@ -523,3 +523,57 @@ func (c *Client) RemoveAllowedReplaySourceOrgs(ctx context.Context, orgSlug stri
 
 	return &data.RemoveAllowedReplaySourceOrgs.Organization, nil
 }
+
+func (c *Client) SetAllowAllCrossNetworkReplays(ctx context.Context, orgSlug string, allow bool) (*Organization, error) {
+	q := `
+		mutation($input: SetAllowAllCrossNetworkReplaysInput!) {
+			setAllowAllCrossNetworkReplays(input: $input) {
+				organization {
+					id
+					slug
+					name
+					allowAllCrossNetworkReplays
+				}
+			}
+		}
+	`
+
+	req := c.NewRequest(q)
+	req.Var("input", map[string]any{
+		"organizationSlug": orgSlug,
+		"allow":            allow,
+	})
+	ctx = ctxWithAction(ctx, "set_allow_all_cross_network_replays")
+
+	data, err := c.RunWithContext(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	return &data.SetAllowAllCrossNetworkReplays.Organization, nil
+}
+
+func (c *Client) GetAllowAllCrossNetworkReplays(ctx context.Context, slug string) (bool, error) {
+	q := `
+		query($slug: String!) {
+			organization(slug: $slug) {
+				allowAllCrossNetworkReplays
+			}
+		}
+	`
+
+	req := c.NewRequest(q)
+	req.Var("slug", slug)
+	ctx = ctxWithAction(ctx, "get_allow_all_cross_network_replays")
+
+	data, err := c.RunWithContext(ctx, req)
+	if err != nil {
+		return false, err
+	}
+
+	if data.Organization == nil {
+		return false, nil
+	}
+
+	return data.Organization.AllowAllCrossNetworkReplays, nil
+}
