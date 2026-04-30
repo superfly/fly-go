@@ -29,10 +29,11 @@ import (
 const headerFlyRequestId = "fly-request-id"
 
 type Client struct {
-	baseUrl    *url.URL
-	tokens     *tokens.Tokens
-	httpClient *http.Client
-	userAgent  string
+	baseUrl            *url.URL
+	tokens             *tokens.Tokens
+	httpClient         *http.Client
+	userAgent          string
+	flyForceInstanceID string
 }
 
 type NewClientOpts struct {
@@ -43,6 +44,8 @@ type NewClientOpts struct {
 
 	// optional:
 	Logger fly.Logger
+
+	FlyForceInstanceID string
 
 	// optional, used to construct the underlying HTTP client
 	Transport http.RoundTripper
@@ -84,11 +87,17 @@ func NewWithOptions(ctx context.Context, opts NewClientOpts) (*Client, error) {
 		userAgent = opts.UserAgent
 	}
 
+	flyForceInstanceID := opts.FlyForceInstanceID
+	if flyForceInstanceID == "" {
+		flyForceInstanceID = os.Getenv("FLY_FORCE_INSTANCE_ID")
+	}
+
 	return &Client{
-		baseUrl:    flapsUrl,
-		tokens:     opts.Tokens,
-		httpClient: httpClient,
-		userAgent:  userAgent,
+		baseUrl:            flapsUrl,
+		tokens:             opts.Tokens,
+		httpClient:         httpClient,
+		userAgent:          userAgent,
+		flyForceInstanceID: flyForceInstanceID,
 	}, nil
 }
 
@@ -242,6 +251,9 @@ func (f *Client) NewRequest(ctx context.Context, method, path string, in interfa
 	req.Header = headers
 	if f.tokens != nil {
 		req.Header.Add("Authorization", f.tokens.FlapsHeader())
+	}
+	if f.flyForceInstanceID != "" {
+		req.Header.Set("Fly-Force-Instance-Id", f.flyForceInstanceID)
 	}
 
 	return req, nil
