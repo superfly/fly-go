@@ -160,15 +160,16 @@ func NewClient(accessToken, name, version string, logger Logger) *Client {
 }
 
 type ClientOptions struct {
-	AccessToken      string
-	Tokens           *tokens.Tokens
-	Name             string
-	Version          string
-	BaseURL          string
-	Logger           Logger
-	EnableDebugTrace *bool
-	FlyForceRegion   *string
-	Transport        *Transport
+	AccessToken        string
+	Tokens             *tokens.Tokens
+	Name               string
+	Version            string
+	BaseURL            string
+	Logger             Logger
+	EnableDebugTrace   *bool
+	FlyForceRegion     *string
+	FlyForceInstanceID *string
+	Transport          *Transport
 }
 
 func (opts ClientOptions) tokens() *tokens.Tokens {
