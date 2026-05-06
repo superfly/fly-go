@@ -18,6 +18,7 @@ repos:
   # because goalngci-lint github action is much more useful than the pre-commit action.
   # The trick is to run github action only for "manual" hook stage
   - repo: https://github.com/golangci/golangci-lint
+    # Keep golangci-lint version insync with .github/workflows/checks.yml
     rev: v2.11.3
     hooks:
       - id: golangci-lint
