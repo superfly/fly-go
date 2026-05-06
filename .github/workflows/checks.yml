@@ -37,7 +37,8 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v9
         with:
-          version: latest
+          # Keep golangci-lint version insync with .pre-commit-config.yaml
+          version: v2.11.3
 
   test:
     strategy:
