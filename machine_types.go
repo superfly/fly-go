@@ -433,6 +433,12 @@ type MachineCacheDrive struct {
 	SizeMB uint64 `toml:"size_mb,omitempty" json:"size_mb,omitempty"`
 }
 
+// MachineSpot configures spot pricing behavior for a Machine
+type MachineSpot struct {
+	// MaxPriceFraction is the maximum fraction of the full Machine price you will pay for this Machine. Range: (0, 1.0]
+	MaxPriceFraction float64 `toml:"max_price_fraction,omitempty" json:"max_price_fraction,omitempty"`
+}
+
 // @description The Machine restart policy defines whether and how flyd restarts a Machine after its main process exits. See https://fly.io/docs/machines/guides-examples/machine-restart-policy/.
 type MachineRestart struct {
 	// * no - Never try to restart a Machine automatically when its main process exits, whether that’s on purpose or on a crash.
@@ -838,6 +844,8 @@ type MachineConfig struct {
 
 	Rootfs     *MachineRootfs     `toml:"rootfs,omitempty" json:"rootfs,omitempty"`
 	CacheDrive *MachineCacheDrive `toml:"cache_drive,omitempty" json:"cache_drive,omitempty"`
+
+	Spot *MachineSpot `toml:"spot,omitempty" json:"spot,omitempty"`
 
 	// Deprecated: use Guest instead
 	VMSize string `toml:"size,omitempty" json:"size,omitempty"`
