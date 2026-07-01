@@ -4,8 +4,10 @@ package clientsignals
 type matchKind int
 
 const (
-	// presence means the variable just needs to be set to any non-empty
-	// value.
+	// presence means the variable just needs to be set (to any value,
+	// including empty) — matching the spec's "detected on presence of the
+	// variable" wording, and consistent with how CI detection treats CI=""
+	// as present (see isCI in ci.go).
 	presence matchKind = iota
 	// exactValue means the variable must equal one of the listed values,
 	// exactly (case-sensitive).
