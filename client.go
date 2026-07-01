@@ -16,6 +16,7 @@ import (
 	_ "github.com/Khan/genqlient/generate"
 	genq "github.com/Khan/genqlient/graphql"
 	"github.com/cenkalti/backoff/v4"
+	"github.com/superfly/fly-go/pkg/clientsignals"
 	"github.com/superfly/fly-go/tokens"
 	"github.com/superfly/graphql"
 	"go.opentelemetry.io/otel"
@@ -214,7 +215,7 @@ func (t *Transport) setDefaults(opts *ClientOptions) {
 	}
 
 	if !t.DisableClientSignals {
-		t.UnderlyingTransport = NewClientSignalsTransport(t.UnderlyingTransport)
+		t.UnderlyingTransport = clientsignals.NewClientSignalsTransport(t.UnderlyingTransport)
 	}
 }
 

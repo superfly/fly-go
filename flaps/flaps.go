@@ -19,6 +19,7 @@ import (
 	"github.com/cenkalti/backoff/v4"
 	fly "github.com/superfly/fly-go"
 	"github.com/superfly/fly-go/internal/tracing"
+	"github.com/superfly/fly-go/pkg/clientsignals"
 	"github.com/superfly/fly-go/tokens"
 	"github.com/superfly/macaroon"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
@@ -75,7 +76,7 @@ func NewWithOptions(ctx context.Context, opts NewClientOpts) (*Client, error) {
 		transport = opts.Transport
 	}
 	if !opts.DisableClientSignals {
-		transport = fly.NewClientSignalsTransport(transport)
+		transport = clientsignals.NewClientSignalsTransport(transport)
 	}
 	otelTransport := otelhttp.NewTransport(transport)
 	httpClient, err := fly.NewHTTPClient(opts.Logger, otelTransport)

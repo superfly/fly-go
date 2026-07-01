@@ -1,43 +1,41 @@
-package fly
+package clientsignals
 
 import (
 	"fmt"
 	"net/http"
 	"strconv"
 	"sync"
-
-	"github.com/superfly/fly-go/pkg/clientsignals"
 )
 
 var (
-	clientSignalsOnce   sync.Once
-	clientSignalsCached clientsignals.Signals
+	cachedOnce   sync.Once
+	cachedResult Signals
 )
 
-// clientSignals returns the process-wide AI-agent-vs-human traffic
-// classification signals, computed once and cached for the lifetime of the
-// process. Detection involves a parent-process lookup and environment
-// scanning, so it must never run per request — ClientSignalsTransport calls
-// this once at construction time, not from RoundTrip.
-func clientSignals() clientsignals.Signals {
-	clientSignalsOnce.Do(func() {
-		clientSignalsCached = clientsignals.Detect()
+// cached returns the process-wide signals, computed once via Detect and
+// cached for the lifetime of the process. Detection involves a
+// parent-process lookup and environment scanning, so it must never run per
+// request — NewClientSignalsTransport calls this once at construction time,
+// not from RoundTrip.
+func cached() Signals {
+	cachedOnce.Do(func() {
+		cachedResult = Detect()
 	})
 
-	return clientSignalsCached
+	return cachedResult
 }
 
-// resetClientSignalsForTest clears the cached signals so tests can exercise
-// Detect() against a freshly modified environment. Only for use in this
-// module's own tests.
-func resetClientSignalsForTest() {
-	clientSignalsOnce = sync.Once{}
+// resetCachedForTest clears the cached signals so tests can exercise Detect
+// against a freshly modified environment. Only for use in this package's
+// own tests.
+func resetCachedForTest() {
+	cachedOnce = sync.Once{}
 }
 
-// clientSignalsUserAgentSuffix returns the human-readable
+// userAgentSuffix returns the human-readable
 // "(interactive=...; parent=...; agent=...)" token to append to a
 // User-Agent string.
-func clientSignalsUserAgentSuffix(s clientsignals.Signals) string {
+func userAgentSuffix(s Signals) string {
 	suffix := fmt.Sprintf("interactive=%t; parent=%s", s.Interactive, s.Parent)
 	if s.Agent != "" {
 		suffix += "; agent=" + s.Agent
@@ -46,8 +44,8 @@ func clientSignalsUserAgentSuffix(s clientsignals.Signals) string {
 	return "(" + suffix + ")"
 }
 
-// applyClientSignalHeaders sets the Fly-Client-* headers on req from s.
-func applyClientSignalHeaders(req *http.Request, s clientsignals.Signals) {
+// applyHeaders sets the Fly-Client-* headers on req from s.
+func applyHeaders(req *http.Request, s Signals) {
 	req.Header.Set("Fly-Client-Interactive", strconv.FormatBool(s.Interactive))
 	req.Header.Set("Fly-Client-Parent", s.Parent)
 	if s.Agent != "" {
@@ -70,7 +68,7 @@ func applyClientSignalHeaders(req *http.Request, s clientsignals.Signals) {
 type ClientSignalsTransport struct {
 	InnerTransport http.RoundTripper
 
-	signals  clientsignals.Signals
+	signals  Signals
 	uaSuffix string
 }
 
@@ -79,17 +77,17 @@ type ClientSignalsTransport struct {
 // per process (here, or by an earlier caller — the result is cached), never
 // per request.
 func NewClientSignalsTransport(inner http.RoundTripper) *ClientSignalsTransport {
-	sig := clientSignals()
+	sig := cached()
 
 	return &ClientSignalsTransport{
 		InnerTransport: inner,
 		signals:        sig,
-		uaSuffix:       clientSignalsUserAgentSuffix(sig),
+		uaSuffix:       userAgentSuffix(sig),
 	}
 }
 
 func (t *ClientSignalsTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	applyClientSignalHeaders(req, t.signals)
+	applyHeaders(req, t.signals)
 
 	if ua := req.Header.Get("User-Agent"); ua != "" {
 		req.Header.Set("User-Agent", ua+" "+t.uaSuffix)

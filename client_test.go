@@ -122,9 +122,6 @@ func TestTransportRoundTrip_DoesNotSetFlyForceInstanceIDHeader(t *testing.T) {
 }
 
 func TestTransportRoundTrip_AttachesClientSignalHeaders(t *testing.T) {
-	resetClientSignalsForTest()
-	t.Cleanup(resetClientSignalsForTest)
-
 	capture := &captureTripper{}
 	transport := &Transport{UnderlyingTransport: capture, UserAgent: "test/0"}
 	transport.setDefaults(&ClientOptions{})
@@ -157,9 +154,6 @@ func TestTransportRoundTrip_AttachesClientSignalHeaders(t *testing.T) {
 }
 
 func TestTransportRoundTrip_DisableClientSignalsSuppressesHeaders(t *testing.T) {
-	resetClientSignalsForTest()
-	t.Cleanup(resetClientSignalsForTest)
-
 	capture := &captureTripper{}
 	transport := &Transport{UnderlyingTransport: capture, UserAgent: "test/0", DisableClientSignals: true}
 	transport.setDefaults(&ClientOptions{})
