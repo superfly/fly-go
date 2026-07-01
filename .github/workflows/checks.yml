@@ -39,6 +39,9 @@ jobs:
         with:
           # Keep golangci-lint version insync with .pre-commit-config.yaml
           version: v2.11.3
+          # pkg/clientsignals is a nested module (its own go.mod) and
+          # is not covered by the default ./... pattern.
+          args: ./... ./pkg/clientsignals/...
 
   test:
     strategy:
@@ -62,4 +65,9 @@ jobs:
         run: go generate ./... && git diff --exit-code
         if: runner.os != 'Windows'
       - name: Run tests
+        run: go test ./...
+      - name: Run pkg/clientsignals tests
+        # pkg/clientsignals is a nested module (its own go.mod) and is
+        # not covered by go test ./... above.
+        working-directory: pkg/clientsignals
         run: go test ./...

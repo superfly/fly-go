@@ -264,6 +264,58 @@ func TestFlaps_NewRequestSetsFlyForceInstanceIDHeaderFromEnv(t *testing.T) {
 	}
 }
 
+func TestFlaps_AttachesClientSignalHeaders(t *testing.T) {
+	capture := &captureTripper{}
+	client, err := NewWithOptions(context.Background(), NewClientOpts{Transport: capture})
+	if err != nil {
+		t.Fatalf("NewWithOptions() error = %v", err)
+	}
+
+	if err := client._sendRequest(context.Background(), http.MethodGet, "/apps", nil, nil, nil); err != nil {
+		t.Fatalf("_sendRequest() error = %v", err)
+	}
+
+	interactive := capture.req.Header.Get("Fly-Client-Interactive")
+	if interactive != "true" && interactive != "false" {
+		t.Fatalf("Fly-Client-Interactive header = %q, want true or false", interactive)
+	}
+
+	switch parent := capture.req.Header.Get("Fly-Client-Parent"); parent {
+	case "node", "python", "shell", "other":
+	default:
+		t.Fatalf("Fly-Client-Parent header = %q, want one of node/python/shell/other", parent)
+	}
+
+	if ua := capture.req.Header.Get("User-Agent"); !strings.Contains(ua, "interactive=") {
+		t.Fatalf("User-Agent = %q, want it to contain the client signals suffix", ua)
+	}
+}
+
+func TestFlaps_DisableClientSignalsSuppressesHeaders(t *testing.T) {
+	capture := &captureTripper{}
+	client, err := NewWithOptions(context.Background(), NewClientOpts{
+		Transport:            capture,
+		DisableClientSignals: true,
+	})
+	if err != nil {
+		t.Fatalf("NewWithOptions() error = %v", err)
+	}
+
+	if err := client._sendRequest(context.Background(), http.MethodGet, "/apps", nil, nil, nil); err != nil {
+		t.Fatalf("_sendRequest() error = %v", err)
+	}
+
+	for _, h := range []string{"Fly-Client-Interactive", "Fly-Client-Parent", "Fly-Client-Agent", "Fly-Client-Agent-Source", "Fly-Client-CI"} {
+		if got := capture.req.Header.Get(h); got != "" {
+			t.Fatalf("%s header = %q, want empty when DisableClientSignals is set", h, got)
+		}
+	}
+
+	if ua := capture.req.Header.Get("User-Agent"); strings.Contains(ua, "interactive=") {
+		t.Fatalf("User-Agent = %q, want no client signals suffix when disabled", ua)
+	}
+}
+
 func TestFlaps_GetDoesNotRetryNonConnReset(t *testing.T) {
 	tripper := &scriptedTripper{steps: []step{
 		{err: errors.New("some other error")},

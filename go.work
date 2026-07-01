@@ -1,0 +1,6 @@
+go 1.25.8
+
+use (
+	.
+	./pkg/clientsignals
+)

@@ -5,6 +5,7 @@ go 1.25.8
 require (
 	github.com/Khan/genqlient v0.8.1
 	github.com/PuerkitoBio/rehttp v1.4.0
+	github.com/superfly/fly-go/pkg/clientsignals v0.0.0
 	github.com/superfly/graphql v0.2.6
 	github.com/superfly/macaroon v0.3.0
 	go.opentelemetry.io/otel v1.44.0
@@ -12,6 +13,8 @@ require (
 	golang.org/x/crypto v0.52.0
 	golang.org/x/exp v0.0.0-20260312153236-7ab1446f8b90
 )
+
+replace github.com/superfly/fly-go/pkg/clientsignals => ./pkg/clientsignals
 
 require (
 	github.com/agnivade/levenshtein v1.2.1 // indirect

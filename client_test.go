@@ -121,6 +121,71 @@ func TestTransportRoundTrip_DoesNotSetFlyForceInstanceIDHeader(t *testing.T) {
 	}
 }
 
+func TestTransportRoundTrip_AttachesClientSignalHeaders(t *testing.T) {
+	resetClientSignalsForTest()
+	t.Cleanup(resetClientSignalsForTest)
+
+	capture := &captureTripper{}
+	transport := &Transport{UnderlyingTransport: capture, UserAgent: "test/0"}
+	transport.setDefaults(&ClientOptions{})
+
+	req, err := http.NewRequest(http.MethodGet, "http://example.test", nil)
+	if err != nil {
+		t.Fatalf("NewRequest returned error: %v", err)
+	}
+
+	resp, err := transport.RoundTrip(req)
+	if err != nil {
+		t.Fatalf("RoundTrip returned error: %v", err)
+	}
+	defer resp.Body.Close()
+
+	interactive := capture.req.Header.Get("Fly-Client-Interactive")
+	if interactive != "true" && interactive != "false" {
+		t.Fatalf("Fly-Client-Interactive header = %q, want true or false", interactive)
+	}
+
+	switch parent := capture.req.Header.Get("Fly-Client-Parent"); parent {
+	case "node", "python", "shell", "other":
+	default:
+		t.Fatalf("Fly-Client-Parent header = %q, want one of node/python/shell/other", parent)
+	}
+
+	if ua := capture.req.Header.Get("User-Agent"); !strings.Contains(ua, "interactive=") {
+		t.Fatalf("User-Agent = %q, want it to contain the client signals suffix", ua)
+	}
+}
+
+func TestTransportRoundTrip_DisableClientSignalsSuppressesHeaders(t *testing.T) {
+	resetClientSignalsForTest()
+	t.Cleanup(resetClientSignalsForTest)
+
+	capture := &captureTripper{}
+	transport := &Transport{UnderlyingTransport: capture, UserAgent: "test/0", DisableClientSignals: true}
+	transport.setDefaults(&ClientOptions{})
+
+	req, err := http.NewRequest(http.MethodGet, "http://example.test", nil)
+	if err != nil {
+		t.Fatalf("NewRequest returned error: %v", err)
+	}
+
+	resp, err := transport.RoundTrip(req)
+	if err != nil {
+		t.Fatalf("RoundTrip returned error: %v", err)
+	}
+	defer resp.Body.Close()
+
+	for _, h := range []string{"Fly-Client-Interactive", "Fly-Client-Parent", "Fly-Client-Agent", "Fly-Client-Agent-Source", "Fly-Client-CI"} {
+		if got := capture.req.Header.Get(h); got != "" {
+			t.Fatalf("%s header = %q, want empty when DisableClientSignals is set", h, got)
+		}
+	}
+
+	if ua := capture.req.Header.Get("User-Agent"); ua != "test/0" {
+		t.Fatalf("User-Agent = %q, want unchanged base UA when disabled", ua)
+	}
+}
+
 func TestGraphQLOperationKind(t *testing.T) {
 	cases := []struct {
 		name string

@@ -49,6 +49,10 @@ type NewClientOpts struct {
 
 	// optional, used to construct the underlying HTTP client
 	Transport http.RoundTripper
+
+	// optional, suppresses the Fly-Client-* headers/UA suffix (e.g. when the
+	// caller's own telemetry preference is disabled)
+	DisableClientSignals bool
 }
 
 func NewWithOptions(ctx context.Context, opts NewClientOpts) (*Client, error) {
@@ -69,6 +73,9 @@ func NewWithOptions(ctx context.Context, opts NewClientOpts) (*Client, error) {
 	transport := http.DefaultTransport
 	if opts.Transport != nil {
 		transport = opts.Transport
+	}
+	if !opts.DisableClientSignals {
+		transport = fly.NewClientSignalsTransport(transport)
 	}
 	otelTransport := otelhttp.NewTransport(transport)
 	httpClient, err := fly.NewHTTPClient(opts.Logger, otelTransport)
@@ -181,6 +188,7 @@ func (f *Client) do(ctx context.Context, method, endpoint string, in interface{}
 		if err != nil {
 			return nil, err
 		}
+
 		req.Header.Set("User-Agent", f.userAgent)
 
 		return f.httpClient.Do(req)

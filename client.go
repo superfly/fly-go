@@ -160,16 +160,17 @@ func NewClient(accessToken, name, version string, logger Logger) *Client {
 }
 
 type ClientOptions struct {
-	AccessToken        string
-	Tokens             *tokens.Tokens
-	Name               string
-	Version            string
-	BaseURL            string
-	Logger             Logger
-	EnableDebugTrace   *bool
-	FlyForceRegion     *string
-	FlyForceInstanceID *string
-	Transport          *Transport
+	AccessToken          string
+	Tokens               *tokens.Tokens
+	Name                 string
+	Version              string
+	BaseURL              string
+	Logger               Logger
+	EnableDebugTrace     *bool
+	FlyForceRegion       *string
+	FlyForceInstanceID   *string
+	Transport            *Transport
+	DisableClientSignals *bool
 }
 
 func (opts ClientOptions) tokens() *tokens.Tokens {
@@ -206,6 +207,14 @@ func (t *Transport) setDefaults(opts *ClientOptions) {
 		if v := os.Getenv("FLY_FORCE_REGION"); v != "" {
 			t.FlyForceRegion = v
 		}
+	}
+
+	if opts.DisableClientSignals != nil {
+		t.DisableClientSignals = *opts.DisableClientSignals
+	}
+
+	if !t.DisableClientSignals {
+		t.UnderlyingTransport = NewClientSignalsTransport(t.UnderlyingTransport)
 	}
 }
 
@@ -354,18 +363,20 @@ func GetAccessToken(ctx context.Context, email, password, otp string) (token str
 }
 
 type Transport struct {
-	UnderlyingTransport http.RoundTripper
-	UserAgent           string
-	Token               string // deprecated
-	Tokens              *tokens.Tokens
-	EnableDebugTrace    bool
-	FlyForceRegion      string
+	UnderlyingTransport  http.RoundTripper
+	UserAgent            string
+	Token                string // deprecated
+	Tokens               *tokens.Tokens
+	EnableDebugTrace     bool
+	FlyForceRegion       string
+	DisableClientSignals bool
 }
 
 func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	t.addAuthorization(req)
 
 	req.Header.Set("User-Agent", t.UserAgent)
+
 	if t.EnableDebugTrace {
 		req.Header.Set("Fly-Force-Trace", "true")
 	}
