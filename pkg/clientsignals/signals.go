@@ -7,6 +7,8 @@
 // be extracted into its own standalone library with minimal friction.
 package clientsignals
 
+import "sync"
+
 // Signals is the set of coarse, privacy-safe traffic-classification signals
 // computed once per process.
 type Signals struct {
@@ -47,4 +49,29 @@ func Detect() Signals {
 		AgentSource: source,
 		CI:          isCI(),
 	}
+}
+
+var (
+	cachedOnce   sync.Once
+	cachedResult Signals
+)
+
+// CachedSignals returns the process-wide signals, computed once via Detect
+// and cached for the lifetime of the process. Detection involves a
+// parent-process lookup and environment scanning, so callers should fetch
+// this once (e.g. at client-construction time) and reuse the result rather
+// than calling it per request.
+func CachedSignals() Signals {
+	cachedOnce.Do(func() {
+		cachedResult = Detect()
+	})
+
+	return cachedResult
+}
+
+// resetCachedForTest clears the cached signals so tests can exercise Detect
+// against a freshly modified environment. Only for use in this package's
+// own tests.
+func resetCachedForTest() {
+	cachedOnce = sync.Once{}
 }
