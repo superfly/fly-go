@@ -61,10 +61,11 @@ func applyHeaders(req *http.Request, s Signals) {
 // Fly-Client-* headers and appending the client-signals token to the
 // existing User-Agent header on every outgoing request.
 //
-// Signal detection (terminal/parent-process/environment inspection) happens
-// at most once per process, at construction time via
-// NewClientSignalsTransport — RoundTrip does no detection work itself, it
-// only applies the values already computed when the transport was built.
+// Construct one via Signals.WrapTransport (for a specific, already-computed
+// Signals value) or NewClientSignalsTransport (for the process-wide, cached
+// signals, with optional debug logging). Either way, RoundTrip does no
+// detection work itself — it only applies the values already computed when
+// the transport was built.
 type ClientSignalsTransport struct {
 	InnerTransport http.RoundTripper
 
@@ -77,6 +78,16 @@ type ClientSignalsTransport struct {
 // can pass a fly.Logger in without this package importing it.
 type debugLogger interface {
 	Debugf(format string, v ...any)
+}
+
+// WrapTransport wraps inner in a *ClientSignalsTransport that attaches s to
+// every request the returned transport forwards.
+func (s Signals) WrapTransport(inner http.RoundTripper) *ClientSignalsTransport {
+	return &ClientSignalsTransport{
+		InnerTransport: inner,
+		signals:        s,
+		uaSuffix:       userAgentSuffix(s),
+	}
 }
 
 // NewClientSignalsTransport wraps inner so that every request through it
@@ -94,11 +105,7 @@ func NewClientSignalsTransport(inner http.RoundTripper, logger debugLogger) *Cli
 			sig.Interactive, sig.Parent, sig.Agent, sig.AgentSource, sig.CI)
 	}
 
-	return &ClientSignalsTransport{
-		InnerTransport: inner,
-		signals:        sig,
-		uaSuffix:       userAgentSuffix(sig),
-	}
+	return sig.WrapTransport(inner)
 }
 
 func (t *ClientSignalsTransport) RoundTrip(req *http.Request) (*http.Response, error) {

@@ -81,6 +81,49 @@ func TestClientSignalsTransport_SetsUserAgentWhenNoneWasSet(t *testing.T) {
 	}
 }
 
+func TestSignals_WrapTransport(t *testing.T) {
+	sig := Signals{
+		Interactive: true,
+		Parent:      "node",
+		Agent:       "claude-code",
+		AgentSource: "env:CLAUDECODE",
+		CI:          true,
+	}
+
+	capture := &captureTripper{}
+	transport := sig.WrapTransport(capture)
+
+	req, err := http.NewRequest(http.MethodGet, "http://example.test", nil)
+	if err != nil {
+		t.Fatalf("NewRequest returned error: %v", err)
+	}
+	req.Header.Set("User-Agent", "test/0")
+
+	resp, err := transport.RoundTrip(req)
+	if err != nil {
+		t.Fatalf("RoundTrip returned error: %v", err)
+	}
+	defer resp.Body.Close()
+
+	cases := map[string]string{
+		"Fly-Client-Interactive":  "true",
+		"Fly-Client-Parent":       "node",
+		"Fly-Client-Agent":        "claude-code",
+		"Fly-Client-Agent-Source": "env:CLAUDECODE",
+		"Fly-Client-CI":           "true",
+	}
+	for header, want := range cases {
+		if got := capture.req.Header.Get(header); got != want {
+			t.Fatalf("%s header = %q, want %q", header, got, want)
+		}
+	}
+
+	wantUA := "test/0 (interactive=true; parent=node; agent=claude-code)"
+	if ua := capture.req.Header.Get("User-Agent"); ua != wantUA {
+		t.Fatalf("User-Agent = %q, want %q", ua, wantUA)
+	}
+}
+
 type fakeLogger struct {
 	lines []string
 }
