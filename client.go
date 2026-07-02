@@ -161,17 +161,17 @@ func NewClient(accessToken, name, version string, logger Logger) *Client {
 }
 
 type ClientOptions struct {
-	AccessToken         string
-	Tokens              *tokens.Tokens
-	Name                string
-	Version             string
-	BaseURL             string
-	Logger              Logger
-	EnableDebugTrace    *bool
-	FlyForceRegion      *string
-	FlyForceInstanceID  *string
-	Transport           *Transport
-	EnableClientSignals *bool
+	AccessToken        string
+	Tokens             *tokens.Tokens
+	Name               string
+	Version            string
+	BaseURL            string
+	Logger             Logger
+	EnableDebugTrace   *bool
+	FlyForceRegion     *string
+	FlyForceInstanceID *string
+	Transport          *Transport
+	ClientSignals      *clientsignals.Signals
 }
 
 func (opts ClientOptions) tokens() *tokens.Tokens {
@@ -210,17 +210,17 @@ func (t *Transport) setDefaults(opts *ClientOptions) {
 		}
 	}
 
-	if opts.EnableClientSignals != nil {
-		t.EnableClientSignals = *opts.EnableClientSignals
+	if opts.ClientSignals != nil {
+		t.ClientSignals = opts.ClientSignals
 	}
 
-	if t.EnableClientSignals {
-		sig := clientsignals.DetectOnce()
+	if t.ClientSignals != nil {
 		if opts.Logger != nil {
+			sig := t.ClientSignals
 			opts.Logger.Debugf("web: client signals: enabled interactive=%t parent=%s agent=%q agent_source=%q ci=%t",
 				sig.Interactive, sig.Parent, sig.Agent, sig.AgentSource, sig.CI)
 		}
-		t.UnderlyingTransport = sig.WrapTransport(t.UnderlyingTransport)
+		t.UnderlyingTransport = t.ClientSignals.WrapTransport(t.UnderlyingTransport)
 	} else if opts.Logger != nil {
 		opts.Logger.Debugf("web: client signals: disabled")
 	}
@@ -377,7 +377,7 @@ type Transport struct {
 	Tokens              *tokens.Tokens
 	EnableDebugTrace    bool
 	FlyForceRegion      string
-	EnableClientSignals bool
+	ClientSignals       *clientsignals.Signals
 }
 
 func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {

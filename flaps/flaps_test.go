@@ -12,6 +12,8 @@ import (
 	"sync"
 	"syscall"
 	"testing"
+
+	"github.com/superfly/fly-go/pkg/clientsignals"
 )
 
 func TestNewWithOptionsSetsCookieJar(t *testing.T) {
@@ -264,11 +266,11 @@ func TestFlaps_NewRequestSetsFlyForceInstanceIDHeaderFromEnv(t *testing.T) {
 	}
 }
 
-func TestFlaps_EnableClientSignalsAttachesHeaders(t *testing.T) {
+func TestFlaps_ClientSignalsAttachesHeaders(t *testing.T) {
 	capture := &captureTripper{}
 	client, err := NewWithOptions(context.Background(), NewClientOpts{
-		Transport:           capture,
-		EnableClientSignals: true,
+		Transport:     capture,
+		ClientSignals: &clientsignals.Signals{Interactive: true, Parent: "shell"},
 	})
 	if err != nil {
 		t.Fatalf("NewWithOptions() error = %v", err)
@@ -278,15 +280,11 @@ func TestFlaps_EnableClientSignalsAttachesHeaders(t *testing.T) {
 		t.Fatalf("_sendRequest() error = %v", err)
 	}
 
-	interactive := capture.req.Header.Get("Fly-Client-Interactive")
-	if interactive != "true" && interactive != "false" {
-		t.Fatalf("Fly-Client-Interactive header = %q, want true or false", interactive)
+	if got := capture.req.Header.Get("Fly-Client-Interactive"); got != "true" {
+		t.Fatalf("Fly-Client-Interactive header = %q, want %q", got, "true")
 	}
-
-	switch parent := capture.req.Header.Get("Fly-Client-Parent"); parent {
-	case "node", "python", "shell", "other":
-	default:
-		t.Fatalf("Fly-Client-Parent header = %q, want one of node/python/shell/other", parent)
+	if got := capture.req.Header.Get("Fly-Client-Parent"); got != "shell" {
+		t.Fatalf("Fly-Client-Parent header = %q, want %q", got, "shell")
 	}
 
 	if ua := capture.req.Header.Get("User-Agent"); !strings.Contains(ua, "interactive=") {
@@ -307,7 +305,7 @@ func TestFlaps_ClientSignalsDisabledByDefault(t *testing.T) {
 
 	for _, h := range []string{"Fly-Client-Interactive", "Fly-Client-Parent", "Fly-Client-Agent", "Fly-Client-Agent-Source", "Fly-Client-CI"} {
 		if got := capture.req.Header.Get(h); got != "" {
-			t.Fatalf("%s header = %q, want empty when EnableClientSignals is not set", h, got)
+			t.Fatalf("%s header = %q, want empty when ClientSignals is not set", h, got)
 		}
 	}
 
@@ -328,9 +326,9 @@ func (f *fakeLogger) Debugf(format string, v ...any) {
 func TestFlaps_LogsClientSignalsEnabled(t *testing.T) {
 	logger := &fakeLogger{}
 	_, err := NewWithOptions(context.Background(), NewClientOpts{
-		Transport:           &captureTripper{},
-		EnableClientSignals: true,
-		Logger:              logger,
+		Transport:     &captureTripper{},
+		ClientSignals: &clientsignals.Signals{},
+		Logger:        logger,
 	})
 	if err != nil {
 		t.Fatalf("NewWithOptions() error = %v", err)

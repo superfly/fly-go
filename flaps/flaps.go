@@ -51,9 +51,9 @@ type NewClientOpts struct {
 	// optional, used to construct the underlying HTTP client
 	Transport http.RoundTripper
 
-	// optional, attaches the Fly-Client-* headers/UA suffix (e.g. when the
-	// caller's own telemetry preference is enabled)
-	EnableClientSignals bool
+	// optional; if non-nil, attaches the Fly-Client-* headers/UA suffix
+	// derived from these signals
+	ClientSignals *clientsignals.Signals
 }
 
 func NewWithOptions(ctx context.Context, opts NewClientOpts) (*Client, error) {
@@ -75,13 +75,13 @@ func NewWithOptions(ctx context.Context, opts NewClientOpts) (*Client, error) {
 	if opts.Transport != nil {
 		transport = opts.Transport
 	}
-	if opts.EnableClientSignals {
-		sig := clientsignals.DetectOnce()
+	if opts.ClientSignals != nil {
 		if opts.Logger != nil {
+			sig := opts.ClientSignals
 			opts.Logger.Debugf("flaps: client signals: enabled interactive=%t parent=%s agent=%q agent_source=%q ci=%t",
 				sig.Interactive, sig.Parent, sig.Agent, sig.AgentSource, sig.CI)
 		}
-		transport = sig.WrapTransport(transport)
+		transport = opts.ClientSignals.WrapTransport(transport)
 	} else if opts.Logger != nil {
 		opts.Logger.Debugf("flaps: client signals: disabled")
 	}

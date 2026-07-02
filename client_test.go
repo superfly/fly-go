@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	genq "github.com/Khan/genqlient/graphql"
+	"github.com/superfly/fly-go/pkg/clientsignals"
 	"github.com/superfly/graphql"
 )
 
@@ -121,9 +122,10 @@ func TestTransportRoundTrip_DoesNotSetFlyForceInstanceIDHeader(t *testing.T) {
 	}
 }
 
-func TestTransportRoundTrip_EnableClientSignalsAttachesHeaders(t *testing.T) {
+func TestTransportRoundTrip_ClientSignalsAttachesHeaders(t *testing.T) {
 	capture := &captureTripper{}
-	transport := &Transport{UnderlyingTransport: capture, UserAgent: "test/0", EnableClientSignals: true}
+	sig := &clientsignals.Signals{Interactive: true, Parent: "shell"}
+	transport := &Transport{UnderlyingTransport: capture, UserAgent: "test/0", ClientSignals: sig}
 	transport.setDefaults(&ClientOptions{})
 
 	req, err := http.NewRequest(http.MethodGet, "http://example.test", nil)
@@ -137,15 +139,11 @@ func TestTransportRoundTrip_EnableClientSignalsAttachesHeaders(t *testing.T) {
 	}
 	defer resp.Body.Close()
 
-	interactive := capture.req.Header.Get("Fly-Client-Interactive")
-	if interactive != "true" && interactive != "false" {
-		t.Fatalf("Fly-Client-Interactive header = %q, want true or false", interactive)
+	if got := capture.req.Header.Get("Fly-Client-Interactive"); got != "true" {
+		t.Fatalf("Fly-Client-Interactive header = %q, want %q", got, "true")
 	}
-
-	switch parent := capture.req.Header.Get("Fly-Client-Parent"); parent {
-	case "node", "python", "shell", "other":
-	default:
-		t.Fatalf("Fly-Client-Parent header = %q, want one of node/python/shell/other", parent)
+	if got := capture.req.Header.Get("Fly-Client-Parent"); got != "shell" {
+		t.Fatalf("Fly-Client-Parent header = %q, want %q", got, "shell")
 	}
 
 	if ua := capture.req.Header.Get("User-Agent"); !strings.Contains(ua, "interactive=") {
@@ -171,7 +169,7 @@ func TestTransportRoundTrip_ClientSignalsDisabledByDefault(t *testing.T) {
 
 	for _, h := range []string{"Fly-Client-Interactive", "Fly-Client-Parent", "Fly-Client-Agent", "Fly-Client-Agent-Source", "Fly-Client-CI"} {
 		if got := capture.req.Header.Get(h); got != "" {
-			t.Fatalf("%s header = %q, want empty when EnableClientSignals is not set", h, got)
+			t.Fatalf("%s header = %q, want empty when ClientSignals is not set", h, got)
 		}
 	}
 
@@ -191,7 +189,7 @@ func (f *fakeLogger) Debugf(format string, v ...any) {
 
 func TestTransportSetDefaults_LogsClientSignalsEnabled(t *testing.T) {
 	logger := &fakeLogger{}
-	transport := &Transport{EnableClientSignals: true}
+	transport := &Transport{ClientSignals: &clientsignals.Signals{}}
 	transport.setDefaults(&ClientOptions{Logger: logger})
 
 	if len(logger.lines) != 1 {
