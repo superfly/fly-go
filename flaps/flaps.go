@@ -51,9 +51,9 @@ type NewClientOpts struct {
 	// optional, used to construct the underlying HTTP client
 	Transport http.RoundTripper
 
-	// optional, suppresses the Fly-Client-* headers/UA suffix (e.g. when the
-	// caller's own telemetry preference is disabled)
-	DisableClientSignals bool
+	// optional, attaches the Fly-Client-* headers/UA suffix (e.g. when the
+	// caller's own telemetry preference is enabled)
+	EnableClientSignals bool
 }
 
 func NewWithOptions(ctx context.Context, opts NewClientOpts) (*Client, error) {
@@ -75,7 +75,7 @@ func NewWithOptions(ctx context.Context, opts NewClientOpts) (*Client, error) {
 	if opts.Transport != nil {
 		transport = opts.Transport
 	}
-	if !opts.DisableClientSignals {
+	if opts.EnableClientSignals {
 		transport = clientsignals.NewClientSignalsTransport(transport, opts.Logger)
 	} else if opts.Logger != nil {
 		opts.Logger.Debugf("client signals: disabled")

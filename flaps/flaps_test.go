@@ -264,9 +264,12 @@ func TestFlaps_NewRequestSetsFlyForceInstanceIDHeaderFromEnv(t *testing.T) {
 	}
 }
 
-func TestFlaps_AttachesClientSignalHeaders(t *testing.T) {
+func TestFlaps_EnableClientSignalsAttachesHeaders(t *testing.T) {
 	capture := &captureTripper{}
-	client, err := NewWithOptions(context.Background(), NewClientOpts{Transport: capture})
+	client, err := NewWithOptions(context.Background(), NewClientOpts{
+		Transport:           capture,
+		EnableClientSignals: true,
+	})
 	if err != nil {
 		t.Fatalf("NewWithOptions() error = %v", err)
 	}
@@ -291,12 +294,9 @@ func TestFlaps_AttachesClientSignalHeaders(t *testing.T) {
 	}
 }
 
-func TestFlaps_DisableClientSignalsSuppressesHeaders(t *testing.T) {
+func TestFlaps_ClientSignalsDisabledByDefault(t *testing.T) {
 	capture := &captureTripper{}
-	client, err := NewWithOptions(context.Background(), NewClientOpts{
-		Transport:            capture,
-		DisableClientSignals: true,
-	})
+	client, err := NewWithOptions(context.Background(), NewClientOpts{Transport: capture})
 	if err != nil {
 		t.Fatalf("NewWithOptions() error = %v", err)
 	}
@@ -307,7 +307,7 @@ func TestFlaps_DisableClientSignalsSuppressesHeaders(t *testing.T) {
 
 	for _, h := range []string{"Fly-Client-Interactive", "Fly-Client-Parent", "Fly-Client-Agent", "Fly-Client-Agent-Source", "Fly-Client-CI"} {
 		if got := capture.req.Header.Get(h); got != "" {
-			t.Fatalf("%s header = %q, want empty when DisableClientSignals is set", h, got)
+			t.Fatalf("%s header = %q, want empty when EnableClientSignals is not set", h, got)
 		}
 	}
 

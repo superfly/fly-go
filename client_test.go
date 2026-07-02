@@ -121,9 +121,9 @@ func TestTransportRoundTrip_DoesNotSetFlyForceInstanceIDHeader(t *testing.T) {
 	}
 }
 
-func TestTransportRoundTrip_AttachesClientSignalHeaders(t *testing.T) {
+func TestTransportRoundTrip_EnableClientSignalsAttachesHeaders(t *testing.T) {
 	capture := &captureTripper{}
-	transport := &Transport{UnderlyingTransport: capture, UserAgent: "test/0"}
+	transport := &Transport{UnderlyingTransport: capture, UserAgent: "test/0", EnableClientSignals: true}
 	transport.setDefaults(&ClientOptions{})
 
 	req, err := http.NewRequest(http.MethodGet, "http://example.test", nil)
@@ -153,9 +153,9 @@ func TestTransportRoundTrip_AttachesClientSignalHeaders(t *testing.T) {
 	}
 }
 
-func TestTransportRoundTrip_DisableClientSignalsSuppressesHeaders(t *testing.T) {
+func TestTransportRoundTrip_ClientSignalsDisabledByDefault(t *testing.T) {
 	capture := &captureTripper{}
-	transport := &Transport{UnderlyingTransport: capture, UserAgent: "test/0", DisableClientSignals: true}
+	transport := &Transport{UnderlyingTransport: capture, UserAgent: "test/0"}
 	transport.setDefaults(&ClientOptions{})
 
 	req, err := http.NewRequest(http.MethodGet, "http://example.test", nil)
@@ -171,7 +171,7 @@ func TestTransportRoundTrip_DisableClientSignalsSuppressesHeaders(t *testing.T) 
 
 	for _, h := range []string{"Fly-Client-Interactive", "Fly-Client-Parent", "Fly-Client-Agent", "Fly-Client-Agent-Source", "Fly-Client-CI"} {
 		if got := capture.req.Header.Get(h); got != "" {
-			t.Fatalf("%s header = %q, want empty when DisableClientSignals is set", h, got)
+			t.Fatalf("%s header = %q, want empty when EnableClientSignals is not set", h, got)
 		}
 	}
 

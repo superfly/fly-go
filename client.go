@@ -161,17 +161,17 @@ func NewClient(accessToken, name, version string, logger Logger) *Client {
 }
 
 type ClientOptions struct {
-	AccessToken          string
-	Tokens               *tokens.Tokens
-	Name                 string
-	Version              string
-	BaseURL              string
-	Logger               Logger
-	EnableDebugTrace     *bool
-	FlyForceRegion       *string
-	FlyForceInstanceID   *string
-	Transport            *Transport
-	DisableClientSignals *bool
+	AccessToken         string
+	Tokens              *tokens.Tokens
+	Name                string
+	Version             string
+	BaseURL             string
+	Logger              Logger
+	EnableDebugTrace    *bool
+	FlyForceRegion      *string
+	FlyForceInstanceID  *string
+	Transport           *Transport
+	EnableClientSignals *bool
 }
 
 func (opts ClientOptions) tokens() *tokens.Tokens {
@@ -210,11 +210,11 @@ func (t *Transport) setDefaults(opts *ClientOptions) {
 		}
 	}
 
-	if opts.DisableClientSignals != nil {
-		t.DisableClientSignals = *opts.DisableClientSignals
+	if opts.EnableClientSignals != nil {
+		t.EnableClientSignals = *opts.EnableClientSignals
 	}
 
-	if !t.DisableClientSignals {
+	if t.EnableClientSignals {
 		t.UnderlyingTransport = clientsignals.NewClientSignalsTransport(t.UnderlyingTransport, opts.Logger)
 	} else if opts.Logger != nil {
 		opts.Logger.Debugf("client signals: disabled")
@@ -366,13 +366,13 @@ func GetAccessToken(ctx context.Context, email, password, otp string) (token str
 }
 
 type Transport struct {
-	UnderlyingTransport  http.RoundTripper
-	UserAgent            string
-	Token                string // deprecated
-	Tokens               *tokens.Tokens
-	EnableDebugTrace     bool
-	FlyForceRegion       string
-	DisableClientSignals bool
+	UnderlyingTransport http.RoundTripper
+	UserAgent           string
+	Token               string // deprecated
+	Tokens              *tokens.Tokens
+	EnableDebugTrace    bool
+	FlyForceRegion      string
+	EnableClientSignals bool
 }
 
 func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
