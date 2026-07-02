@@ -215,7 +215,12 @@ func (t *Transport) setDefaults(opts *ClientOptions) {
 	}
 
 	if t.EnableClientSignals {
-		t.UnderlyingTransport = clientsignals.NewClientSignalsTransport(t.UnderlyingTransport, opts.Logger)
+		sig := clientsignals.CachedSignals()
+		if opts.Logger != nil {
+			opts.Logger.Debugf("client signals: enabled interactive=%t parent=%s agent=%q agent_source=%q ci=%t",
+				sig.Interactive, sig.Parent, sig.Agent, sig.AgentSource, sig.CI)
+		}
+		t.UnderlyingTransport = sig.WrapTransport(t.UnderlyingTransport)
 	} else if opts.Logger != nil {
 		opts.Logger.Debugf("client signals: disabled")
 	}

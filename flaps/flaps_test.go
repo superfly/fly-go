@@ -316,6 +316,52 @@ func TestFlaps_ClientSignalsDisabledByDefault(t *testing.T) {
 	}
 }
 
+type fakeLogger struct {
+	lines []string
+}
+
+func (f *fakeLogger) Debug(v ...any) { f.lines = append(f.lines, fmt.Sprint(v...)) }
+func (f *fakeLogger) Debugf(format string, v ...any) {
+	f.lines = append(f.lines, fmt.Sprintf(format, v...))
+}
+
+func TestFlaps_LogsClientSignalsEnabled(t *testing.T) {
+	logger := &fakeLogger{}
+	_, err := NewWithOptions(context.Background(), NewClientOpts{
+		Transport:           &captureTripper{},
+		EnableClientSignals: true,
+		Logger:              logger,
+	})
+	if err != nil {
+		t.Fatalf("NewWithOptions() error = %v", err)
+	}
+
+	if len(logger.lines) != 1 {
+		t.Fatalf("expected exactly one debug line logged, got %d: %v", len(logger.lines), logger.lines)
+	}
+	if !strings.Contains(logger.lines[0], "client signals: enabled") {
+		t.Fatalf("expected debug line to mention client signals are enabled, got %q", logger.lines[0])
+	}
+}
+
+func TestFlaps_LogsClientSignalsDisabled(t *testing.T) {
+	logger := &fakeLogger{}
+	_, err := NewWithOptions(context.Background(), NewClientOpts{
+		Transport: &captureTripper{},
+		Logger:    logger,
+	})
+	if err != nil {
+		t.Fatalf("NewWithOptions() error = %v", err)
+	}
+
+	if len(logger.lines) != 1 {
+		t.Fatalf("expected exactly one debug line logged, got %d: %v", len(logger.lines), logger.lines)
+	}
+	if !strings.Contains(logger.lines[0], "client signals: disabled") {
+		t.Fatalf("expected debug line to mention client signals are disabled, got %q", logger.lines[0])
+	}
+}
+
 func TestFlaps_GetDoesNotRetryNonConnReset(t *testing.T) {
 	tripper := &scriptedTripper{steps: []step{
 		{err: errors.New("some other error")},

@@ -1,7 +1,6 @@
 package clientsignals
 
 import (
-	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -28,7 +27,7 @@ func TestClientSignalsTransport_AttachesHeadersAndUserAgentSuffix(t *testing.T) 
 	t.Cleanup(resetCachedForTest)
 
 	capture := &captureTripper{}
-	transport := NewClientSignalsTransport(capture, nil)
+	transport := CachedSignals().WrapTransport(capture)
 
 	req, err := http.NewRequest(http.MethodGet, "http://example.test", nil)
 	if err != nil {
@@ -63,7 +62,7 @@ func TestClientSignalsTransport_SetsUserAgentWhenNoneWasSet(t *testing.T) {
 	t.Cleanup(resetCachedForTest)
 
 	capture := &captureTripper{}
-	transport := NewClientSignalsTransport(capture, nil)
+	transport := CachedSignals().WrapTransport(capture)
 
 	req, err := http.NewRequest(http.MethodGet, "http://example.test", nil)
 	if err != nil {
@@ -122,34 +121,4 @@ func TestSignals_WrapTransport(t *testing.T) {
 	if ua := capture.req.Header.Get("User-Agent"); ua != wantUA {
 		t.Fatalf("User-Agent = %q, want %q", ua, wantUA)
 	}
-}
-
-type fakeLogger struct {
-	lines []string
-}
-
-func (f *fakeLogger) Debugf(format string, v ...any) {
-	f.lines = append(f.lines, fmt.Sprintf(format, v...))
-}
-
-func TestNewClientSignalsTransport_LogsDetectedSignalsOnce(t *testing.T) {
-	resetCachedForTest()
-	t.Cleanup(resetCachedForTest)
-
-	logger := &fakeLogger{}
-	NewClientSignalsTransport(&captureTripper{}, logger)
-
-	if len(logger.lines) != 1 {
-		t.Fatalf("expected exactly one debug line logged at construction, got %d: %v", len(logger.lines), logger.lines)
-	}
-	if !strings.Contains(logger.lines[0], "client signals: enabled") {
-		t.Fatalf("expected debug line to mention client signals are enabled, got %q", logger.lines[0])
-	}
-}
-
-func TestNewClientSignalsTransport_NilLoggerDoesNotPanic(t *testing.T) {
-	resetCachedForTest()
-	t.Cleanup(resetCachedForTest)
-
-	NewClientSignalsTransport(&captureTripper{}, nil)
 }

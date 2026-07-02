@@ -180,6 +180,41 @@ func TestTransportRoundTrip_ClientSignalsDisabledByDefault(t *testing.T) {
 	}
 }
 
+type fakeLogger struct {
+	lines []string
+}
+
+func (f *fakeLogger) Debug(v ...any) { f.lines = append(f.lines, fmt.Sprint(v...)) }
+func (f *fakeLogger) Debugf(format string, v ...any) {
+	f.lines = append(f.lines, fmt.Sprintf(format, v...))
+}
+
+func TestTransportSetDefaults_LogsClientSignalsEnabled(t *testing.T) {
+	logger := &fakeLogger{}
+	transport := &Transport{EnableClientSignals: true}
+	transport.setDefaults(&ClientOptions{Logger: logger})
+
+	if len(logger.lines) != 1 {
+		t.Fatalf("expected exactly one debug line logged, got %d: %v", len(logger.lines), logger.lines)
+	}
+	if !strings.Contains(logger.lines[0], "client signals: enabled") {
+		t.Fatalf("expected debug line to mention client signals are enabled, got %q", logger.lines[0])
+	}
+}
+
+func TestTransportSetDefaults_LogsClientSignalsDisabled(t *testing.T) {
+	logger := &fakeLogger{}
+	transport := &Transport{}
+	transport.setDefaults(&ClientOptions{Logger: logger})
+
+	if len(logger.lines) != 1 {
+		t.Fatalf("expected exactly one debug line logged, got %d: %v", len(logger.lines), logger.lines)
+	}
+	if !strings.Contains(logger.lines[0], "client signals: disabled") {
+		t.Fatalf("expected debug line to mention client signals are disabled, got %q", logger.lines[0])
+	}
+}
+
 func TestGraphQLOperationKind(t *testing.T) {
 	cases := []struct {
 		name string

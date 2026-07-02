@@ -12,12 +12,12 @@ var (
 	cachedResult Signals
 )
 
-// cached returns the process-wide signals, computed once via Detect and
-// cached for the lifetime of the process. Detection involves a
-// parent-process lookup and environment scanning, so it must never run per
-// request — NewClientSignalsTransport calls this once at construction time,
-// not from RoundTrip.
-func cached() Signals {
+// CachedSignals returns the process-wide signals, computed once via Detect
+// and cached for the lifetime of the process. Detection involves a
+// parent-process lookup and environment scanning, so callers should fetch
+// this once (e.g. at client-construction time) and reuse the result rather
+// than calling it per request.
+func CachedSignals() Signals {
 	cachedOnce.Do(func() {
 		cachedResult = Detect()
 	})
@@ -61,23 +61,14 @@ func applyHeaders(req *http.Request, s Signals) {
 // Fly-Client-* headers and appending the client-signals token to the
 // existing User-Agent header on every outgoing request.
 //
-// Construct one via Signals.WrapTransport (for a specific, already-computed
-// Signals value) or NewClientSignalsTransport (for the process-wide, cached
-// signals, with optional debug logging). Either way, RoundTrip does no
-// detection work itself — it only applies the values already computed when
-// the transport was built.
+// Construct one via Signals.WrapTransport. RoundTrip does no detection work
+// itself — it only applies the values already computed when the transport
+// was built.
 type ClientSignalsTransport struct {
 	InnerTransport http.RoundTripper
 
 	signals  Signals
 	uaSuffix string
-}
-
-// debugLogger is a minimal logging interface for optional debug output.
-// It matches (github.com/superfly/fly-go).Logger structurally, so callers
-// can pass a fly.Logger in without this package importing it.
-type debugLogger interface {
-	Debugf(format string, v ...any)
 }
 
 // WrapTransport wraps inner in a *ClientSignalsTransport that attaches s to
@@ -88,24 +79,6 @@ func (s Signals) WrapTransport(inner http.RoundTripper) *ClientSignalsTransport 
 		signals:        s,
 		uaSuffix:       userAgentSuffix(s),
 	}
-}
-
-// NewClientSignalsTransport wraps inner so that every request through it
-// carries the process's client signals. Signal detection runs at most once
-// per process (here, or by an earlier caller — the result is cached), never
-// per request.
-//
-// If logger is non-nil, the detected signals are logged once, at
-// construction time — never per request.
-func NewClientSignalsTransport(inner http.RoundTripper, logger debugLogger) *ClientSignalsTransport {
-	sig := cached()
-
-	if logger != nil {
-		logger.Debugf("client signals: enabled interactive=%t parent=%s agent=%q agent_source=%q ci=%t",
-			sig.Interactive, sig.Parent, sig.Agent, sig.AgentSource, sig.CI)
-	}
-
-	return sig.WrapTransport(inner)
 }
 
 func (t *ClientSignalsTransport) RoundTrip(req *http.Request) (*http.Response, error) {

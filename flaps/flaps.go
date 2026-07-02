@@ -76,7 +76,12 @@ func NewWithOptions(ctx context.Context, opts NewClientOpts) (*Client, error) {
 		transport = opts.Transport
 	}
 	if opts.EnableClientSignals {
-		transport = clientsignals.NewClientSignalsTransport(transport, opts.Logger)
+		sig := clientsignals.CachedSignals()
+		if opts.Logger != nil {
+			opts.Logger.Debugf("client signals: enabled interactive=%t parent=%s agent=%q agent_source=%q ci=%t",
+				sig.Interactive, sig.Parent, sig.Agent, sig.AgentSource, sig.CI)
+		}
+		transport = sig.WrapTransport(transport)
 	} else if opts.Logger != nil {
 		opts.Logger.Debugf("client signals: disabled")
 	}
