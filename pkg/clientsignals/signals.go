@@ -51,27 +51,20 @@ func Detect() Signals {
 	}
 }
 
-var (
-	cachedOnce   sync.Once
-	cachedResult Signals
-)
+var detectOnce = sync.OnceValue(Detect)
 
-// CachedSignals returns the process-wide signals, computed once via Detect
-// and cached for the lifetime of the process. Detection involves a
+// DetectOnce returns the process-wide signals, computed once via Detect and
+// cached for the lifetime of the process. Detection involves a
 // parent-process lookup and environment scanning, so callers should fetch
 // this once (e.g. at client-construction time) and reuse the result rather
 // than calling it per request.
-func CachedSignals() Signals {
-	cachedOnce.Do(func() {
-		cachedResult = Detect()
-	})
-
-	return cachedResult
+func DetectOnce() Signals {
+	return detectOnce()
 }
 
 // resetCachedForTest clears the cached signals so tests can exercise Detect
 // against a freshly modified environment. Only for use in this package's
 // own tests.
 func resetCachedForTest() {
-	cachedOnce = sync.Once{}
+	detectOnce = sync.OnceValue(Detect)
 }

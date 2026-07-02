@@ -28,20 +28,20 @@ func TestDetect_AgentAndSourceAreBothEmptyOrBothSet(t *testing.T) {
 	}
 }
 
-func TestCachedSignals_ComputesOnce(t *testing.T) {
+func TestDetectOnce_ComputesOnce(t *testing.T) {
 	resetCachedForTest()
 	t.Cleanup(resetCachedForTest)
 
 	t.Setenv("FLY_INVOKED_BY", "cached-tool")
-	first := CachedSignals()
+	first := DetectOnce()
 
 	// Changing the environment after the first call must not affect the
 	// already-cached result.
 	t.Setenv("FLY_INVOKED_BY", "different-tool")
-	second := CachedSignals()
+	second := DetectOnce()
 
 	if first != second {
-		t.Fatalf("expected CachedSignals to return the same cached value on repeated calls, got %+v then %+v", first, second)
+		t.Fatalf("expected DetectOnce to return the same cached value on repeated calls, got %+v then %+v", first, second)
 	}
 	if second.Agent != "cached-tool" {
 		t.Fatalf("expected cached value to reflect the environment at the first call, got agent=%q", second.Agent)

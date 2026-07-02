@@ -27,7 +27,7 @@ func TestClientSignalsTransport_AttachesHeadersAndUserAgentSuffix(t *testing.T) 
 	t.Cleanup(resetCachedForTest)
 
 	capture := &captureTripper{}
-	transport := CachedSignals().WrapTransport(capture)
+	transport := DetectOnce().WrapTransport(capture)
 
 	req, err := http.NewRequest(http.MethodGet, "http://example.test", nil)
 	if err != nil {
@@ -62,7 +62,7 @@ func TestClientSignalsTransport_SetsUserAgentWhenNoneWasSet(t *testing.T) {
 	t.Cleanup(resetCachedForTest)
 
 	capture := &captureTripper{}
-	transport := CachedSignals().WrapTransport(capture)
+	transport := DetectOnce().WrapTransport(capture)
 
 	req, err := http.NewRequest(http.MethodGet, "http://example.test", nil)
 	if err != nil {
