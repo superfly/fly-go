@@ -76,7 +76,9 @@ func NewWithOptions(ctx context.Context, opts NewClientOpts) (*Client, error) {
 		transport = opts.Transport
 	}
 	if !opts.DisableClientSignals {
-		transport = clientsignals.NewClientSignalsTransport(transport)
+		transport = clientsignals.NewClientSignalsTransport(transport, opts.Logger)
+	} else if opts.Logger != nil {
+		opts.Logger.Debugf("client signals: disabled")
 	}
 	otelTransport := otelhttp.NewTransport(transport)
 	httpClient, err := fly.NewHTTPClient(opts.Logger, otelTransport)

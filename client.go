@@ -215,7 +215,9 @@ func (t *Transport) setDefaults(opts *ClientOptions) {
 	}
 
 	if !t.DisableClientSignals {
-		t.UnderlyingTransport = clientsignals.NewClientSignalsTransport(t.UnderlyingTransport)
+		t.UnderlyingTransport = clientsignals.NewClientSignalsTransport(t.UnderlyingTransport, opts.Logger)
+	} else if opts.Logger != nil {
+		opts.Logger.Debugf("client signals: disabled")
 	}
 }
 

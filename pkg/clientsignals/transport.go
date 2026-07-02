@@ -72,12 +72,27 @@ type ClientSignalsTransport struct {
 	uaSuffix string
 }
 
+// debugLogger is a minimal logging interface for optional debug output.
+// It matches (github.com/superfly/fly-go).Logger structurally, so callers
+// can pass a fly.Logger in without this package importing it.
+type debugLogger interface {
+	Debugf(format string, v ...any)
+}
+
 // NewClientSignalsTransport wraps inner so that every request through it
 // carries the process's client signals. Signal detection runs at most once
 // per process (here, or by an earlier caller — the result is cached), never
 // per request.
-func NewClientSignalsTransport(inner http.RoundTripper) *ClientSignalsTransport {
+//
+// If logger is non-nil, the detected signals are logged once, at
+// construction time — never per request.
+func NewClientSignalsTransport(inner http.RoundTripper, logger debugLogger) *ClientSignalsTransport {
 	sig := cached()
+
+	if logger != nil {
+		logger.Debugf("client signals: enabled interactive=%t parent=%s agent=%q agent_source=%q ci=%t",
+			sig.Interactive, sig.Parent, sig.Agent, sig.AgentSource, sig.CI)
+	}
 
 	return &ClientSignalsTransport{
 		InnerTransport: inner,

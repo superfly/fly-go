@@ -1,6 +1,7 @@
 package clientsignals
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -27,7 +28,7 @@ func TestClientSignalsTransport_AttachesHeadersAndUserAgentSuffix(t *testing.T) 
 	t.Cleanup(resetCachedForTest)
 
 	capture := &captureTripper{}
-	transport := NewClientSignalsTransport(capture)
+	transport := NewClientSignalsTransport(capture, nil)
 
 	req, err := http.NewRequest(http.MethodGet, "http://example.test", nil)
 	if err != nil {
@@ -62,7 +63,7 @@ func TestClientSignalsTransport_SetsUserAgentWhenNoneWasSet(t *testing.T) {
 	t.Cleanup(resetCachedForTest)
 
 	capture := &captureTripper{}
-	transport := NewClientSignalsTransport(capture)
+	transport := NewClientSignalsTransport(capture, nil)
 
 	req, err := http.NewRequest(http.MethodGet, "http://example.test", nil)
 	if err != nil {
@@ -78,4 +79,34 @@ func TestClientSignalsTransport_SetsUserAgentWhenNoneWasSet(t *testing.T) {
 	if ua := capture.req.Header.Get("User-Agent"); !strings.HasPrefix(ua, "(interactive=") {
 		t.Fatalf("User-Agent = %q, want it to be just the client signals suffix", ua)
 	}
+}
+
+type fakeLogger struct {
+	lines []string
+}
+
+func (f *fakeLogger) Debugf(format string, v ...any) {
+	f.lines = append(f.lines, fmt.Sprintf(format, v...))
+}
+
+func TestNewClientSignalsTransport_LogsDetectedSignalsOnce(t *testing.T) {
+	resetCachedForTest()
+	t.Cleanup(resetCachedForTest)
+
+	logger := &fakeLogger{}
+	NewClientSignalsTransport(&captureTripper{}, logger)
+
+	if len(logger.lines) != 1 {
+		t.Fatalf("expected exactly one debug line logged at construction, got %d: %v", len(logger.lines), logger.lines)
+	}
+	if !strings.Contains(logger.lines[0], "client signals: enabled") {
+		t.Fatalf("expected debug line to mention client signals are enabled, got %q", logger.lines[0])
+	}
+}
+
+func TestNewClientSignalsTransport_NilLoggerDoesNotPanic(t *testing.T) {
+	resetCachedForTest()
+	t.Cleanup(resetCachedForTest)
+
+	NewClientSignalsTransport(&captureTripper{}, nil)
 }
