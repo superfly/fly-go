@@ -339,8 +339,8 @@ func TestFlaps_LogsClientSignalsEnabled(t *testing.T) {
 	if len(logger.lines) != 1 {
 		t.Fatalf("expected exactly one debug line logged, got %d: %v", len(logger.lines), logger.lines)
 	}
-	if !strings.Contains(logger.lines[0], "client signals: enabled") {
-		t.Fatalf("expected debug line to mention client signals are enabled, got %q", logger.lines[0])
+	if !strings.HasPrefix(logger.lines[0], "flaps: client signals: enabled") {
+		t.Fatalf("expected debug line to start with the flaps: prefix and mention client signals are enabled, got %q", logger.lines[0])
 	}
 }
 
@@ -357,8 +357,8 @@ func TestFlaps_LogsClientSignalsDisabled(t *testing.T) {
 	if len(logger.lines) != 1 {
 		t.Fatalf("expected exactly one debug line logged, got %d: %v", len(logger.lines), logger.lines)
 	}
-	if !strings.Contains(logger.lines[0], "client signals: disabled") {
-		t.Fatalf("expected debug line to mention client signals are disabled, got %q", logger.lines[0])
+	if logger.lines[0] != "flaps: client signals: disabled" {
+		t.Fatalf("expected debug line = %q, got %q", "flaps: client signals: disabled", logger.lines[0])
 	}
 }
 

@@ -197,8 +197,8 @@ func TestTransportSetDefaults_LogsClientSignalsEnabled(t *testing.T) {
 	if len(logger.lines) != 1 {
 		t.Fatalf("expected exactly one debug line logged, got %d: %v", len(logger.lines), logger.lines)
 	}
-	if !strings.Contains(logger.lines[0], "client signals: enabled") {
-		t.Fatalf("expected debug line to mention client signals are enabled, got %q", logger.lines[0])
+	if !strings.HasPrefix(logger.lines[0], "web: client signals: enabled") {
+		t.Fatalf("expected debug line to start with the web: prefix and mention client signals are enabled, got %q", logger.lines[0])
 	}
 }
 
@@ -210,8 +210,8 @@ func TestTransportSetDefaults_LogsClientSignalsDisabled(t *testing.T) {
 	if len(logger.lines) != 1 {
 		t.Fatalf("expected exactly one debug line logged, got %d: %v", len(logger.lines), logger.lines)
 	}
-	if !strings.Contains(logger.lines[0], "client signals: disabled") {
-		t.Fatalf("expected debug line to mention client signals are disabled, got %q", logger.lines[0])
+	if logger.lines[0] != "web: client signals: disabled" {
+		t.Fatalf("expected debug line = %q, got %q", "web: client signals: disabled", logger.lines[0])
 	}
 }
 

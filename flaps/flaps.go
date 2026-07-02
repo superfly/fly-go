@@ -78,12 +78,12 @@ func NewWithOptions(ctx context.Context, opts NewClientOpts) (*Client, error) {
 	if opts.EnableClientSignals {
 		sig := clientsignals.DetectOnce()
 		if opts.Logger != nil {
-			opts.Logger.Debugf("client signals: enabled interactive=%t parent=%s agent=%q agent_source=%q ci=%t",
+			opts.Logger.Debugf("flaps: client signals: enabled interactive=%t parent=%s agent=%q agent_source=%q ci=%t",
 				sig.Interactive, sig.Parent, sig.Agent, sig.AgentSource, sig.CI)
 		}
 		transport = sig.WrapTransport(transport)
 	} else if opts.Logger != nil {
-		opts.Logger.Debugf("client signals: disabled")
+		opts.Logger.Debugf("flaps: client signals: disabled")
 	}
 	otelTransport := otelhttp.NewTransport(transport)
 	httpClient, err := fly.NewHTTPClient(opts.Logger, otelTransport)
