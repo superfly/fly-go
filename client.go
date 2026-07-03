@@ -16,6 +16,7 @@ import (
 	_ "github.com/Khan/genqlient/generate"
 	genq "github.com/Khan/genqlient/graphql"
 	"github.com/cenkalti/backoff/v4"
+	"github.com/superfly/fly-go/pkg/clientsignals"
 	"github.com/superfly/fly-go/tokens"
 	"github.com/superfly/graphql"
 	"go.opentelemetry.io/otel"
@@ -170,6 +171,7 @@ type ClientOptions struct {
 	FlyForceRegion     *string
 	FlyForceInstanceID *string
 	Transport          *Transport
+	ClientSignals      *clientsignals.Signals
 }
 
 func (opts ClientOptions) tokens() *tokens.Tokens {
@@ -206,6 +208,21 @@ func (t *Transport) setDefaults(opts *ClientOptions) {
 		if v := os.Getenv("FLY_FORCE_REGION"); v != "" {
 			t.FlyForceRegion = v
 		}
+	}
+
+	if opts.ClientSignals != nil {
+		t.ClientSignals = opts.ClientSignals
+	}
+
+	if t.ClientSignals != nil {
+		if opts.Logger != nil {
+			sig := t.ClientSignals
+			opts.Logger.Debugf("web: client signals: enabled interactive=%t parent=%s agent=%q agent_source=%q ci=%t",
+				sig.Interactive, sig.Parent, sig.Agent, sig.AgentSource, sig.CI)
+		}
+		t.UnderlyingTransport = t.ClientSignals.WrapTransport(t.UnderlyingTransport)
+	} else if opts.Logger != nil {
+		opts.Logger.Debugf("web: client signals: disabled")
 	}
 }
 
@@ -360,12 +377,14 @@ type Transport struct {
 	Tokens              *tokens.Tokens
 	EnableDebugTrace    bool
 	FlyForceRegion      string
+	ClientSignals       *clientsignals.Signals
 }
 
 func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	t.addAuthorization(req)
 
 	req.Header.Set("User-Agent", t.UserAgent)
+
 	if t.EnableDebugTrace {
 		req.Header.Set("Fly-Force-Trace", "true")
 	}

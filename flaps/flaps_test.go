@@ -12,6 +12,8 @@ import (
 	"sync"
 	"syscall"
 	"testing"
+
+	"github.com/superfly/fly-go/pkg/clientsignals"
 )
 
 func TestNewWithOptionsSetsCookieJar(t *testing.T) {
@@ -261,6 +263,100 @@ func TestFlaps_NewRequestSetsFlyForceInstanceIDHeaderFromEnv(t *testing.T) {
 
 	if got := capture.req.Header.Get("Fly-Force-Instance-Id"); got != "worker-1" {
 		t.Fatalf("Fly-Force-Instance-Id header = %q, want %q", got, "worker-1")
+	}
+}
+
+func TestFlaps_ClientSignalsAttachesHeaders(t *testing.T) {
+	capture := &captureTripper{}
+	client, err := NewWithOptions(context.Background(), NewClientOpts{
+		Transport:     capture,
+		ClientSignals: &clientsignals.Signals{Interactive: true, Parent: "shell"},
+	})
+	if err != nil {
+		t.Fatalf("NewWithOptions() error = %v", err)
+	}
+
+	if err := client._sendRequest(context.Background(), http.MethodGet, "/apps", nil, nil, nil); err != nil {
+		t.Fatalf("_sendRequest() error = %v", err)
+	}
+
+	if got := capture.req.Header.Get("Fly-Client-Interactive"); got != "true" {
+		t.Fatalf("Fly-Client-Interactive header = %q, want %q", got, "true")
+	}
+	if got := capture.req.Header.Get("Fly-Client-Parent"); got != "shell" {
+		t.Fatalf("Fly-Client-Parent header = %q, want %q", got, "shell")
+	}
+
+	if ua := capture.req.Header.Get("User-Agent"); !strings.Contains(ua, "interactive=") {
+		t.Fatalf("User-Agent = %q, want it to contain the client signals suffix", ua)
+	}
+}
+
+func TestFlaps_ClientSignalsDisabledByDefault(t *testing.T) {
+	capture := &captureTripper{}
+	client, err := NewWithOptions(context.Background(), NewClientOpts{Transport: capture})
+	if err != nil {
+		t.Fatalf("NewWithOptions() error = %v", err)
+	}
+
+	if err := client._sendRequest(context.Background(), http.MethodGet, "/apps", nil, nil, nil); err != nil {
+		t.Fatalf("_sendRequest() error = %v", err)
+	}
+
+	for _, h := range []string{"Fly-Client-Interactive", "Fly-Client-Parent", "Fly-Client-Agent", "Fly-Client-Agent-Source", "Fly-Client-CI"} {
+		if got := capture.req.Header.Get(h); got != "" {
+			t.Fatalf("%s header = %q, want empty when ClientSignals is not set", h, got)
+		}
+	}
+
+	if ua := capture.req.Header.Get("User-Agent"); strings.Contains(ua, "interactive=") {
+		t.Fatalf("User-Agent = %q, want no client signals suffix when disabled", ua)
+	}
+}
+
+type fakeLogger struct {
+	lines []string
+}
+
+func (f *fakeLogger) Debug(v ...any) { f.lines = append(f.lines, fmt.Sprint(v...)) }
+func (f *fakeLogger) Debugf(format string, v ...any) {
+	f.lines = append(f.lines, fmt.Sprintf(format, v...))
+}
+
+func TestFlaps_LogsClientSignalsEnabled(t *testing.T) {
+	logger := &fakeLogger{}
+	_, err := NewWithOptions(context.Background(), NewClientOpts{
+		Transport:     &captureTripper{},
+		ClientSignals: &clientsignals.Signals{},
+		Logger:        logger,
+	})
+	if err != nil {
+		t.Fatalf("NewWithOptions() error = %v", err)
+	}
+
+	if len(logger.lines) != 1 {
+		t.Fatalf("expected exactly one debug line logged, got %d: %v", len(logger.lines), logger.lines)
+	}
+	if !strings.HasPrefix(logger.lines[0], "flaps: client signals: enabled") {
+		t.Fatalf("expected debug line to start with the flaps: prefix and mention client signals are enabled, got %q", logger.lines[0])
+	}
+}
+
+func TestFlaps_LogsClientSignalsDisabled(t *testing.T) {
+	logger := &fakeLogger{}
+	_, err := NewWithOptions(context.Background(), NewClientOpts{
+		Transport: &captureTripper{},
+		Logger:    logger,
+	})
+	if err != nil {
+		t.Fatalf("NewWithOptions() error = %v", err)
+	}
+
+	if len(logger.lines) != 1 {
+		t.Fatalf("expected exactly one debug line logged, got %d: %v", len(logger.lines), logger.lines)
+	}
+	if logger.lines[0] != "flaps: client signals: disabled" {
+		t.Fatalf("expected debug line = %q, got %q", "flaps: client signals: disabled", logger.lines[0])
 	}
 }
 

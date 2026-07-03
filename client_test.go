@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	genq "github.com/Khan/genqlient/graphql"
+	"github.com/superfly/fly-go/pkg/clientsignals"
 	"github.com/superfly/graphql"
 )
 
@@ -118,6 +119,97 @@ func TestTransportRoundTrip_DoesNotSetFlyForceInstanceIDHeader(t *testing.T) {
 
 	if got := capture.req.Header.Get("Fly-Force-Instance-Id"); got != "" {
 		t.Fatalf("Fly-Force-Instance-Id header = %q, want empty", got)
+	}
+}
+
+func TestTransportRoundTrip_ClientSignalsAttachesHeaders(t *testing.T) {
+	capture := &captureTripper{}
+	sig := &clientsignals.Signals{Interactive: true, Parent: "shell"}
+	transport := &Transport{UnderlyingTransport: capture, UserAgent: "test/0", ClientSignals: sig}
+	transport.setDefaults(&ClientOptions{})
+
+	req, err := http.NewRequest(http.MethodGet, "http://example.test", nil)
+	if err != nil {
+		t.Fatalf("NewRequest returned error: %v", err)
+	}
+
+	resp, err := transport.RoundTrip(req)
+	if err != nil {
+		t.Fatalf("RoundTrip returned error: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if got := capture.req.Header.Get("Fly-Client-Interactive"); got != "true" {
+		t.Fatalf("Fly-Client-Interactive header = %q, want %q", got, "true")
+	}
+	if got := capture.req.Header.Get("Fly-Client-Parent"); got != "shell" {
+		t.Fatalf("Fly-Client-Parent header = %q, want %q", got, "shell")
+	}
+
+	if ua := capture.req.Header.Get("User-Agent"); !strings.Contains(ua, "interactive=") {
+		t.Fatalf("User-Agent = %q, want it to contain the client signals suffix", ua)
+	}
+}
+
+func TestTransportRoundTrip_ClientSignalsDisabledByDefault(t *testing.T) {
+	capture := &captureTripper{}
+	transport := &Transport{UnderlyingTransport: capture, UserAgent: "test/0"}
+	transport.setDefaults(&ClientOptions{})
+
+	req, err := http.NewRequest(http.MethodGet, "http://example.test", nil)
+	if err != nil {
+		t.Fatalf("NewRequest returned error: %v", err)
+	}
+
+	resp, err := transport.RoundTrip(req)
+	if err != nil {
+		t.Fatalf("RoundTrip returned error: %v", err)
+	}
+	defer resp.Body.Close()
+
+	for _, h := range []string{"Fly-Client-Interactive", "Fly-Client-Parent", "Fly-Client-Agent", "Fly-Client-Agent-Source", "Fly-Client-CI"} {
+		if got := capture.req.Header.Get(h); got != "" {
+			t.Fatalf("%s header = %q, want empty when ClientSignals is not set", h, got)
+		}
+	}
+
+	if ua := capture.req.Header.Get("User-Agent"); ua != "test/0" {
+		t.Fatalf("User-Agent = %q, want unchanged base UA when disabled", ua)
+	}
+}
+
+type fakeLogger struct {
+	lines []string
+}
+
+func (f *fakeLogger) Debug(v ...any) { f.lines = append(f.lines, fmt.Sprint(v...)) }
+func (f *fakeLogger) Debugf(format string, v ...any) {
+	f.lines = append(f.lines, fmt.Sprintf(format, v...))
+}
+
+func TestTransportSetDefaults_LogsClientSignalsEnabled(t *testing.T) {
+	logger := &fakeLogger{}
+	transport := &Transport{ClientSignals: &clientsignals.Signals{}}
+	transport.setDefaults(&ClientOptions{Logger: logger})
+
+	if len(logger.lines) != 1 {
+		t.Fatalf("expected exactly one debug line logged, got %d: %v", len(logger.lines), logger.lines)
+	}
+	if !strings.HasPrefix(logger.lines[0], "web: client signals: enabled") {
+		t.Fatalf("expected debug line to start with the web: prefix and mention client signals are enabled, got %q", logger.lines[0])
+	}
+}
+
+func TestTransportSetDefaults_LogsClientSignalsDisabled(t *testing.T) {
+	logger := &fakeLogger{}
+	transport := &Transport{}
+	transport.setDefaults(&ClientOptions{Logger: logger})
+
+	if len(logger.lines) != 1 {
+		t.Fatalf("expected exactly one debug line logged, got %d: %v", len(logger.lines), logger.lines)
+	}
+	if logger.lines[0] != "web: client signals: disabled" {
+		t.Fatalf("expected debug line = %q, got %q", "web: client signals: disabled", logger.lines[0])
 	}
 }
 

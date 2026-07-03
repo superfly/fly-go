@@ -19,6 +19,7 @@ import (
 	"github.com/cenkalti/backoff/v4"
 	fly "github.com/superfly/fly-go"
 	"github.com/superfly/fly-go/internal/tracing"
+	"github.com/superfly/fly-go/pkg/clientsignals"
 	"github.com/superfly/fly-go/tokens"
 	"github.com/superfly/macaroon"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
@@ -49,6 +50,10 @@ type NewClientOpts struct {
 
 	// optional, used to construct the underlying HTTP client
 	Transport http.RoundTripper
+
+	// optional; if non-nil, attaches the Fly-Client-* headers/UA suffix
+	// derived from these signals
+	ClientSignals *clientsignals.Signals
 }
 
 func NewWithOptions(ctx context.Context, opts NewClientOpts) (*Client, error) {
@@ -69,6 +74,16 @@ func NewWithOptions(ctx context.Context, opts NewClientOpts) (*Client, error) {
 	transport := http.DefaultTransport
 	if opts.Transport != nil {
 		transport = opts.Transport
+	}
+	if opts.ClientSignals != nil {
+		if opts.Logger != nil {
+			sig := opts.ClientSignals
+			opts.Logger.Debugf("flaps: client signals: enabled interactive=%t parent=%s agent=%q agent_source=%q ci=%t",
+				sig.Interactive, sig.Parent, sig.Agent, sig.AgentSource, sig.CI)
+		}
+		transport = opts.ClientSignals.WrapTransport(transport)
+	} else if opts.Logger != nil {
+		opts.Logger.Debugf("flaps: client signals: disabled")
 	}
 	otelTransport := otelhttp.NewTransport(transport)
 	httpClient, err := fly.NewHTTPClient(opts.Logger, otelTransport)
@@ -181,6 +196,7 @@ func (f *Client) do(ctx context.Context, method, endpoint string, in interface{}
 		if err != nil {
 			return nil, err
 		}
+
 		req.Header.Set("User-Agent", f.userAgent)
 
 		return f.httpClient.Do(req)
