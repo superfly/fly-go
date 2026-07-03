@@ -13,7 +13,7 @@ import (
 	"syscall"
 	"testing"
 
-	"github.com/superfly/fly-go/pkg/clientsignals"
+	"github.com/superfly/client-signals"
 )
 
 func TestNewWithOptionsSetsCookieJar(t *testing.T) {

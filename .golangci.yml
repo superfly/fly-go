@@ -30,6 +30,7 @@ linters:
           - github.com/Khan/genqlient
           - github.com/google/go-querystring
           - github.com/PuerkitoBio/rehttp
+          - github.com/superfly/client-signals
           - github.com/superfly/graphql
           - github.com/superfly/macaroon
           - github.com/superfly/macaroon/flyio

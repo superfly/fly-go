@@ -5,13 +5,13 @@ go 1.25.8
 require (
 	github.com/Khan/genqlient v0.8.1
 	github.com/PuerkitoBio/rehttp v1.4.0
+	github.com/superfly/client-signals v0.2.0
 	github.com/superfly/graphql v0.2.6
 	github.com/superfly/macaroon v0.3.0
 	go.opentelemetry.io/otel v1.44.0
 	go.opentelemetry.io/otel/trace v1.44.0
 	golang.org/x/crypto v0.53.0
 	golang.org/x/exp v0.0.0-20260312153236-7ab1446f8b90
-	golang.org/x/sys v0.46.0
 )
 
 require (
@@ -27,6 +27,7 @@ require (
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	golang.org/x/mod v0.34.0 // indirect
 	golang.org/x/sync v0.20.0 // indirect
+	golang.org/x/sys v0.46.0 // indirect
 	golang.org/x/tools v0.43.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
