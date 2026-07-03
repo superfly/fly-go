@@ -79,6 +79,8 @@ github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXf
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U=
 github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U=
+github.com/superfly/client-signals v0.2.0 h1:ecwb3sCWwZ55+gpinSi/3yl4/OSBAsqYpmMUxsbbNaU=
+github.com/superfly/client-signals v0.2.0/go.mod h1:YeQnlJ3sh9ptDyq1QZMKYv+AUW9Xuh77lRS9ULj+m2I=
 github.com/superfly/graphql v0.2.6 h1:zppbodNerWecoXEdjkhrqaNaSjGqobhXNlViHFuZzb4=
 github.com/superfly/graphql v0.2.6/go.mod h1:CVfDl31srm8HnJ9udwLu6hFNUW/P6GUM2dKcG1YQ8jc=
 github.com/superfly/macaroon v0.3.0 h1:tdRq5VqBCNJIlvYByZZ3bGDOKX/v0llQM/Ljd27DbU8=
