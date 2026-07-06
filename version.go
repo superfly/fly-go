@@ -51,6 +51,10 @@ func DefaultUserAgent() string {
 		return "fly-go/unknown"
 	}
 
+	return defaultUserAgent(info)
+}
+
+func defaultUserAgent(info *debug.BuildInfo) string {
 	version := flyGoVersion(info)
 	if info.Main.Path == modulePath {
 		return "fly-go/" + version
