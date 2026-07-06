@@ -84,6 +84,28 @@ func TestTransportSetDefaults_DoesNotOverrideFlyForceRegionFromTransport(t *test
 	}
 }
 
+func TestTransportSetDefaults_UserAgentFallsBackToFlyGoVersion(t *testing.T) {
+	transport := &Transport{}
+	opts := ClientOptions{}
+
+	transport.setDefaults(&opts)
+
+	if !strings.HasPrefix(transport.UserAgent, "fly-go/") {
+		t.Fatalf("expected UserAgent to start with %q, got %q", "fly-go/", transport.UserAgent)
+	}
+}
+
+func TestTransportSetDefaults_UserAgentUsesNameAndVersionWhenProvided(t *testing.T) {
+	transport := &Transport{}
+	opts := ClientOptions{Name: "test", Version: "0"}
+
+	transport.setDefaults(&opts)
+
+	if want := "test/0"; transport.UserAgent != want {
+		t.Fatalf("expected UserAgent %q, got %q", want, transport.UserAgent)
+	}
+}
+
 type captureTripper struct {
 	req *http.Request
 }

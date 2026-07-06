@@ -31,6 +31,30 @@ func TestNewWithOptionsSetsCookieJar(t *testing.T) {
 	}
 }
 
+func TestNewWithOptions_UserAgentFallsBackToFlyGoVersion(t *testing.T) {
+	t.Setenv("FLY_FLAPS_BASE_URL", "http://example.com")
+
+	client, err := NewWithOptions(context.Background(), NewClientOpts{})
+	if err != nil {
+		t.Fatalf("NewWithOptions() error = %v", err)
+	}
+	if !strings.HasPrefix(client.userAgent, "fly-go/") {
+		t.Fatalf("expected userAgent to start with %q, got %q", "fly-go/", client.userAgent)
+	}
+}
+
+func TestNewWithOptions_UserAgentUsesOptsWhenProvided(t *testing.T) {
+	t.Setenv("FLY_FLAPS_BASE_URL", "http://example.com")
+
+	client, err := NewWithOptions(context.Background(), NewClientOpts{UserAgent: "flyctl/1.2.3"})
+	if err != nil {
+		t.Fatalf("NewWithOptions() error = %v", err)
+	}
+	if want := "flyctl/1.2.3"; client.userAgent != want {
+		t.Fatalf("expected userAgent %q, got %q", want, client.userAgent)
+	}
+}
+
 func TestFlapsClientPersistsPathScopedCookiesPerApp(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
