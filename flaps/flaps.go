@@ -97,7 +97,7 @@ func NewWithOptions(ctx context.Context, opts NewClientOpts) (*Client, error) {
 	}
 	httpClient.Jar = jar
 
-	userAgent := "fly-go"
+	userAgent := fly.DefaultUserAgent()
 	if opts.UserAgent != "" {
 		userAgent = opts.UserAgent
 	}
