@@ -1,25 +1,28 @@
 package fly
 
-import "runtime/debug"
+import (
+	"fmt"
+	"path"
+	"runtime/debug"
+)
 
 const modulePath = "github.com/superfly/fly-go"
 
-// moduleVersion returns the version of this module as resolved in the
-// consuming binary (e.g. "v0.7.0"), or "unknown" if it can't be determined -
-// for example when built without module support, or when this module is
-// replaced with a local filesystem path.
-func moduleVersion() string {
-	info, ok := debug.ReadBuildInfo()
-	if !ok {
+func versionOrUnknown(v string) string {
+	if v == "" {
 		return "unknown"
 	}
 
-	if info.Main.Path == modulePath {
-		if info.Main.Version != "" {
-			return info.Main.Version
-		}
+	return v
+}
 
-		return "unknown"
+// flyGoVersion returns the version of this module as resolved in the
+// consuming binary (e.g. "v0.7.0"), or "unknown" if it can't be determined -
+// for example when built without module support, or when this module is
+// replaced with a local filesystem path.
+func flyGoVersion(info *debug.BuildInfo) string {
+	if info.Main.Path == modulePath {
+		return versionOrUnknown(info.Main.Version)
 	}
 
 	for _, dep := range info.Deps {
@@ -29,18 +32,34 @@ func moduleVersion() string {
 		if dep.Replace != nil {
 			dep = dep.Replace
 		}
-		if dep.Version != "" {
-			return dep.Version
-		}
 
-		return "unknown"
+		return versionOrUnknown(dep.Version)
 	}
 
 	return "unknown"
 }
 
 // DefaultUserAgent returns the User-Agent clients should fall back to when
-// no caller-supplied name/version is available: "fly-go/<version>".
+// no caller-supplied name/version is available. It identifies the consuming
+// binary using its main module's build info, with fly-go's own resolved
+// version appended as a suffix, e.g. "flyctl/v1.2.3 fly-go/v0.7.0". If
+// fly-go is itself the main module (running its own tests/binaries), it
+// returns just "fly-go/<version>".
 func DefaultUserAgent() string {
-	return "fly-go/" + moduleVersion()
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		return "fly-go/unknown"
+	}
+
+	version := flyGoVersion(info)
+	if info.Main.Path == modulePath {
+		return "fly-go/" + version
+	}
+
+	name := "unknown"
+	if info.Main.Path != "" {
+		name = path.Base(info.Main.Path)
+	}
+
+	return fmt.Sprintf("%s/%s fly-go/%s", name, versionOrUnknown(info.Main.Version), version)
 }
