@@ -192,7 +192,11 @@ func (t *Transport) setDefaults(opts *ClientOptions) {
 	}
 
 	if t.UserAgent == "" {
-		t.UserAgent = fmt.Sprintf("%s/%s", opts.Name, opts.Version)
+		if opts.Name == "" && opts.Version == "" {
+			t.UserAgent = DefaultUserAgent()
+		} else {
+			t.UserAgent = fmt.Sprintf("%s/%s", opts.Name, opts.Version)
+		}
 	}
 
 	if opts.EnableDebugTrace != nil {
