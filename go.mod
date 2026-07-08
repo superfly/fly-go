@@ -5,7 +5,7 @@ go 1.25.8
 require (
 	github.com/Khan/genqlient v0.8.1
 	github.com/PuerkitoBio/rehttp v1.4.0
-	github.com/superfly/client-signals v0.2.0
+	github.com/superfly/client-signals/go v0.3.0
 	github.com/superfly/graphql v0.2.6
 	github.com/superfly/macaroon v0.3.0
 	go.opentelemetry.io/otel v1.44.0

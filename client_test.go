@@ -12,7 +12,7 @@ import (
 	"testing"
 
 	genq "github.com/Khan/genqlient/graphql"
-	"github.com/superfly/client-signals"
+	"github.com/superfly/client-signals/go"
 	"github.com/superfly/graphql"
 )
 
