@@ -16,7 +16,7 @@ import (
 	_ "github.com/Khan/genqlient/generate"
 	genq "github.com/Khan/genqlient/graphql"
 	"github.com/cenkalti/backoff/v4"
-	"github.com/superfly/client-signals"
+	"github.com/superfly/client-signals/go"
 	"github.com/superfly/fly-go/tokens"
 	"github.com/superfly/graphql"
 	"go.opentelemetry.io/otel"
