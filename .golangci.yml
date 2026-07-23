@@ -5,7 +5,7 @@ run:
 linters:
   default: none
   enable:
-    - gomodguard
+    - gomodguard_v2
     - govet
     - ineffassign
     - staticcheck
@@ -23,25 +23,24 @@ linters:
       checks:
         - all
         - -ST1003 # struct field ... should be ... (mostly acronyms such as Http -> HTTP)
-    gomodguard:
+    gomodguard_v2:
       allowed:
-        modules:
-          - github.com/cenkalti/backoff/v4
-          - github.com/Khan/genqlient
-          - github.com/google/go-querystring
-          - github.com/PuerkitoBio/rehttp
-          - github.com/superfly/client-signals/go
-          - github.com/superfly/graphql
-          - github.com/superfly/macaroon
-          - github.com/superfly/macaroon/flyio
-          - github.com/superfly/macaroon/tp
-        domains:
-          - golang.org
-          - go.opentelemetry.io
+        - module: github.com/cenkalti/backoff/v4
+        - module: github.com/Khan/genqlient
+        - module: github.com/google/go-querystring
+        - module: github.com/PuerkitoBio/rehttp
+        - module: github.com/superfly/client-signals/go
+        - module: github.com/superfly/graphql
+        - module: github.com/superfly/macaroon
+        - module: github.com/superfly/macaroon/flyio
+        - module: github.com/superfly/macaroon/tp
+        - module: golang.org/.*
+          match-type: regex
+        - module: go.opentelemetry.io/.*
+          match-type: regex
       blocked:
-        modules:
-          - github.com/superfly/flyctl:
-              reason: "`api` can not depend on flyctl project because it pulls tons of dependencies"
+        - module: github.com/superfly/flyctl
+          reason: "`api` can not depend on flyctl project because it pulls tons of dependencies"
   exclusions:
     generated: lax
     presets:
