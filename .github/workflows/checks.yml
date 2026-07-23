@@ -38,7 +38,7 @@ jobs:
         uses: golangci/golangci-lint-action@v9.3.0
         with:
           # Keep golangci-lint version insync with .pre-commit-config.yaml
-          version: v2.11.3
+          version: v2.12.2
 
   test:
     strategy:
