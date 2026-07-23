@@ -59,10 +59,13 @@ func StartCLISession(sessionName string, args map[string]any) (CLISession, error
 func RedeemCLISessionToken(ctx context.Context, id, code, codeVerifier string) (CLISession, error) {
 	var result CLISession
 
-	postData, _ := json.Marshal(map[string]string{
+	postData, err := json.Marshal(map[string]string{
 		"code":          code,
 		"code_verifier": codeVerifier,
 	})
+	if err != nil {
+		return result, fmt.Errorf("marshal CLI session redemption request: %w", err)
+	}
 
 	url := fmt.Sprintf("%s/api/v1/cli_sessions/%s/redeem", baseURL, id)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(postData))
@@ -75,13 +78,14 @@ func RedeemCLISessionToken(ctx context.Context, id, code, codeVerifier string) (
 	if err != nil {
 		return result, err
 	}
-	defer res.Body.Close() //skipcq: GO-S2307
+	defer res.Body.Close() // skipcq: GO-S2307
 
 	switch res.StatusCode {
 	case http.StatusOK:
 		if err := json.NewDecoder(res.Body).Decode(&result); err != nil {
 			return result, fmt.Errorf("failed to decode session, please try again: %w", err)
 		}
+
 		return result, nil
 	case http.StatusNotFound:
 		return result, ErrNotFound
@@ -92,6 +96,7 @@ func RedeemCLISessionToken(ctx context.Context, id, code, codeVerifier string) (
 		if err := json.NewDecoder(res.Body).Decode(&apiErr); err == nil && apiErr.Error != "" {
 			return result, fmt.Errorf("failed to redeem login code: %s", apiErr.Error)
 		}
+
 		return result, ErrUnknown
 	}
 }
