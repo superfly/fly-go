@@ -169,6 +169,7 @@ func (t *Tokens) Equal(other *Tokens) bool {
 }
 
 func (t *Tokens) equalUnlocked(other *Tokens) bool {
+	//nolint:govet // Go vet's inline analyzer cannot handle generic type inference.
 	return slices.Equal(t.macaroons, other.macaroons) && slices.Equal(t.oauths, other.oauths) && t.fromFile == other.fromFile
 }
 
@@ -287,6 +288,7 @@ func (t *Tokens) pruneBadMacaroons(options *updateOptions) bool {
 		}
 	}
 
+	//nolint:govet // Go vet's inline analyzer cannot handle generic type inference.
 	t.macaroons = slices.DeleteFunc(t.macaroons, func(tok string) bool {
 		m, ok := parsed[tok]
 		if !ok {
