@@ -7,7 +7,7 @@ import (
 func (c *Client) GetAppNameFromVolume(ctx context.Context, volID string) (*string, error) {
 	query := `
 query($id: ID!) {
-	volume: node(id: $id) {
+	volume: volume(id: $id) {
 		... on Volume {
 			app {
 				name
@@ -33,7 +33,7 @@ query($id: ID!) {
 func (c *Client) GetAppNameStateFromVolume(ctx context.Context, volID string) (*string, *string, error) {
 	query := `
 query GetAppNameStateFromVolume($id: ID!) {
-	volume: node(id: $id) {
+	volume: volume(id: $id) {
 		... on Volume {
 			app {
 				name
@@ -60,7 +60,7 @@ query GetAppNameStateFromVolume($id: ID!) {
 func (c *Client) GetSnapshotsFromVolume(ctx context.Context, volID string) ([]VolumeSnapshot, error) {
 	query := `
 query GetSnapshotsFromVolume($id: ID!) {
-	volume: node(id: $id) {
+	volume: volume(id: $id) {
 		... on Volume {
 			snapshots {
 				nodes {
