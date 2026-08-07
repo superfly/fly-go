@@ -619,6 +619,7 @@ type Region struct {
 	Deprecated       bool      `json:"deprecated"`
 	Capacity         int64     `json:"capacity"`
 	GeoRegion        GeoRegion `json:"geo_region"`
+	MPGAvailable     bool      `json:"mpg_available"`
 }
 
 type Release struct {
