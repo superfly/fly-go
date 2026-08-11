@@ -367,7 +367,6 @@ var (
 	MachineRestartPolicyNo        MachineRestartPolicy = "no"
 	MachineRestartPolicyOnFailure MachineRestartPolicy = "on-failure"
 	MachineRestartPolicyAlways    MachineRestartPolicy = "always"
-	MachineRestartPolicySpotPrice MachineRestartPolicy = "spot-price"
 )
 
 type MachinePersistRootfs string
@@ -445,12 +444,9 @@ type MachineRestart struct {
 	// * no - Never try to restart a Machine automatically when its main process exits, whether that’s on purpose or on a crash.
 	// * always - Always restart a Machine automatically and never let it enter a stopped state, even when the main process exits cleanly.
 	// * on-failure - Try up to MaxRetries times to automatically restart the Machine if it exits with a non-zero exit code. Default when no explicit policy is set, and for Machines with schedules.
-	// * spot-price - Starts the Machine only when there is capacity and the spot price is less than or equal to the bid price.
-	Policy MachineRestartPolicy `toml:"policy,omitempty" json:"policy,omitempty" enums:"no,always,on-failure,spot-price"`
+	Policy MachineRestartPolicy `toml:"policy,omitempty" json:"policy,omitempty" enums:"no,always,on-failure"`
 	// When policy is on-failure, the maximum number of times to attempt to restart the Machine before letting it stop.
 	MaxRetries int `toml:"max_retries,omitempty" json:"max_retries,omitempty"`
-	// GPU bid price for spot Machines.
-	GPUBidPrice float32 `toml:"gpu_bid_price,omitempty" json:"gpu_bid_price,omitempty"`
 }
 
 type MachineMount struct {
@@ -964,8 +960,7 @@ type ContainerConfig struct {
 	// Files are files that will be written to the container file system.
 	Files []*File `toml:"files,omitempty" json:"files,omitempty"`
 
-	// Restart is used to define the restart policy for the container. NOTE: spot-price is not
-	// supported for containers.
+	// Restart is used to define the restart policy for the container.
 	Restart *MachineRestart `toml:"restart,omitempty" json:"restart,omitempty"`
 
 	// Stop is used to define the signal and timeout for stopping the container.
