@@ -8,8 +8,8 @@ require (
 	github.com/superfly/client-signals/go v0.4.4
 	github.com/superfly/graphql v0.2.6
 	github.com/superfly/macaroon v0.3.0
-	go.opentelemetry.io/otel v1.44.0
-	go.opentelemetry.io/otel/trace v1.44.0
+	go.opentelemetry.io/otel v1.45.0
+	go.opentelemetry.io/otel/trace v1.45.0
 	golang.org/x/crypto v0.54.0
 	golang.org/x/exp v0.0.0-20260312153236-7ab1446f8b90
 )
@@ -41,7 +41,7 @@ require (
 
 require (
 	github.com/cenkalti/backoff/v4 v4.3.0
-	github.com/go-logr/logr v1.4.3 // indirect
+	github.com/go-logr/logr v1.4.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/google/go-querystring v1.2.0
 	github.com/google/uuid v1.6.0 // indirect
@@ -52,5 +52,5 @@ require (
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.69.0
-	go.opentelemetry.io/otel/metric v1.44.0 // indirect
+	go.opentelemetry.io/otel/metric v1.45.0 // indirect
 )
