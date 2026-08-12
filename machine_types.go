@@ -1187,9 +1187,12 @@ type EnvFrom struct {
 
 type MachineExecRequest struct {
 	Container string `toml:"container,omitempty" json:"container,omitempty"`
-	Cmd       string `toml:"cmd,omitempty" json:"cmd,omitempty"`
-	Stdin     string `toml:"stdin,omitempty" json:"stdin,omitempty"`
-	Timeout   int    `toml:"timeout,omitempty" json:"timeout,omitempty"`
+	// Machine runs the command in the machine's own namespace instead of in a
+	// container. It is mutually exclusive with Container.
+	Machine bool   `toml:"machine,omitempty" json:"machine,omitempty"`
+	Cmd     string `toml:"cmd,omitempty" json:"cmd,omitempty"`
+	Stdin   string `toml:"stdin,omitempty" json:"stdin,omitempty"`
+	Timeout int    `toml:"timeout,omitempty" json:"timeout,omitempty"`
 }
 
 type MachineExecResponse struct {
