@@ -66,4 +66,7 @@ const (
 	certificateDelete
 	certificateDeleteACME
 	certificateDeleteCustom
+	managedPostgresCreate
+	managedPostgresGet
+	managedPostgresUserCredentialsGet
 )
