@@ -28,10 +28,13 @@ type ManagedPostgresAttachedApp struct {
 	Name string `json:"name"`
 }
 
-// Statuses a Managed Postgres cluster reports while provisioning.
+// Statuses a Managed Postgres cluster reports while provisioning. The API
+// documents "failed" as the terminal failure status; "error" is declared too
+// because the service behind it reports that spelling for the same state.
 const (
-	ManagedPostgresStatusReady = "ready"
-	ManagedPostgresStatusError = "error"
+	ManagedPostgresStatusReady  = "ready"
+	ManagedPostgresStatusFailed = "failed"
+	ManagedPostgresStatusError  = "error"
 )
 
 // ManagedPostgresCluster is the public projection of a Managed Postgres
@@ -58,11 +61,11 @@ type ManagedPostgresCluster struct {
 // CreateManagedPostgresClusterRequest is the body for POST /v1/postgres.
 type CreateManagedPostgresClusterRequest struct {
 	OrgSlug        string `json:"org_slug"`
-	Name           string `json:"name"`
+	Name           string `json:"name,omitempty"`
 	Region         string `json:"region"`
 	Plan           string `json:"plan"`
-	DiskSizeGB     int    `json:"disk_size_gb"`
-	PGMajorVersion string `json:"pg_major_version"`
+	DiskSizeGB     int    `json:"disk_size_gb,omitempty"`
+	PGMajorVersion string `json:"pg_major_version,omitempty"`
 	PostGISEnabled bool   `json:"postgis_enabled"`
 }
 
