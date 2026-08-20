@@ -65,6 +65,14 @@ func TestIsNameTakenError(t *testing.T) {
 			want: false,
 		},
 		{
+			// A code the API set outranks the message. Without that, an error
+			// that aggregates or quotes another one could carry the legacy
+			// text and be read as a collision it is not.
+			name: "another status code whose message quotes the legacy one",
+			err:  flapsErrorWithBody(http.StatusServiceUnavailable, `{"error":"retry gave up after: Validation failed: Name has already been taken","status":"insufficient_capacity"}`),
+			want: false,
+		},
+		{
 			name: "nil",
 			err:  nil,
 			want: false,

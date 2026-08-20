@@ -149,9 +149,9 @@ const legacyNameTakenMessage = "Name has already been taken"
 // IsNameTakenError reports whether err is a rejection of an app name that is
 // already in use.
 //
-// Prefer this over matching the error's text: it reads the name_taken status
-// code the API sets, and only falls back to the message when there is no code
-// to read. The fallback covers two cases and is not vestigial:
+// Prefer this over matching the error's text: it reads the status code the API
+// sets, and falls back to the message only when there is no code at all. The
+// fallback covers two cases and is not vestigial:
 //
 //   - a client running against a Fly.io API that predates the status code, and
 //   - app creation that never went through the Machines API at all, such as the
@@ -169,8 +169,12 @@ func IsNameTakenError(err error) bool {
 		return false
 	}
 
-	if code := GetErrorStatusCode(err); code != nil && *code == nameTaken {
-		return true
+	// A status code, whatever it says, means the API classified this failure.
+	// Take it at its word: reaching for the message after that can only
+	// misclassify, and an error that aggregates or wraps another one can
+	// easily carry the legacy text without being a name collision.
+	if code := GetErrorStatusCode(err); code != nil && *code != "" {
+		return *code == nameTaken
 	}
 
 	return strings.Contains(err.Error(), legacyNameTakenMessage)
