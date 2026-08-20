@@ -39,10 +39,20 @@ func TestAppNameAvailable(t *testing.T) {
 			body:   `{"id":"app-id","name":"taken-app","status":"deployed"}`,
 		},
 		{
-			// The app exists in an org we cannot see into. Still taken.
-			name:   "unauthorized",
-			status: http.StatusUnauthorized,
+			// The app exists in an org we cannot see into. The API looks the
+			// name up globally and then refuses the read, so this is a 403 —
+			// and the name is taken.
+			name:   "forbidden",
+			status: http.StatusForbidden,
 			body:   `{"error":"unauthorized"}`,
+		},
+		{
+			// Nobody asked the question successfully, so this says nothing
+			// about the name and must not be reported as taken.
+			name:    "unauthenticated",
+			status:  http.StatusUnauthorized,
+			body:    `{"error":"invalid token"}`,
+			wantErr: true,
 		},
 		{
 			name:   "not found",

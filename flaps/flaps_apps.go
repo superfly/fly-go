@@ -92,10 +92,16 @@ func (f *Client) DeleteApp(ctx context.Context, name string) error {
 // AppNameAvailable reports whether name is free to use for a new app.
 //
 // App names are a single global namespace, so a name can be taken by an app
-// this client cannot see: the API answers that lookup with a 401 rather than
-// admitting the app exists, and it counts as taken just as much as one we can
-// read. Only a 404 means the name is free. Any other failure is returned as-is,
-// with ok false, because it says nothing either way about the name.
+// this client cannot see. The API does not hide that: it looks the name up
+// globally and then refuses the read, so a name held by another organization
+// comes back as a 403 and counts as taken just as much as an app we can read.
+// Only a 404 means the name is free.
+//
+// Any other failure is returned as-is, with ok false, because it says nothing
+// either way about the name. That includes a 401, which is what an
+// unauthenticated or unusable token gets: reporting it as "taken" would tell
+// the caller their name is in use when the truth is that nobody asked the
+// question successfully.
 func (f *Client) AppNameAvailable(ctx context.Context, name string) (bool, error) {
 	_, err := f.GetApp(ctx, name)
 	if err == nil {
@@ -108,7 +114,7 @@ func (f *Client) AppNameAvailable(ctx context.Context, name string) (bool, error
 	var ferr *FlapsError
 	if errors.As(err, &ferr) {
 		switch ferr.ResponseStatusCode {
-		case http.StatusUnauthorized:
+		case http.StatusForbidden:
 			// The app exists, in an org we do not have access to.
 			return false, nil
 		case http.StatusNotFound:
