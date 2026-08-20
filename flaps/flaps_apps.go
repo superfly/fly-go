@@ -2,7 +2,7 @@ package flaps
 
 import (
 	"context"
-	"log"
+	"errors"
 	"net/http"
 	"net/url"
 	"slices"
@@ -89,22 +89,34 @@ func (f *Client) DeleteApp(ctx context.Context, name string) error {
 	return f._sendRequest(ctx, http.MethodDelete, "/apps/"+name, nil, nil, nil)
 }
 
-func (f *Client) AppNameAvailable(ctx context.Context, name string) (ok bool, err error) {
-	_, err = f.GetApp(ctx, name)
-	log.Println(err.Error())
-	switch {
-	case err == nil:
-		// app was found
-		return
-	case err.Error() == "unauthorized":
-		// app exists, but in an org we do not have access to
-		err = nil
-	case err.Error() == "app not found":
-		ok = true
-		err = nil
+// AppNameAvailable reports whether name is free to use for a new app.
+//
+// App names are a single global namespace, so a name can be taken by an app
+// this client cannot see: the API answers that lookup with a 401 rather than
+// admitting the app exists, and it counts as taken just as much as one we can
+// read. Only a 404 means the name is free. Any other failure is returned as-is,
+// with ok false, because it says nothing either way about the name.
+func (f *Client) AppNameAvailable(ctx context.Context, name string) (bool, error) {
+	_, err := f.GetApp(ctx, name)
+	if err == nil {
+		// The app exists and we can see it.
+		return false, nil
 	}
 
-	return
+	// Classify on the status code the API sets, not on the prose it wraps: the
+	// message is not part of the API and can be reworded without warning.
+	var ferr *FlapsError
+	if errors.As(err, &ferr) {
+		switch ferr.ResponseStatusCode {
+		case http.StatusUnauthorized:
+			// The app exists, in an org we do not have access to.
+			return false, nil
+		case http.StatusNotFound:
+			return true, nil
+		}
+	}
+
+	return false, err
 }
 
 func (f *Client) WaitForApp(ctx context.Context, name string) error {
