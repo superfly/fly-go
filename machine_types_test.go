@@ -7,6 +7,24 @@ import (
 	"time"
 )
 
+func TestMachineTargetStateJSON(t *testing.T) {
+	var machine Machine
+	if err := json.Unmarshal([]byte(`{"id":"machine-id","target_state":"stopped"}`), &machine); err != nil {
+		t.Fatal(err)
+	}
+	if machine.TargetState != MachineStateStopped {
+		t.Fatalf("target state = %q, want %q", machine.TargetState, MachineStateStopped)
+	}
+
+	encoded, err := json.Marshal(Machine{ID: "machine-id"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(encoded, []byte("target_state")) {
+		t.Fatalf("empty target state should be omitted: %s", encoded)
+	}
+}
+
 func TestIsReleaseCommandMachine(t *testing.T) {
 	type testcase struct {
 		name     string
