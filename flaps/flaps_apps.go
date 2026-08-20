@@ -97,8 +97,9 @@ func (f *Client) DeleteApp(ctx context.Context, name string) error {
 // comes back as a 403 and counts as taken just as much as an app we can read.
 // Only a 404 means the name is free.
 //
-// Any other failure is returned as-is, with ok false, because it says nothing
-// either way about the name. That includes a 401, which is what an
+// Any other failure is returned as-is, alongside a false that means "not
+// available" rather than "taken", because such a failure says nothing either
+// way about the name. That includes a 401, which is what an
 // unauthenticated or unusable token gets: reporting it as "taken" would tell
 // the caller their name is in use when the truth is that nobody asked the
 // question successfully.
