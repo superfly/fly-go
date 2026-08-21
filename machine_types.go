@@ -47,7 +47,7 @@ type Machine struct {
 	ID    string `toml:"id,omitempty" json:"id,omitempty"`
 	Name  string `toml:"name,omitempty" json:"name,omitempty"`
 	State string `toml:"state,omitempty" json:"state,omitempty"`
-	// TargetState is the terminal state selected for an update request.
+	// TargetState is the state selected for an update request.
 	TargetState string          `toml:"target_state,omitempty" json:"target_state,omitempty"`
 	Region      string          `toml:"region,omitempty" json:"region,omitempty"`
 	ImageRef    MachineImageRef `toml:"image_ref,omitempty" json:"image_ref"`
