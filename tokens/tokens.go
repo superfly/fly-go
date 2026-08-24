@@ -181,7 +181,11 @@ func (t *Tokens) Empty() bool {
 // Update prunes any invalid/expired macaroons and fetches needed third party
 // discharges
 func (t *Tokens) Update(ctx context.Context, opts ...UpdateOption) (bool, error) {
-	options := &updateOptions{debugger: noopDebugger{}, advancePrune: 1 * time.Minute}
+	options := &updateOptions{
+		debugger:         noopDebugger{},
+		advancePrune:     1 * time.Minute,
+		dischargeTimeout: DefaultDischargeTimeout,
+	}
 	for _, o := range opts {
 		o(options)
 	}
@@ -322,6 +326,38 @@ func (t *Tokens) pruneBadMacaroons(options *updateOptions) bool {
 	return updated
 }
 
+const (
+	// DefaultDischargeTimeout is how long Update spends fetching third party
+	// discharges before giving up. Discharges that need the user to complete a
+	// login in their browser are bounded by how fast a person can work through
+	// an identity provider, not by how fast a server responds, so this is sized
+	// for a human round trip rather than an HTTP one. Callers that know they
+	// are non-interactive can lower it with WithDischargeTimeout.
+	DefaultDischargeTimeout = 90 * time.Second
+
+	// maxDischargePollBackoff caps how long the discharge client waits between
+	// polls. The doubling backoff it uses by default is unbounded, so the
+	// interval keeps growing while the user is still in their browser and the
+	// discharge sits ready for most of the gap between two polls. Polling once
+	// a second for a minute or two costs the third party very little and keeps
+	// the CLI's response to a finished login immediate.
+	maxDischargePollBackoff = 1 * time.Second
+)
+
+// dischargePollingBackoff is the backoff schedule used when polling a third
+// party for a discharge: doubling, but capped so it never outgrows the
+// interactive flow it is waiting on.
+func dischargePollingBackoff(lastBO time.Duration) time.Duration {
+	switch {
+	case lastBO <= 0:
+		return 100 * time.Millisecond
+	case 2*lastBO > maxDischargePollBackoff:
+		return maxDischargePollBackoff
+	default:
+		return 2 * lastBO
+	}
+}
+
 // dischargeThirdPartyCaveats attempts to fetch any necessary discharge tokens
 // for 3rd party caveats found within macaroon tokens.
 //
@@ -349,8 +385,12 @@ func (t *Tokens) dischargeThirdPartyCaveats(ctx context.Context, options *update
 		},
 	}
 
-	copts := options.clientOptions
-	copts = append(copts, tp.WithHTTP(h))
+	// caller-supplied options come last so they can override these defaults.
+	copts := []tp.ClientOption{
+		tp.WithHTTP(h),
+		tp.WithPollingBackoff(dischargePollingBackoff),
+	}
+	copts = append(copts, options.clientOptions...)
 	if oauths != "" {
 		copts = append(copts,
 			tp.WithBearerAuthentication("auth.fly.io", oauths),
@@ -366,7 +406,7 @@ func (t *Tokens) dischargeThirdPartyCaveats(ctx context.Context, options *update
 		return false, nil
 	}
 
-	toCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	toCtx, cancel := context.WithTimeout(ctx, options.dischargeTimeout)
 	defer cancel()
 
 	options.debugger.Debug("Attempting to upgrade authentication token")
@@ -388,9 +428,10 @@ func (t *Tokens) dischargeThirdPartyCaveats(ctx context.Context, options *update
 type UpdateOption func(*updateOptions)
 
 type updateOptions struct {
-	clientOptions []tp.ClientOption
-	debugger      Debugger
-	advancePrune  time.Duration
+	clientOptions    []tp.ClientOption
+	debugger         Debugger
+	advancePrune     time.Duration
+	dischargeTimeout time.Duration
 }
 
 func WithUserURLCallback(cb func(ctx context.Context, url string) error) UpdateOption {
@@ -416,6 +457,14 @@ func (noopDebugger) Debug(...any) {}
 func WithAdvancePrune(advancePrune time.Duration) UpdateOption {
 	return func(o *updateOptions) {
 		o.advancePrune = advancePrune
+	}
+}
+
+// WithDischargeTimeout overrides how long Update will spend fetching third
+// party discharges before giving up. See DefaultDischargeTimeout.
+func WithDischargeTimeout(timeout time.Duration) UpdateOption {
+	return func(o *updateOptions) {
+		o.dischargeTimeout = timeout
 	}
 }
 
