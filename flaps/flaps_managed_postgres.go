@@ -58,6 +58,19 @@ type ManagedPostgresCluster struct {
 	AttachedApps   []ManagedPostgresAttachedApp `json:"attached_apps"`
 }
 
+// ManagedPostgresClusterSummary is the public projection returned by
+// GET /v1/postgres.
+type ManagedPostgresClusterSummary struct {
+	ID           string                       `json:"id"`
+	Name         string                       `json:"name"`
+	Status       string                       `json:"status"`
+	Region       string                       `json:"region"`
+	Plan         string                       `json:"plan"`
+	CreatedAt    string                       `json:"created_at"`
+	DeletedAt    string                       `json:"deleted_at"`
+	AttachedApps []ManagedPostgresAttachedApp `json:"attached_apps"`
+}
+
 // CreateManagedPostgresClusterRequest is the body for POST /v1/postgres.
 type CreateManagedPostgresClusterRequest struct {
 	OrgSlug        string `json:"org_slug"`
@@ -69,6 +82,13 @@ type CreateManagedPostgresClusterRequest struct {
 	PostGISEnabled bool   `json:"postgis_enabled"`
 }
 
+// ListManagedPostgresClustersRequest contains the query parameters for
+// GET /v1/postgres.
+type ListManagedPostgresClustersRequest struct {
+	OrgSlug        string
+	IncludeDeleted bool
+}
+
 // ManagedPostgresUserCredentials is the response from
 // GET /v1/postgres/:id/users/:username/credentials.
 type ManagedPostgresUserCredentials struct {
@@ -78,6 +98,10 @@ type ManagedPostgresUserCredentials struct {
 
 type managedPostgresClusterEnvelope struct {
 	Data ManagedPostgresCluster `json:"data"`
+}
+
+type managedPostgresClusterListEnvelope struct {
+	Data []ManagedPostgresClusterSummary `json:"data"`
 }
 
 type managedPostgresUserCredentialsEnvelope struct {
@@ -106,6 +130,34 @@ func (f *Client) GetManagedPostgresCluster(ctx context.Context, id string) (Mana
 	}
 
 	return env.Data, nil
+}
+
+func (f *Client) ListManagedPostgresClusters(ctx context.Context, req ListManagedPostgresClustersRequest) ([]ManagedPostgresClusterSummary, error) {
+	ctx = contextWithAction(ctx, managedPostgresList)
+
+	query := url.Values{}
+	query.Set("org_slug", req.OrgSlug)
+	if req.IncludeDeleted {
+		query.Set("include_deleted", "true")
+	}
+
+	var env managedPostgresClusterListEnvelope
+	if err := f._sendRequest(ctx, http.MethodGet, "/postgres?"+query.Encode(), nil, &env, nil); err != nil {
+		return nil, fmt.Errorf("failed to list Managed Postgres clusters: %w", err)
+	}
+
+	return env.Data, nil
+}
+
+func (f *Client) DeleteManagedPostgresCluster(ctx context.Context, id string) error {
+	ctx = contextWithAction(ctx, managedPostgresDelete)
+
+	endpoint := fmt.Sprintf("/postgres/%s", url.PathEscape(id))
+	if err := f._sendRequest(ctx, http.MethodDelete, endpoint, nil, nil, nil); err != nil {
+		return fmt.Errorf("failed to delete Managed Postgres cluster: %w", err)
+	}
+
+	return nil
 }
 
 func (f *Client) GetManagedPostgresUserCredentials(ctx context.Context, id, username string) (ManagedPostgresUserCredentials, error) {
