@@ -96,6 +96,18 @@ type ManagedPostgresUserCredentials struct {
 	Password string `json:"password"`
 }
 
+// ManagedPostgresDatabase is the public projection of a database within a
+// Managed Postgres cluster returned by list/create.
+type ManagedPostgresDatabase struct {
+	Name string `json:"name"`
+}
+
+// CreateManagedPostgresDatabaseRequest is the body for
+// POST /v1/postgres/:id/databases.
+type CreateManagedPostgresDatabaseRequest struct {
+	Name string `json:"name"`
+}
+
 type managedPostgresClusterEnvelope struct {
 	Data ManagedPostgresCluster `json:"data"`
 }
@@ -106,6 +118,14 @@ type managedPostgresClusterListEnvelope struct {
 
 type managedPostgresUserCredentialsEnvelope struct {
 	Data ManagedPostgresUserCredentials `json:"data"`
+}
+
+type managedPostgresDatabaseEnvelope struct {
+	Data ManagedPostgresDatabase `json:"data"`
+}
+
+type managedPostgresDatabaseListEnvelope struct {
+	Data []ManagedPostgresDatabase `json:"data"`
 }
 
 func (f *Client) CreateManagedPostgresCluster(ctx context.Context, req CreateManagedPostgresClusterRequest) (ManagedPostgresCluster, error) {
@@ -168,6 +188,32 @@ func (f *Client) GetManagedPostgresUserCredentials(ctx context.Context, id, user
 	var env managedPostgresUserCredentialsEnvelope
 	if err := f._sendRequest(ctx, http.MethodGet, endpoint, nil, &env, nil); err != nil {
 		return ManagedPostgresUserCredentials{}, fmt.Errorf("failed to get Managed Postgres user credentials: %w", err)
+	}
+
+	return env.Data, nil
+}
+
+func (f *Client) ListManagedPostgresDatabases(ctx context.Context, id string) ([]ManagedPostgresDatabase, error) {
+	ctx = contextWithAction(ctx, managedPostgresDatabaseList)
+
+	endpoint := fmt.Sprintf("/postgres/%s/databases", url.PathEscape(id))
+
+	var env managedPostgresDatabaseListEnvelope
+	if err := f._sendRequest(ctx, http.MethodGet, endpoint, nil, &env, nil); err != nil {
+		return nil, fmt.Errorf("failed to list Managed Postgres databases: %w", err)
+	}
+
+	return env.Data, nil
+}
+
+func (f *Client) CreateManagedPostgresDatabase(ctx context.Context, id string, req CreateManagedPostgresDatabaseRequest) (ManagedPostgresDatabase, error) {
+	ctx = contextWithAction(ctx, managedPostgresDatabaseCreate)
+
+	endpoint := fmt.Sprintf("/postgres/%s/databases", url.PathEscape(id))
+
+	var env managedPostgresDatabaseEnvelope
+	if err := f._sendRequest(ctx, http.MethodPost, endpoint, req, &env, nil); err != nil {
+		return ManagedPostgresDatabase{}, fmt.Errorf("failed to create Managed Postgres database: %w", err)
 	}
 
 	return env.Data, nil

@@ -2,6 +2,7 @@ package flaps
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -117,5 +118,114 @@ func TestDeleteManagedPostgresClusterClassifiesGone(t *testing.T) {
 	err := client.DeleteManagedPostgresCluster(context.Background(), "mpg-123")
 	if !errors.Is(err, ErrFlapsGone) {
 		t.Fatalf("DeleteManagedPostgresCluster() error = %v, want ErrFlapsGone", err)
+	}
+}
+
+func TestListManagedPostgresDatabases(t *testing.T) {
+	transport := &managedPostgresRoundTripper{
+		statusCode: http.StatusOK,
+		body:       `{"data":[{"name":"app"},{"name":"reports"}]}`,
+	}
+	client := newTestFlapsClient(t, transport)
+
+	databases, err := client.ListManagedPostgresDatabases(context.Background(), "mpg-123")
+	if err != nil {
+		t.Fatalf("ListManagedPostgresDatabases() error = %v", err)
+	}
+	if transport.req.Method != http.MethodGet {
+		t.Fatalf("request method = %q, want %q", transport.req.Method, http.MethodGet)
+	}
+	if got, want := transport.req.URL.Path, "/v1/postgres/mpg-123/databases"; got != want {
+		t.Fatalf("request path = %q, want %q", got, want)
+	}
+	if len(databases) != 2 {
+		t.Fatalf("database count = %d, want 2", len(databases))
+	}
+	if got, want := databases[0].Name, "app"; got != want {
+		t.Fatalf("databases[0].Name = %q, want %q", got, want)
+	}
+	if got, want := databases[1].Name, "reports"; got != want {
+		t.Fatalf("databases[1].Name = %q, want %q", got, want)
+	}
+}
+
+func TestListManagedPostgresDatabasesEscapesClusterID(t *testing.T) {
+	transport := &managedPostgresRoundTripper{statusCode: http.StatusOK, body: `{"data":[]}`}
+	client := newTestFlapsClient(t, transport)
+
+	if _, err := client.ListManagedPostgresDatabases(context.Background(), "my?cluster"); err != nil {
+		t.Fatalf("ListManagedPostgresDatabases() error = %v", err)
+	}
+	if got, want := transport.req.URL.EscapedPath(), "/v1/postgres/my%3Fcluster/databases"; got != want {
+		t.Fatalf("request path = %q, want %q", got, want)
+	}
+}
+
+func TestListManagedPostgresDatabasesClassifiesNotFound(t *testing.T) {
+	transport := &managedPostgresRoundTripper{statusCode: http.StatusNotFound, body: `{"error":"Cluster not found"}`}
+	client := newTestFlapsClient(t, transport)
+
+	_, err := client.ListManagedPostgresDatabases(context.Background(), "mpg-123")
+	if !errors.Is(err, ErrFlapsNotFound) {
+		t.Fatalf("ListManagedPostgresDatabases() error = %v, want ErrFlapsNotFound", err)
+	}
+}
+
+func TestCreateManagedPostgresDatabase(t *testing.T) {
+	transport := &managedPostgresRoundTripper{
+		statusCode: http.StatusCreated,
+		body:       `{"data":{"name":"reports"}}`,
+	}
+	client := newTestFlapsClient(t, transport)
+
+	database, err := client.CreateManagedPostgresDatabase(context.Background(), "mpg-123", CreateManagedPostgresDatabaseRequest{Name: "reports"})
+	if err != nil {
+		t.Fatalf("CreateManagedPostgresDatabase() error = %v", err)
+	}
+	if transport.req.Method != http.MethodPost {
+		t.Fatalf("request method = %q, want %q", transport.req.Method, http.MethodPost)
+	}
+	if got, want := transport.req.URL.Path, "/v1/postgres/mpg-123/databases"; got != want {
+		t.Fatalf("request path = %q, want %q", got, want)
+	}
+
+	body, err := io.ReadAll(transport.req.Body)
+	if err != nil {
+		t.Fatalf("read request body: %v", err)
+	}
+	var sent struct {
+		Name string `json:"name"`
+	}
+	if err := json.Unmarshal(body, &sent); err != nil {
+		t.Fatalf("decode request body %q: %v", string(body), err)
+	}
+	if got, want := sent.Name, "reports"; got != want {
+		t.Fatalf("sent name = %q, want %q", got, want)
+	}
+
+	if got, want := database.Name, "reports"; got != want {
+		t.Fatalf("database.Name = %q, want %q", got, want)
+	}
+}
+
+func TestCreateManagedPostgresDatabaseEscapesClusterID(t *testing.T) {
+	transport := &managedPostgresRoundTripper{statusCode: http.StatusCreated, body: `{"data":{"name":"reports"}}`}
+	client := newTestFlapsClient(t, transport)
+
+	if _, err := client.CreateManagedPostgresDatabase(context.Background(), "my?cluster", CreateManagedPostgresDatabaseRequest{Name: "reports"}); err != nil {
+		t.Fatalf("CreateManagedPostgresDatabase() error = %v", err)
+	}
+	if got, want := transport.req.URL.EscapedPath(), "/v1/postgres/my%3Fcluster/databases"; got != want {
+		t.Fatalf("request path = %q, want %q", got, want)
+	}
+}
+
+func TestCreateManagedPostgresDatabaseClassifiesNotFound(t *testing.T) {
+	transport := &managedPostgresRoundTripper{statusCode: http.StatusNotFound, body: `{"error":"Cluster not found"}`}
+	client := newTestFlapsClient(t, transport)
+
+	_, err := client.CreateManagedPostgresDatabase(context.Background(), "mpg-123", CreateManagedPostgresDatabaseRequest{Name: "reports"})
+	if !errors.Is(err, ErrFlapsNotFound) {
+		t.Fatalf("CreateManagedPostgresDatabase() error = %v, want ErrFlapsNotFound", err)
 	}
 }
