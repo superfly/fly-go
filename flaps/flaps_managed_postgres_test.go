@@ -28,7 +28,7 @@ func TestListManagedPostgresClusters(t *testing.T) {
 	transport := &managedPostgresRoundTripper{
 		statusCode: http.StatusOK,
 		body: `{"data":[{"id":"mpg-123","name":"example","status":"ready","region":"iad","plan":"basic",` +
-			`"created_at":"2026-08-24T00:00:00Z","deleted_at":"","attached_apps":[{"name":"example-app"}]}]}`,
+			`"created_at":"2026-08-24T00:00:00Z","attached_apps":[{"name":"example-app"}]}]}`,
 	}
 	client := newTestFlapsClient(t, transport)
 
@@ -107,5 +107,15 @@ func TestDeleteManagedPostgresClusterClassifiesNotFound(t *testing.T) {
 	err := client.DeleteManagedPostgresCluster(context.Background(), "mpg-123")
 	if !errors.Is(err, ErrFlapsNotFound) {
 		t.Fatalf("DeleteManagedPostgresCluster() error = %v, want ErrFlapsNotFound", err)
+	}
+}
+
+func TestDeleteManagedPostgresClusterClassifiesGone(t *testing.T) {
+	transport := &managedPostgresRoundTripper{statusCode: http.StatusGone, body: `{"error":"gone"}`}
+	client := newTestFlapsClient(t, transport)
+
+	err := client.DeleteManagedPostgresCluster(context.Background(), "mpg-123")
+	if !errors.Is(err, ErrFlapsGone) {
+		t.Fatalf("DeleteManagedPostgresCluster() error = %v, want ErrFlapsGone", err)
 	}
 }
