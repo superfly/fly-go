@@ -9,8 +9,8 @@ import (
 
 var ErrFlapsNotFound = &FlapsError{ResponseStatusCode: http.StatusNotFound}
 
-// ErrFlapsGone is returned for a recently deleted resource. Managed Postgres
-// clusters eventually transition from Gone to NotFound after deletion.
+// ErrFlapsGone is returned when the API reports a resource as gone (HTTP 410).
+// Managed Postgres returns it for a cluster that has already been deleted.
 var ErrFlapsGone = &FlapsError{ResponseStatusCode: http.StatusGone}
 
 type StatusCode string
