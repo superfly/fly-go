@@ -69,4 +69,6 @@ const (
 	managedPostgresCreate
 	managedPostgresGet
 	managedPostgresUserCredentialsGet
+	managedPostgresList
+	managedPostgresDelete
 )
