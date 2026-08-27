@@ -149,7 +149,7 @@ func TestListManagedPostgresDatabases(t *testing.T) {
 	}
 }
 
-func TestListManagedPostgresDatabasesEscapesClusterID(t *testing.T) {
+func TestListManagedPostgresDatabasesEscapesQuestionMarkInClusterID(t *testing.T) {
 	transport := &managedPostgresRoundTripper{statusCode: http.StatusOK, body: `{"data":[]}`}
 	client := newTestFlapsClient(t, transport)
 
@@ -208,7 +208,7 @@ func TestCreateManagedPostgresDatabase(t *testing.T) {
 	}
 }
 
-func TestCreateManagedPostgresDatabaseEscapesClusterID(t *testing.T) {
+func TestCreateManagedPostgresDatabaseEscapesQuestionMarkInClusterID(t *testing.T) {
 	transport := &managedPostgresRoundTripper{statusCode: http.StatusCreated, body: `{"data":{"name":"reports"}}`}
 	client := newTestFlapsClient(t, transport)
 
