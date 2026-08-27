@@ -71,4 +71,6 @@ const (
 	managedPostgresUserCredentialsGet
 	managedPostgresList
 	managedPostgresDelete
+	managedPostgresDatabaseList
+	managedPostgresDatabaseCreate
 )
