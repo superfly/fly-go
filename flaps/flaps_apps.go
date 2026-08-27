@@ -34,6 +34,7 @@ type App struct {
 	Name              string `json:"name"`
 	InternalNumericID int32  `json:"internal_numeric_id"`
 	Network           string `json:"network"`
+	NetworkCIDR       string `json:"network_cidr"`
 	Status            string `json:"status"`
 
 	MachineCount int64 `json:"machine_count"`
