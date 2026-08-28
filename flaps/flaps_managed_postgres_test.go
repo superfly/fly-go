@@ -263,40 +263,6 @@ func TestListManagedPostgresBackups(t *testing.T) {
 	}
 }
 
-func TestListManagedPostgresBackupsEscapesClusterID(t *testing.T) {
-	transport := &managedPostgresRoundTripper{statusCode: http.StatusOK, body: `{"data":[]}`}
-	client := newTestFlapsClient(t, transport)
-
-	if _, err := client.ListManagedPostgresBackups(context.Background(), "my?cluster"); err != nil {
-		t.Fatalf("ListManagedPostgresBackups() error = %v", err)
-	}
-	if got, want := transport.req.URL.EscapedPath(), "/v1/postgres/my%3Fcluster/backups"; got != want {
-		t.Fatalf("request path = %q, want %q", got, want)
-	}
-}
-
-func TestListManagedPostgresBackupsPreservesEscapedPath(t *testing.T) {
-	for _, test := range []struct {
-		name        string
-		clusterID   string
-		expectedURI string
-	}{
-		{name: "slash", clusterID: "a/b", expectedURI: "/v1/postgres/a%2Fb/backups"},
-		{name: "slash and dot segment", clusterID: "a/../b", expectedURI: "/v1/postgres/a%2F..%2Fb/backups"},
-	} {
-		t.Run(test.name, func(t *testing.T) {
-			transport := &managedPostgresRoundTripper{statusCode: http.StatusOK, body: `{"data":[]}`}
-			client := newTestFlapsClient(t, transport)
-			if _, err := client.ListManagedPostgresBackups(context.Background(), test.clusterID); err != nil {
-				t.Fatalf("ListManagedPostgresBackups() error = %v", err)
-			}
-			if got := transport.req.URL.RequestURI(); got != test.expectedURI {
-				t.Fatalf("request URI = %q, want %q", got, test.expectedURI)
-			}
-		})
-	}
-}
-
 func TestURLFromBaseURLPreservesRawPathAndQuery(t *testing.T) {
 	client := newTestFlapsClient(t, &managedPostgresRoundTripper{statusCode: http.StatusOK, body: `{}`})
 
@@ -345,37 +311,42 @@ func TestCreateManagedPostgresBackup(t *testing.T) {
 	}
 }
 
-func TestCreateManagedPostgresBackupEscapesClusterID(t *testing.T) {
-	transport := &managedPostgresRoundTripper{statusCode: http.StatusAccepted}
-	client := newTestFlapsClient(t, transport)
-
-	if err := client.CreateManagedPostgresBackup(context.Background(), "my?cluster", CreateManagedPostgresBackupRequest{Type: "full"}); err != nil {
-		t.Fatalf("CreateManagedPostgresBackup() error = %v", err)
+func TestManagedPostgresBackupsPreserveEscapedPath(t *testing.T) {
+	operations := []struct {
+		name       string
+		statusCode int
+		body       string
+		run        func(*Client, string) error
+	}{
+		{name: "list", statusCode: http.StatusOK, body: `{"data":[]}`, run: func(client *Client, id string) error {
+			_, err := client.ListManagedPostgresBackups(context.Background(), id)
+			return err
+		}},
+		{name: "create", statusCode: http.StatusAccepted, run: func(client *Client, id string) error {
+			return client.CreateManagedPostgresBackup(context.Background(), id, CreateManagedPostgresBackupRequest{Type: "full"})
+		}},
 	}
-	if got, want := transport.req.URL.EscapedPath(), "/v1/postgres/my%3Fcluster/backups"; got != want {
-		t.Fatalf("request path = %q, want %q", got, want)
-	}
-}
-
-func TestCreateManagedPostgresBackupPreservesEscapedPath(t *testing.T) {
-	for _, test := range []struct {
+	paths := []struct {
 		name        string
 		clusterID   string
 		expectedURI string
 	}{
 		{name: "slash", clusterID: "a/b", expectedURI: "/v1/postgres/a%2Fb/backups"},
-		{name: "slash and dot segment", clusterID: "a/../b", expectedURI: "/v1/postgres/a%2F..%2Fb/backups"},
-	} {
-		t.Run(test.name, func(t *testing.T) {
-			transport := &managedPostgresRoundTripper{statusCode: http.StatusAccepted}
-			client := newTestFlapsClient(t, transport)
-			if err := client.CreateManagedPostgresBackup(context.Background(), test.clusterID, CreateManagedPostgresBackupRequest{Type: "full"}); err != nil {
-				t.Fatalf("CreateManagedPostgresBackup() error = %v", err)
-			}
-			if got := transport.req.URL.RequestURI(); got != test.expectedURI {
-				t.Fatalf("request URI = %q, want %q", got, test.expectedURI)
-			}
-		})
+		{name: "slash_and_dot_segment", clusterID: "a/../b", expectedURI: "/v1/postgres/a%2F..%2Fb/backups"},
+	}
+
+	for _, operation := range operations {
+		for _, path := range paths {
+			t.Run(operation.name+"/"+path.name, func(t *testing.T) {
+				transport := &managedPostgresRoundTripper{statusCode: operation.statusCode, body: operation.body}
+				if err := operation.run(newTestFlapsClient(t, transport), path.clusterID); err != nil {
+					t.Fatalf("request error = %v", err)
+				}
+				if got := transport.req.URL.RequestURI(); got != path.expectedURI {
+					t.Fatalf("request URI = %q, want %q", got, path.expectedURI)
+				}
+			})
+		}
 	}
 }
 
