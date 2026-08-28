@@ -236,7 +236,11 @@ func (f *Client) urlFromBaseUrl(pathAndQueryString string) (*url.URL, error) {
 		return nil, fmt.Errorf("failed parsing flaps path '%s' with error: %w", pathAndQueryString, err)
 	}
 
-	return newUrl.ResolveReference(&url.URL{Path: newPath.Path, RawQuery: newPath.RawQuery}), nil
+	return newUrl.ResolveReference(&url.URL{
+		Path:     newPath.Path,
+		RawPath:  newPath.RawPath,
+		RawQuery: newPath.RawQuery,
+	}), nil
 }
 
 func (f *Client) NewRequest(ctx context.Context, method, path string, in interface{}, headers map[string][]string) (*http.Request, error) {

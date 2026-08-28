@@ -229,3 +229,179 @@ func TestCreateManagedPostgresDatabaseClassifiesNotFound(t *testing.T) {
 		t.Fatalf("CreateManagedPostgresDatabase() error = %v, want ErrFlapsNotFound", err)
 	}
 }
+
+func TestListManagedPostgresBackups(t *testing.T) {
+	transport := &managedPostgresRoundTripper{
+		statusCode: http.StatusOK,
+		body: `{"data":[{"id":"backup-1","status":"completed","type":"full","size_bytes":1234,` +
+			`"started_at":"2026-08-26T12:00:00Z","finished_at":"2026-08-26T12:05:00Z"}]}`,
+	}
+	client := newTestFlapsClient(t, transport)
+
+	backups, err := client.ListManagedPostgresBackups(context.Background(), "mpg-123")
+	if err != nil {
+		t.Fatalf("ListManagedPostgresBackups() error = %v", err)
+	}
+	if transport.req.Method != http.MethodGet {
+		t.Fatalf("request method = %q, want %q", transport.req.Method, http.MethodGet)
+	}
+	if got, want := transport.req.URL.Path, "/v1/postgres/mpg-123/backups"; got != want {
+		t.Fatalf("request path = %q, want %q", got, want)
+	}
+	if len(backups) != 1 {
+		t.Fatalf("backup count = %d, want 1", len(backups))
+	}
+	backup := backups[0]
+	if got, want := backup.ID, "backup-1"; got != want {
+		t.Fatalf("backup ID = %q, want %q", got, want)
+	}
+	if got, want := backup.SizeBytes, int64(1234); got != want {
+		t.Fatalf("backup size = %d, want %d", got, want)
+	}
+	if got, want := backup.StartedAt, "2026-08-26T12:00:00Z"; got != want {
+		t.Fatalf("backup start = %q, want %q", got, want)
+	}
+}
+
+func TestListManagedPostgresBackupsEscapesClusterID(t *testing.T) {
+	transport := &managedPostgresRoundTripper{statusCode: http.StatusOK, body: `{"data":[]}`}
+	client := newTestFlapsClient(t, transport)
+
+	if _, err := client.ListManagedPostgresBackups(context.Background(), "my?cluster"); err != nil {
+		t.Fatalf("ListManagedPostgresBackups() error = %v", err)
+	}
+	if got, want := transport.req.URL.EscapedPath(), "/v1/postgres/my%3Fcluster/backups"; got != want {
+		t.Fatalf("request path = %q, want %q", got, want)
+	}
+}
+
+func TestListManagedPostgresBackupsPreservesEscapedPath(t *testing.T) {
+	for _, test := range []struct {
+		name        string
+		clusterID   string
+		expectedURI string
+	}{
+		{name: "slash", clusterID: "a/b", expectedURI: "/v1/postgres/a%2Fb/backups"},
+		{name: "slash and dot segment", clusterID: "a/../b", expectedURI: "/v1/postgres/a%2F..%2Fb/backups"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			transport := &managedPostgresRoundTripper{statusCode: http.StatusOK, body: `{"data":[]}`}
+			client := newTestFlapsClient(t, transport)
+			if _, err := client.ListManagedPostgresBackups(context.Background(), test.clusterID); err != nil {
+				t.Fatalf("ListManagedPostgresBackups() error = %v", err)
+			}
+			if got := transport.req.URL.RequestURI(); got != test.expectedURI {
+				t.Fatalf("request URI = %q, want %q", got, test.expectedURI)
+			}
+		})
+	}
+}
+
+func TestURLFromBaseURLPreservesRawPathAndQuery(t *testing.T) {
+	client := newTestFlapsClient(t, &managedPostgresRoundTripper{statusCode: http.StatusOK, body: `{}`})
+
+	got, err := client.urlFromBaseUrl("/v1/postgres/a%2Fb/backups?include_deleted=true")
+	if err != nil {
+		t.Fatalf("urlFromBaseUrl() error = %v", err)
+	}
+	if want := "/v1/postgres/a%2Fb/backups?include_deleted=true"; got.RequestURI() != want {
+		t.Fatalf("request URI = %q, want %q", got.RequestURI(), want)
+	}
+}
+
+func TestListManagedPostgresBackupsClassifiesNotFound(t *testing.T) {
+	transport := &managedPostgresRoundTripper{statusCode: http.StatusNotFound, body: `{"error":"Cluster not found"}`}
+	client := newTestFlapsClient(t, transport)
+
+	_, err := client.ListManagedPostgresBackups(context.Background(), "mpg-123")
+	if !errors.Is(err, ErrFlapsNotFound) {
+		t.Fatalf("ListManagedPostgresBackups() error = %v, want ErrFlapsNotFound", err)
+	}
+}
+
+func TestCreateManagedPostgresBackup(t *testing.T) {
+	transport := &managedPostgresRoundTripper{statusCode: http.StatusAccepted}
+	client := newTestFlapsClient(t, transport)
+
+	if err := client.CreateManagedPostgresBackup(context.Background(), "mpg-123", CreateManagedPostgresBackupRequest{Type: "incr"}); err != nil {
+		t.Fatalf("CreateManagedPostgresBackup() error = %v", err)
+	}
+	if transport.req.Method != http.MethodPost {
+		t.Fatalf("request method = %q, want %q", transport.req.Method, http.MethodPost)
+	}
+	if got, want := transport.req.URL.Path, "/v1/postgres/mpg-123/backups"; got != want {
+		t.Fatalf("request path = %q, want %q", got, want)
+	}
+	body, err := io.ReadAll(transport.req.Body)
+	if err != nil {
+		t.Fatalf("read request body: %v", err)
+	}
+	var sent CreateManagedPostgresBackupRequest
+	if err := json.Unmarshal(body, &sent); err != nil {
+		t.Fatalf("decode request body %q: %v", string(body), err)
+	}
+	if got, want := sent.Type, "incr"; got != want {
+		t.Fatalf("sent type = %q, want %q", got, want)
+	}
+}
+
+func TestCreateManagedPostgresBackupEscapesClusterID(t *testing.T) {
+	transport := &managedPostgresRoundTripper{statusCode: http.StatusAccepted}
+	client := newTestFlapsClient(t, transport)
+
+	if err := client.CreateManagedPostgresBackup(context.Background(), "my?cluster", CreateManagedPostgresBackupRequest{Type: "full"}); err != nil {
+		t.Fatalf("CreateManagedPostgresBackup() error = %v", err)
+	}
+	if got, want := transport.req.URL.EscapedPath(), "/v1/postgres/my%3Fcluster/backups"; got != want {
+		t.Fatalf("request path = %q, want %q", got, want)
+	}
+}
+
+func TestCreateManagedPostgresBackupPreservesEscapedPath(t *testing.T) {
+	for _, test := range []struct {
+		name        string
+		clusterID   string
+		expectedURI string
+	}{
+		{name: "slash", clusterID: "a/b", expectedURI: "/v1/postgres/a%2Fb/backups"},
+		{name: "slash and dot segment", clusterID: "a/../b", expectedURI: "/v1/postgres/a%2F..%2Fb/backups"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			transport := &managedPostgresRoundTripper{statusCode: http.StatusAccepted}
+			client := newTestFlapsClient(t, transport)
+			if err := client.CreateManagedPostgresBackup(context.Background(), test.clusterID, CreateManagedPostgresBackupRequest{Type: "full"}); err != nil {
+				t.Fatalf("CreateManagedPostgresBackup() error = %v", err)
+			}
+			if got := transport.req.URL.RequestURI(); got != test.expectedURI {
+				t.Fatalf("request URI = %q, want %q", got, test.expectedURI)
+			}
+		})
+	}
+}
+
+func TestCreateManagedPostgresBackupClassifiesConflict(t *testing.T) {
+	transport := &managedPostgresRoundTripper{statusCode: http.StatusConflict, body: `{"error":"backup already in progress"}`}
+	client := newTestFlapsClient(t, transport)
+
+	err := client.CreateManagedPostgresBackup(context.Background(), "mpg-123", CreateManagedPostgresBackupRequest{Type: "full"})
+	var flapsErr *FlapsError
+	if !errors.As(err, &flapsErr) {
+		t.Fatalf("CreateManagedPostgresBackup() error = %v, want FlapsError", err)
+	}
+	if got, want := flapsErr.ResponseStatusCode, http.StatusConflict; got != want {
+		t.Fatalf("response status = %d, want %d", got, want)
+	}
+	if got, want := flapsErr.Error(), "backup already in progress"; got != want {
+		t.Fatalf("error message = %q, want %q", got, want)
+	}
+}
+
+func TestCreateManagedPostgresBackupClassifiesNotFound(t *testing.T) {
+	transport := &managedPostgresRoundTripper{statusCode: http.StatusNotFound, body: `{"error":"Cluster not found"}`}
+	client := newTestFlapsClient(t, transport)
+
+	err := client.CreateManagedPostgresBackup(context.Background(), "mpg-123", CreateManagedPostgresBackupRequest{Type: "full"})
+	if !errors.Is(err, ErrFlapsNotFound) {
+		t.Fatalf("CreateManagedPostgresBackup() error = %v, want ErrFlapsNotFound", err)
+	}
+}

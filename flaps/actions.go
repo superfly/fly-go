@@ -73,4 +73,6 @@ const (
 	managedPostgresDelete
 	managedPostgresDatabaseList
 	managedPostgresDatabaseCreate
+	managedPostgresBackupList
+	managedPostgresBackupCreate
 )
