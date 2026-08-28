@@ -376,3 +376,138 @@ func TestCreateManagedPostgresBackupClassifiesNotFound(t *testing.T) {
 		t.Fatalf("CreateManagedPostgresBackup() error = %v, want ErrFlapsNotFound", err)
 	}
 }
+
+func TestRestoreManagedPostgresClusterFromBackup(t *testing.T) {
+	transport := &managedPostgresRoundTripper{
+		statusCode: http.StatusCreated,
+		body: `{"data":{"id":"mpg-restored","name":"restored-db","status":"creating",` +
+			`"region":"iad","plan":"basic","disk_size_gb":25,"pg_major_version":"17"}}`,
+	}
+	client := newTestFlapsClient(t, transport)
+
+	cluster, err := client.RestoreManagedPostgresCluster(context.Background(), "mpg-source", RestoreManagedPostgresClusterRequest{
+		BackupID: "20260601-120000F",
+		Name:     "restored-db",
+	})
+	if err != nil {
+		t.Fatalf("RestoreManagedPostgresCluster() error = %v", err)
+	}
+	if transport.req.Method != http.MethodPost {
+		t.Fatalf("request method = %q, want %q", transport.req.Method, http.MethodPost)
+	}
+	if got, want := transport.req.URL.Path, "/v1/postgres/mpg-source/restore"; got != want {
+		t.Fatalf("request path = %q, want %q", got, want)
+	}
+
+	body, err := io.ReadAll(transport.req.Body)
+	if err != nil {
+		t.Fatalf("read request body: %v", err)
+	}
+	var sent map[string]any
+	if err := json.Unmarshal(body, &sent); err != nil {
+		t.Fatalf("decode request body %q: %v", string(body), err)
+	}
+	if got, want := sent["backup_id"], "20260601-120000F"; got != want {
+		t.Fatalf("sent backup_id = %v, want %q", got, want)
+	}
+	if got, want := sent["name"], "restored-db"; got != want {
+		t.Fatalf("sent name = %v, want %q", got, want)
+	}
+	if _, ok := sent["pitr_time"]; ok {
+		t.Fatalf("pitr_time unexpectedly present in request: %s", body)
+	}
+	if got, want := cluster.ID, "mpg-restored"; got != want {
+		t.Fatalf("cluster ID = %q, want %q", got, want)
+	}
+	if got, want := cluster.Status, "creating"; got != want {
+		t.Fatalf("cluster status = %q, want %q", got, want)
+	}
+}
+
+func TestRestoreManagedPostgresClusterToPointInTime(t *testing.T) {
+	transport := &managedPostgresRoundTripper{
+		statusCode: http.StatusCreated,
+		body:       `{"data":{"id":"mpg-restored","status":"creating"}}`,
+	}
+	client := newTestFlapsClient(t, transport)
+
+	_, err := client.RestoreManagedPostgresCluster(context.Background(), "mpg-source", RestoreManagedPostgresClusterRequest{
+		PITRTime: "2026-06-01T12:02:30Z",
+	})
+	if err != nil {
+		t.Fatalf("RestoreManagedPostgresCluster() error = %v", err)
+	}
+	body, err := io.ReadAll(transport.req.Body)
+	if err != nil {
+		t.Fatalf("read request body: %v", err)
+	}
+	var sent map[string]any
+	if err := json.Unmarshal(body, &sent); err != nil {
+		t.Fatalf("decode request body %q: %v", string(body), err)
+	}
+	if got, want := sent["pitr_time"], "2026-06-01T12:02:30Z"; got != want {
+		t.Fatalf("sent pitr_time = %v, want %q", got, want)
+	}
+	if _, ok := sent["backup_id"]; ok {
+		t.Fatalf("backup_id unexpectedly present in request: %s", body)
+	}
+	if _, ok := sent["name"]; ok {
+		t.Fatalf("name unexpectedly present in request: %s", body)
+	}
+}
+
+func TestRestoreManagedPostgresClusterPreservesEscapedPath(t *testing.T) {
+	transport := &managedPostgresRoundTripper{
+		statusCode: http.StatusCreated,
+		body:       `{"data":{"id":"mpg-restored"}}`,
+	}
+	client := newTestFlapsClient(t, transport)
+
+	_, err := client.RestoreManagedPostgresCluster(context.Background(), "a/../b", RestoreManagedPostgresClusterRequest{
+		BackupID: "backup-1",
+	})
+	if err != nil {
+		t.Fatalf("RestoreManagedPostgresCluster() error = %v", err)
+	}
+	if got, want := transport.req.URL.RequestURI(), "/v1/postgres/a%2F..%2Fb/restore"; got != want {
+		t.Fatalf("request URI = %q, want %q", got, want)
+	}
+}
+
+func TestRestoreManagedPostgresClusterClassifiesNotFound(t *testing.T) {
+	transport := &managedPostgresRoundTripper{
+		statusCode: http.StatusNotFound,
+		body:       `{"error":"Backup missing not found"}`,
+	}
+	client := newTestFlapsClient(t, transport)
+
+	_, err := client.RestoreManagedPostgresCluster(context.Background(), "mpg-source", RestoreManagedPostgresClusterRequest{
+		BackupID: "missing",
+	})
+	if !errors.Is(err, ErrFlapsNotFound) {
+		t.Fatalf("RestoreManagedPostgresCluster() error = %v, want ErrFlapsNotFound", err)
+	}
+}
+
+func TestRestoreManagedPostgresClusterPreservesValidationError(t *testing.T) {
+	transport := &managedPostgresRoundTripper{
+		statusCode: http.StatusUnprocessableEntity,
+		body:       `{"error":"backup_id and pitr_time are mutually exclusive"}`,
+	}
+	client := newTestFlapsClient(t, transport)
+
+	_, err := client.RestoreManagedPostgresCluster(context.Background(), "mpg-source", RestoreManagedPostgresClusterRequest{
+		BackupID: "backup-1",
+		PITRTime: "2026-06-01T12:02:30Z",
+	})
+	var flapsErr *FlapsError
+	if !errors.As(err, &flapsErr) {
+		t.Fatalf("RestoreManagedPostgresCluster() error = %v, want FlapsError", err)
+	}
+	if got, want := flapsErr.ResponseStatusCode, http.StatusUnprocessableEntity; got != want {
+		t.Fatalf("response status = %d, want %d", got, want)
+	}
+	if got, want := flapsErr.Error(), "backup_id and pitr_time are mutually exclusive"; got != want {
+		t.Fatalf("error message = %q, want %q", got, want)
+	}
+}

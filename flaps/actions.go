@@ -75,4 +75,5 @@ const (
 	managedPostgresDatabaseCreate
 	managedPostgresBackupList
 	managedPostgresBackupCreate
+	managedPostgresRestore
 )

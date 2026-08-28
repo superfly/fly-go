@@ -125,6 +125,15 @@ type CreateManagedPostgresBackupRequest struct {
 	Type string `json:"type"`
 }
 
+// RestoreManagedPostgresClusterRequest is the body for
+// POST /v1/postgres/:id/restore. Exactly one of BackupID or PITRTime is
+// required by the API; Name is optional.
+type RestoreManagedPostgresClusterRequest struct {
+	BackupID string `json:"backup_id,omitempty"`
+	PITRTime string `json:"pitr_time,omitempty"`
+	Name     string `json:"name,omitempty"`
+}
+
 type managedPostgresClusterEnvelope struct {
 	Data ManagedPostgresCluster `json:"data"`
 }
@@ -262,4 +271,17 @@ func (f *Client) CreateManagedPostgresBackup(ctx context.Context, id string, req
 	}
 
 	return nil
+}
+
+func (f *Client) RestoreManagedPostgresCluster(ctx context.Context, id string, req RestoreManagedPostgresClusterRequest) (ManagedPostgresCluster, error) {
+	ctx = contextWithAction(ctx, managedPostgresRestore)
+
+	endpoint := fmt.Sprintf("/postgres/%s/restore", url.PathEscape(id))
+
+	var env managedPostgresClusterEnvelope
+	if err := f._sendRequest(ctx, http.MethodPost, endpoint, req, &env, nil); err != nil {
+		return ManagedPostgresCluster{}, fmt.Errorf("failed to restore Managed Postgres cluster: %w", err)
+	}
+
+	return env.Data, nil
 }
