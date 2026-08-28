@@ -108,6 +108,23 @@ type CreateManagedPostgresDatabaseRequest struct {
 	Name string `json:"name"`
 }
 
+// ManagedPostgresBackup is the public projection of a backup belonging to a
+// Managed Postgres cluster.
+type ManagedPostgresBackup struct {
+	ID         string `json:"id"`
+	Status     string `json:"status"`
+	Type       string `json:"type"`
+	SizeBytes  int64  `json:"size_bytes"`
+	StartedAt  string `json:"started_at"`
+	FinishedAt string `json:"finished_at"`
+}
+
+// CreateManagedPostgresBackupRequest is the body for
+// POST /v1/postgres/:id/backups.
+type CreateManagedPostgresBackupRequest struct {
+	Type string `json:"type"`
+}
+
 type managedPostgresClusterEnvelope struct {
 	Data ManagedPostgresCluster `json:"data"`
 }
@@ -126,6 +143,10 @@ type managedPostgresDatabaseEnvelope struct {
 
 type managedPostgresDatabaseListEnvelope struct {
 	Data []ManagedPostgresDatabase `json:"data"`
+}
+
+type managedPostgresBackupListEnvelope struct {
+	Data []ManagedPostgresBackup `json:"data"`
 }
 
 func (f *Client) CreateManagedPostgresCluster(ctx context.Context, req CreateManagedPostgresClusterRequest) (ManagedPostgresCluster, error) {
@@ -217,4 +238,28 @@ func (f *Client) CreateManagedPostgresDatabase(ctx context.Context, id string, r
 	}
 
 	return env.Data, nil
+}
+
+func (f *Client) ListManagedPostgresBackups(ctx context.Context, id string) ([]ManagedPostgresBackup, error) {
+	ctx = contextWithAction(ctx, managedPostgresBackupList)
+
+	endpoint := fmt.Sprintf("/postgres/%s/backups", url.PathEscape(id))
+
+	var env managedPostgresBackupListEnvelope
+	if err := f._sendRequest(ctx, http.MethodGet, endpoint, nil, &env, nil); err != nil {
+		return nil, fmt.Errorf("failed to list Managed Postgres backups: %w", err)
+	}
+
+	return env.Data, nil
+}
+
+func (f *Client) CreateManagedPostgresBackup(ctx context.Context, id string, req CreateManagedPostgresBackupRequest) error {
+	ctx = contextWithAction(ctx, managedPostgresBackupCreate)
+
+	endpoint := fmt.Sprintf("/postgres/%s/backups", url.PathEscape(id))
+	if err := f._sendRequest(ctx, http.MethodPost, endpoint, req, nil, nil); err != nil {
+		return fmt.Errorf("failed to create Managed Postgres backup: %w", err)
+	}
+
+	return nil
 }
