@@ -786,7 +786,8 @@ func TestListManagedPostgresExtensions(t *testing.T) {
 		statusCode: http.StatusOK,
 		body: `{"data":[` +
 			`{"name":"pg_trgm","description":"text similarity","default_version":"1.6","system":false,"installed":null},` +
-			`{"name":"postgis","description":"geographic objects","default_version":"3.4","system":true,"installed":{"version":"3.4.1","schema":"public"}}]}`,
+			`{"name":"postgis","description":"geographic objects","default_version":"3.4","system":true,"installed":{"version":"3.4.1","schema":"public"}},` +
+			`{"name":"hstore","description":null,"default_version":null,"system":false,"installed":null}]}`,
 	}
 	client := newTestFlapsClient(t, transport)
 
@@ -803,26 +804,35 @@ func TestListManagedPostgresExtensions(t *testing.T) {
 	if got, want := actionFromContext(transport.req.Context()), managedPostgresExtensionList; got != want {
 		t.Fatalf("request action = %q, want %q", got, want)
 	}
-	if len(extensions) != 2 || extensions[0].Installed != nil || extensions[1].Installed == nil {
+	if len(extensions) != 3 || extensions[0].Installed != nil || extensions[1].Installed == nil || extensions[2].Installed != nil {
 		t.Fatalf("extensions = %#v, want uninstalled and installed extensions", extensions)
 	}
-	if got, want := extensions[0], (ManagedPostgresExtension{Name: "pg_trgm", Description: "text similarity", DefaultVersion: "1.6"}); got != want {
-		t.Fatalf("extensions[0] = %#v, want %#v", got, want)
+	if got, want := extensions[0].Name, "pg_trgm"; got != want {
+		t.Fatalf("extensions[0].Name = %q, want %q", got, want)
+	}
+	if extensions[0].Description == nil || *extensions[0].Description != "text similarity" {
+		t.Fatalf("extensions[0].Description = %v, want %q", extensions[0].Description, "text similarity")
+	}
+	if extensions[0].DefaultVersion == nil || *extensions[0].DefaultVersion != "1.6" {
+		t.Fatalf("extensions[0].DefaultVersion = %v, want %q", extensions[0].DefaultVersion, "1.6")
 	}
 	if got, want := extensions[1].Name, "postgis"; got != want {
 		t.Fatalf("installed extension name = %q, want %q", got, want)
 	}
-	if got, want := extensions[1].Description, "geographic objects"; got != want {
-		t.Fatalf("installed extension description = %q, want %q", got, want)
+	if extensions[1].Description == nil || *extensions[1].Description != "geographic objects" {
+		t.Fatalf("installed extension description = %v, want %q", extensions[1].Description, "geographic objects")
 	}
-	if got, want := extensions[1].DefaultVersion, "3.4"; got != want {
-		t.Fatalf("installed extension default version = %q, want %q", got, want)
+	if extensions[1].DefaultVersion == nil || *extensions[1].DefaultVersion != "3.4" {
+		t.Fatalf("installed extension default version = %v, want %q", extensions[1].DefaultVersion, "3.4")
 	}
 	if !extensions[1].System {
 		t.Fatal("installed extension system = false, want true")
 	}
 	if got, want := *extensions[1].Installed, (ManagedPostgresInstalledExtension{Version: "3.4.1", Schema: "public"}); got != want {
 		t.Fatalf("installed extension = %#v, want %#v", got, want)
+	}
+	if extensions[2].Description != nil || extensions[2].DefaultVersion != nil {
+		t.Fatalf("extensions[2] = %#v, want nil description and default version", extensions[2])
 	}
 }
 

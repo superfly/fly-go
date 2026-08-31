@@ -175,8 +175,8 @@ type ManagedPostgresInstalledExtension struct {
 // to a database.
 type ManagedPostgresExtension struct {
 	Name           string                             `json:"name"`
-	Description    string                             `json:"description"`
-	DefaultVersion string                             `json:"default_version"`
+	Description    *string                            `json:"description"`
+	DefaultVersion *string                            `json:"default_version"`
 	System         bool                               `json:"system"`
 	Installed      *ManagedPostgresInstalledExtension `json:"installed"`
 }
