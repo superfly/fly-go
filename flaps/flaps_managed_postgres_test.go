@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"maps"
 	"net/http"
 	"strings"
 	"testing"
@@ -777,5 +778,223 @@ func TestRestoreManagedPostgresClusterPreservesValidationError(t *testing.T) {
 	}
 	if got, want := flapsErr.Error(), "backup_id and pitr_time are mutually exclusive"; got != want {
 		t.Fatalf("error message = %q, want %q", got, want)
+	}
+}
+
+func TestListManagedPostgresExtensions(t *testing.T) {
+	transport := &managedPostgresRoundTripper{
+		statusCode: http.StatusOK,
+		body: `{"data":[` +
+			`{"name":"pg_trgm","description":"text similarity","default_version":"1.6","system":false,"installed":null},` +
+			`{"name":"postgis","description":"geographic objects","default_version":"3.4","system":true,"installed":{"version":"3.4.1","schema":"public"}}]}`,
+	}
+	client := newTestFlapsClient(t, transport)
+
+	extensions, err := client.ListManagedPostgresExtensions(context.Background(), "mpg-123", "app")
+	if err != nil {
+		t.Fatalf("ListManagedPostgresExtensions() error = %v", err)
+	}
+	if got, want := transport.req.Method, http.MethodGet; got != want {
+		t.Fatalf("request method = %q, want %q", got, want)
+	}
+	if got, want := transport.req.URL.RequestURI(), "/v1/postgres/mpg-123/databases/app/extensions"; got != want {
+		t.Fatalf("request URI = %q, want %q", got, want)
+	}
+	if got, want := actionFromContext(transport.req.Context()), managedPostgresExtensionList; got != want {
+		t.Fatalf("request action = %q, want %q", got, want)
+	}
+	if len(extensions) != 2 || extensions[0].Installed != nil || extensions[1].Installed == nil {
+		t.Fatalf("extensions = %#v, want uninstalled and installed extensions", extensions)
+	}
+	if got, want := extensions[0], (ManagedPostgresExtension{Name: "pg_trgm", Description: "text similarity", DefaultVersion: "1.6"}); got != want {
+		t.Fatalf("extensions[0] = %#v, want %#v", got, want)
+	}
+	if got, want := extensions[1].Name, "postgis"; got != want {
+		t.Fatalf("installed extension name = %q, want %q", got, want)
+	}
+	if got, want := extensions[1].Description, "geographic objects"; got != want {
+		t.Fatalf("installed extension description = %q, want %q", got, want)
+	}
+	if got, want := extensions[1].DefaultVersion, "3.4"; got != want {
+		t.Fatalf("installed extension default version = %q, want %q", got, want)
+	}
+	if !extensions[1].System {
+		t.Fatal("installed extension system = false, want true")
+	}
+	if got, want := *extensions[1].Installed, (ManagedPostgresInstalledExtension{Version: "3.4.1", Schema: "public"}); got != want {
+		t.Fatalf("installed extension = %#v, want %#v", got, want)
+	}
+}
+
+func TestEnableManagedPostgresExtension(t *testing.T) {
+	transport := &managedPostgresRoundTripper{statusCode: http.StatusNoContent}
+	client := newTestFlapsClient(t, transport)
+
+	err := client.EnableManagedPostgresExtension(context.Background(), "mpg-123", "app", EnableManagedPostgresExtensionRequest{
+		Name:         "pg_trgm",
+		Schema:       "extensions",
+		CreateSchema: true,
+	})
+	if err != nil {
+		t.Fatalf("EnableManagedPostgresExtension() error = %v", err)
+	}
+	if got, want := transport.req.Method, http.MethodPost; got != want {
+		t.Fatalf("request method = %q, want %q", got, want)
+	}
+	if got, want := transport.req.URL.RequestURI(), "/v1/postgres/mpg-123/databases/app/extensions"; got != want {
+		t.Fatalf("request URI = %q, want %q", got, want)
+	}
+	if got, want := actionFromContext(transport.req.Context()), managedPostgresExtensionEnable; got != want {
+		t.Fatalf("request action = %q, want %q", got, want)
+	}
+	var sent map[string]any
+	if err := json.NewDecoder(transport.req.Body).Decode(&sent); err != nil {
+		t.Fatalf("decode request body: %v", err)
+	}
+	want := map[string]any{"name": "pg_trgm", "schema": "extensions", "create_schema": true}
+	if !maps.Equal(sent, want) {
+		t.Fatalf("request body = %#v, want %#v", sent, want)
+	}
+}
+
+func TestEnableManagedPostgresExtensionOmitsEmptySchemaAndSendsFalse(t *testing.T) {
+	transport := &managedPostgresRoundTripper{statusCode: http.StatusNoContent}
+	client := newTestFlapsClient(t, transport)
+
+	err := client.EnableManagedPostgresExtension(context.Background(), "mpg-123", "app", EnableManagedPostgresExtensionRequest{Name: "pg_trgm"})
+	if err != nil {
+		t.Fatalf("EnableManagedPostgresExtension() error = %v", err)
+	}
+	var sent map[string]any
+	if err := json.NewDecoder(transport.req.Body).Decode(&sent); err != nil {
+		t.Fatalf("decode request body: %v", err)
+	}
+	want := map[string]any{"name": "pg_trgm", "create_schema": false}
+	if !maps.Equal(sent, want) {
+		t.Fatalf("request body = %#v, want %#v", sent, want)
+	}
+}
+
+func TestDisableManagedPostgresExtensionWithForce(t *testing.T) {
+	transport := &managedPostgresRoundTripper{statusCode: http.StatusNoContent}
+	client := newTestFlapsClient(t, transport)
+
+	if err := client.DisableManagedPostgresExtension(context.Background(), "mpg-123", "app", "pg_trgm", true); err != nil {
+		t.Fatalf("DisableManagedPostgresExtension() error = %v", err)
+	}
+	if got, want := transport.req.Method, http.MethodDelete; got != want {
+		t.Fatalf("request method = %q, want %q", got, want)
+	}
+	if got, want := transport.req.URL.RequestURI(), "/v1/postgres/mpg-123/databases/app/extensions/pg_trgm?force=true"; got != want {
+		t.Fatalf("request URI = %q, want %q", got, want)
+	}
+	if got, want := actionFromContext(transport.req.Context()), managedPostgresExtensionDisable; got != want {
+		t.Fatalf("request action = %q, want %q", got, want)
+	}
+}
+
+func TestManagedPostgresExtensionsPreserveEscapedPaths(t *testing.T) {
+	operations := []struct {
+		name        string
+		statusCode  int
+		body        string
+		expectedURI string
+		run         func(*Client) error
+	}{
+		{name: "list", statusCode: http.StatusOK, body: `{"data":[]}`, expectedURI: "/v1/postgres/a%2F..%2Fb/databases/db%2F..%2Fname/extensions", run: func(client *Client) error {
+			_, err := client.ListManagedPostgresExtensions(context.Background(), "a/../b", "db/../name")
+			return err
+		}},
+		{name: "enable", statusCode: http.StatusNoContent, expectedURI: "/v1/postgres/a%2F..%2Fb/databases/db%2F..%2Fname/extensions", run: func(client *Client) error {
+			return client.EnableManagedPostgresExtension(context.Background(), "a/../b", "db/../name", EnableManagedPostgresExtensionRequest{Name: "pg_trgm"})
+		}},
+		{name: "disable", statusCode: http.StatusNoContent, expectedURI: "/v1/postgres/a%2F..%2Fb/databases/db%2F..%2Fname/extensions/ext%2F..%2Fname", run: func(client *Client) error {
+			return client.DisableManagedPostgresExtension(context.Background(), "a/../b", "db/../name", "ext/../name", false)
+		}},
+	}
+
+	for _, operation := range operations {
+		t.Run(operation.name, func(t *testing.T) {
+			transport := &managedPostgresRoundTripper{statusCode: operation.statusCode, body: operation.body}
+			if err := operation.run(newTestFlapsClient(t, transport)); err != nil {
+				t.Fatalf("operation error = %v", err)
+			}
+			if got := transport.req.URL.RequestURI(); got != operation.expectedURI {
+				t.Fatalf("request URI = %q, want %q", got, operation.expectedURI)
+			}
+		})
+	}
+}
+
+func TestDisableManagedPostgresExtensionOmitsForceWhenFalse(t *testing.T) {
+	transport := &managedPostgresRoundTripper{statusCode: http.StatusNoContent}
+	client := newTestFlapsClient(t, transport)
+
+	if err := client.DisableManagedPostgresExtension(context.Background(), "mpg-123", "app", "pg_trgm", false); err != nil {
+		t.Fatalf("DisableManagedPostgresExtension() error = %v", err)
+	}
+	if got, want := transport.req.URL.RequestURI(), "/v1/postgres/mpg-123/databases/app/extensions/pg_trgm"; got != want {
+		t.Fatalf("request URI = %q, want %q", got, want)
+	}
+}
+
+func TestManagedPostgresExtensionsClassifyNotFound(t *testing.T) {
+	operations := []struct {
+		name string
+		run  func(*Client) error
+	}{
+		{name: "list", run: func(client *Client) error {
+			_, err := client.ListManagedPostgresExtensions(context.Background(), "mpg-123", "app")
+			return err
+		}},
+		{name: "enable", run: func(client *Client) error {
+			return client.EnableManagedPostgresExtension(context.Background(), "mpg-123", "app", EnableManagedPostgresExtensionRequest{Name: "pg_trgm"})
+		}},
+		{name: "disable", run: func(client *Client) error {
+			return client.DisableManagedPostgresExtension(context.Background(), "mpg-123", "app", "pg_trgm", false)
+		}},
+	}
+
+	for _, operation := range operations {
+		t.Run(operation.name, func(t *testing.T) {
+			transport := &managedPostgresRoundTripper{statusCode: http.StatusNotFound, body: `{"error":"Cluster not found"}`}
+			err := operation.run(newTestFlapsClient(t, transport))
+			if !errors.Is(err, ErrFlapsNotFound) {
+				t.Fatalf("operation error = %v, want ErrFlapsNotFound", err)
+			}
+		})
+	}
+}
+
+func TestManagedPostgresExtensionPreservesFlapsError(t *testing.T) {
+	transport := &managedPostgresRoundTripper{
+		statusCode: http.StatusUnprocessableEntity,
+		body:       `{"error":"create_schema must be true or false"}`,
+	}
+	client := newTestFlapsClient(t, transport)
+
+	err := client.EnableManagedPostgresExtension(context.Background(), "mpg-123", "app", EnableManagedPostgresExtensionRequest{Name: "pg_trgm"})
+	var flapsErr *FlapsError
+	if !errors.As(err, &flapsErr) {
+		t.Fatalf("EnableManagedPostgresExtension() error = %v, want FlapsError", err)
+	}
+	if got, want := flapsErr.ResponseStatusCode, http.StatusUnprocessableEntity; got != want {
+		t.Fatalf("status code = %d, want %d", got, want)
+	}
+	if got, want := flapsErr.ResponseBodyString(), `{"error":"create_schema must be true or false"}`; got != want {
+		t.Fatalf("response body = %q, want %q", got, want)
+	}
+}
+
+func TestManagedPostgresExtensionActions(t *testing.T) {
+	actions := map[flapsAction]string{
+		managedPostgresExtensionList:    "managedPostgresExtensionList",
+		managedPostgresExtensionEnable:  "managedPostgresExtensionEnable",
+		managedPostgresExtensionDisable: "managedPostgresExtensionDisable",
+	}
+	for action, want := range actions {
+		if got := action.String(); got != want {
+			t.Errorf("action string = %q, want %q", got, want)
+		}
 	}
 }

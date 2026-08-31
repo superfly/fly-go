@@ -164,6 +164,31 @@ type RestoreManagedPostgresClusterRequest struct {
 	Name     string `json:"name,omitempty"`
 }
 
+// ManagedPostgresInstalledExtension describes an installed extension version
+// and schema.
+type ManagedPostgresInstalledExtension struct {
+	Version string `json:"version"`
+	Schema  string `json:"schema"`
+}
+
+// ManagedPostgresExtension is the public projection of an extension available
+// to a database.
+type ManagedPostgresExtension struct {
+	Name           string                             `json:"name"`
+	Description    string                             `json:"description"`
+	DefaultVersion string                             `json:"default_version"`
+	System         bool                               `json:"system"`
+	Installed      *ManagedPostgresInstalledExtension `json:"installed"`
+}
+
+// EnableManagedPostgresExtensionRequest is the body for
+// POST /v1/postgres/:id/databases/:database/extensions.
+type EnableManagedPostgresExtensionRequest struct {
+	Name         string `json:"name"`
+	Schema       string `json:"schema,omitempty"`
+	CreateSchema bool   `json:"create_schema"`
+}
+
 type managedPostgresClusterEnvelope struct {
 	Data ManagedPostgresCluster `json:"data"`
 }
@@ -194,6 +219,10 @@ type managedPostgresDatabaseListEnvelope struct {
 
 type managedPostgresBackupListEnvelope struct {
 	Data []ManagedPostgresBackup `json:"data"`
+}
+
+type managedPostgresExtensionListEnvelope struct {
+	Data []ManagedPostgresExtension `json:"data"`
 }
 
 func (f *Client) CreateManagedPostgresCluster(ctx context.Context, req CreateManagedPostgresClusterRequest) (ManagedPostgresCluster, error) {
@@ -370,4 +399,42 @@ func (f *Client) RestoreManagedPostgresCluster(ctx context.Context, id string, r
 	}
 
 	return env.Data, nil
+}
+
+func (f *Client) ListManagedPostgresExtensions(ctx context.Context, id, database string) ([]ManagedPostgresExtension, error) {
+	ctx = contextWithAction(ctx, managedPostgresExtensionList)
+
+	endpoint := fmt.Sprintf("/postgres/%s/databases/%s/extensions", url.PathEscape(id), url.PathEscape(database))
+
+	var env managedPostgresExtensionListEnvelope
+	if err := f._sendRequest(ctx, http.MethodGet, endpoint, nil, &env, nil); err != nil {
+		return nil, fmt.Errorf("failed to list Managed Postgres extensions: %w", err)
+	}
+
+	return env.Data, nil
+}
+
+func (f *Client) EnableManagedPostgresExtension(ctx context.Context, id, database string, req EnableManagedPostgresExtensionRequest) error {
+	ctx = contextWithAction(ctx, managedPostgresExtensionEnable)
+
+	endpoint := fmt.Sprintf("/postgres/%s/databases/%s/extensions", url.PathEscape(id), url.PathEscape(database))
+	if err := f._sendRequest(ctx, http.MethodPost, endpoint, req, nil, nil); err != nil {
+		return fmt.Errorf("failed to enable Managed Postgres extension: %w", err)
+	}
+
+	return nil
+}
+
+func (f *Client) DisableManagedPostgresExtension(ctx context.Context, id, database, name string, force bool) error {
+	ctx = contextWithAction(ctx, managedPostgresExtensionDisable)
+
+	endpoint := fmt.Sprintf("/postgres/%s/databases/%s/extensions/%s", url.PathEscape(id), url.PathEscape(database), url.PathEscape(name))
+	if force {
+		endpoint += "?force=true"
+	}
+	if err := f._sendRequest(ctx, http.MethodDelete, endpoint, nil, nil, nil); err != nil {
+		return fmt.Errorf("failed to disable Managed Postgres extension: %w", err)
+	}
+
+	return nil
 }
