@@ -1008,3 +1008,207 @@ func TestManagedPostgresExtensionActions(t *testing.T) {
 		}
 	}
 }
+
+func TestCreateManagedPostgresAttachment(t *testing.T) {
+	transport := &managedPostgresRoundTripper{
+		statusCode: http.StatusCreated,
+		body:       `{"data":{"postgres_cluster_id":"mpg-123","app_name":"my-app","attached_at":"2026-08-31T12:00:00.000000Z"}}`,
+	}
+	client := newTestFlapsClient(t, transport)
+
+	attachment, err := client.CreateManagedPostgresAttachment(context.Background(), "mpg-123", CreateManagedPostgresAttachmentRequest{
+		AppName: "my-app",
+	})
+	if err != nil {
+		t.Fatalf("CreateManagedPostgresAttachment() error = %v", err)
+	}
+	if transport.req.Method != http.MethodPost {
+		t.Fatalf("request method = %q, want %q", transport.req.Method, http.MethodPost)
+	}
+	if got, want := transport.req.URL.Path, "/v1/postgres/mpg-123/attachments"; got != want {
+		t.Fatalf("request path = %q, want %q", got, want)
+	}
+	body, err := io.ReadAll(transport.req.Body)
+	if err != nil {
+		t.Fatalf("read request body: %v", err)
+	}
+	var sent CreateManagedPostgresAttachmentRequest
+	if err := json.Unmarshal(body, &sent); err != nil {
+		t.Fatalf("decode request body %q: %v", string(body), err)
+	}
+	if got, want := sent.AppName, "my-app"; got != want {
+		t.Fatalf("request app_name = %q, want %q", got, want)
+	}
+	if got, want := attachment.PostgresClusterID, "mpg-123"; got != want {
+		t.Fatalf("attachment.PostgresClusterID = %q, want %q", got, want)
+	}
+	if got, want := attachment.AppName, "my-app"; got != want {
+		t.Fatalf("attachment.AppName = %q, want %q", got, want)
+	}
+	if got, want := attachment.AttachedAt, "2026-08-31T12:00:00.000000Z"; got != want {
+		t.Fatalf("attachment.AttachedAt = %q, want %q", got, want)
+	}
+}
+
+func TestCreateManagedPostgresAttachmentAccepts200(t *testing.T) {
+	transport := &managedPostgresRoundTripper{
+		statusCode: http.StatusOK,
+		body:       `{"data":{"postgres_cluster_id":"mpg-123","app_name":"my-app","attached_at":"2026-08-31T12:00:00.000000Z"}}`,
+	}
+	client := newTestFlapsClient(t, transport)
+
+	attachment, err := client.CreateManagedPostgresAttachment(context.Background(), "mpg-123", CreateManagedPostgresAttachmentRequest{
+		AppName: "my-app",
+	})
+	if err != nil {
+		t.Fatalf("CreateManagedPostgresAttachment() error = %v", err)
+	}
+	if got, want := attachment.PostgresClusterID, "mpg-123"; got != want {
+		t.Fatalf("attachment.PostgresClusterID = %q, want %q", got, want)
+	}
+}
+
+func TestDeleteManagedPostgresAttachment(t *testing.T) {
+	transport := &managedPostgresRoundTripper{statusCode: http.StatusNoContent}
+	client := newTestFlapsClient(t, transport)
+
+	if err := client.DeleteManagedPostgresAttachment(context.Background(), "mpg-123", "my-app"); err != nil {
+		t.Fatalf("DeleteManagedPostgresAttachment() error = %v", err)
+	}
+	if transport.req.Method != http.MethodDelete {
+		t.Fatalf("request method = %q, want %q", transport.req.Method, http.MethodDelete)
+	}
+	if got, want := transport.req.URL.Path, "/v1/postgres/mpg-123/attachments/my-app"; got != want {
+		t.Fatalf("request path = %q, want %q", got, want)
+	}
+}
+
+func TestManagedPostgresAttachmentsPreserveEscapedPaths(t *testing.T) {
+	deleteOperations := []struct {
+		name         string
+		clusterID    string
+		appName      string
+		expectedPath string
+	}{
+		{name: "slash", clusterID: "a/b", appName: "x/y", expectedPath: "/v1/postgres/a%2Fb/attachments/x%2Fy"},
+		{name: "dot_segment", clusterID: "a/../b", appName: "x/../y", expectedPath: "/v1/postgres/a%2F..%2Fb/attachments/x%2F..%2Fy"},
+	}
+
+	for _, op := range deleteOperations {
+		t.Run("delete/"+op.name, func(t *testing.T) {
+			transport := &managedPostgresRoundTripper{statusCode: http.StatusNoContent}
+			client := newTestFlapsClient(t, transport)
+			if err := client.DeleteManagedPostgresAttachment(context.Background(), op.clusterID, op.appName); err != nil {
+				t.Fatalf("request error = %v", err)
+			}
+			if got := transport.req.URL.RequestURI(); got != op.expectedPath {
+				t.Fatalf("request URI = %q, want %q", got, op.expectedPath)
+			}
+		})
+	}
+
+	// Create operations don't include app_name in the URL path (it's in the request body),
+	// but the cluster ID should still be properly escaped.
+	createOperations := []struct {
+		name         string
+		clusterID    string
+		expectedPath string
+	}{
+		{name: "slash", clusterID: "a/b", expectedPath: "/v1/postgres/a%2Fb/attachments"},
+		{name: "dot_segment", clusterID: "a/../b", expectedPath: "/v1/postgres/a%2F..%2Fb/attachments"},
+	}
+
+	for _, op := range createOperations {
+		t.Run("create/"+op.name, func(t *testing.T) {
+			transport := &managedPostgresRoundTripper{
+				statusCode: http.StatusCreated,
+				body:       `{"data":{"postgres_cluster_id":"a%2Fb","app_name":"x%2Fy","attached_at":"2026-08-31T12:00:00.000000Z"}}`,
+			}
+			client := newTestFlapsClient(t, transport)
+			if _, err := client.CreateManagedPostgresAttachment(context.Background(), op.clusterID, CreateManagedPostgresAttachmentRequest{AppName: "x/y"}); err != nil {
+				t.Fatalf("request error = %v", err)
+			}
+			if got := transport.req.URL.RequestURI(); got != op.expectedPath {
+				t.Fatalf("request URI = %q, want %q", got, op.expectedPath)
+			}
+		})
+	}
+}
+
+func TestManagedPostgresAttachmentsClassifyNotFound(t *testing.T) {
+	operations := []struct {
+		name string
+		run  func(*Client) error
+	}{
+		{name: "create", run: func(client *Client) error {
+			_, err := client.CreateManagedPostgresAttachment(context.Background(), "mpg-123", CreateManagedPostgresAttachmentRequest{AppName: "my-app"})
+			return err
+		}},
+		{name: "delete", run: func(client *Client) error {
+			return client.DeleteManagedPostgresAttachment(context.Background(), "mpg-123", "my-app")
+		}},
+	}
+
+	for _, operation := range operations {
+		t.Run(operation.name, func(t *testing.T) {
+			transport := &managedPostgresRoundTripper{statusCode: http.StatusNotFound, body: `{"error":"not found"}`}
+			err := operation.run(newTestFlapsClient(t, transport))
+			if !errors.Is(err, ErrFlapsNotFound) {
+				t.Fatalf("request error = %v, want ErrFlapsNotFound", err)
+			}
+			var flapsErr *FlapsError
+			if !errors.As(err, &flapsErr) {
+				t.Fatalf("request error = %v, want wrapped FlapsError", err)
+			}
+		})
+	}
+}
+
+func TestManagedPostgresAttachmentsPreserveNonNotFoundErrors(t *testing.T) {
+	tests := []struct {
+		name       string
+		statusCode int
+		run        func(*Client) error
+	}{
+		{name: "create_forbidden", statusCode: http.StatusForbidden, run: func(client *Client) error {
+			_, err := client.CreateManagedPostgresAttachment(context.Background(), "mpg-123", CreateManagedPostgresAttachmentRequest{AppName: "my-app"})
+			return err
+		}},
+		{name: "create_unprocessable", statusCode: http.StatusUnprocessableEntity, run: func(client *Client) error {
+			_, err := client.CreateManagedPostgresAttachment(context.Background(), "mpg-123", CreateManagedPostgresAttachmentRequest{AppName: ""})
+			return err
+		}},
+		{name: "delete_forbidden", statusCode: http.StatusForbidden, run: func(client *Client) error {
+			return client.DeleteManagedPostgresAttachment(context.Background(), "mpg-123", "my-app")
+		}},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			transport := &managedPostgresRoundTripper{statusCode: test.statusCode, body: `{"error":"request rejected"}`}
+			err := test.run(newTestFlapsClient(t, transport))
+			if errors.Is(err, ErrFlapsNotFound) {
+				t.Fatalf("request error = %v, unexpectedly classified as not found", err)
+			}
+			var flapsErr *FlapsError
+			if !errors.As(err, &flapsErr) {
+				t.Fatalf("request error = %v, want FlapsError", err)
+			}
+			if got, want := flapsErr.ResponseStatusCode, test.statusCode; got != want {
+				t.Fatalf("response status = %d, want %d", got, want)
+			}
+		})
+	}
+}
+
+func TestManagedPostgresAttachmentActions(t *testing.T) {
+	actions := map[flapsAction]string{
+		managedPostgresAttachmentCreate: "managedPostgresAttachmentCreate",
+		managedPostgresAttachmentDelete: "managedPostgresAttachmentDelete",
+	}
+	for action, want := range actions {
+		if got := action.String(); got != want {
+			t.Errorf("action string = %q, want %q", got, want)
+		}
+	}
+}
