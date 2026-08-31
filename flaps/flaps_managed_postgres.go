@@ -96,6 +96,36 @@ type ManagedPostgresUserCredentials struct {
 	Password string `json:"password"`
 }
 
+// ManagedPostgresUserRole is a role assigned to a Managed Postgres user.
+type ManagedPostgresUserRole string
+
+// Roles the API accepts when creating or updating a Managed Postgres user.
+const (
+	ManagedPostgresUserRoleSchemaAdmin ManagedPostgresUserRole = "schema_admin"
+	ManagedPostgresUserRoleWriter      ManagedPostgresUserRole = "writer"
+	ManagedPostgresUserRoleReader      ManagedPostgresUserRole = "reader"
+)
+
+// ManagedPostgresUser is the public projection of a user within a Managed
+// Postgres cluster.
+type ManagedPostgresUser struct {
+	Username string                  `json:"username"`
+	Role     ManagedPostgresUserRole `json:"role"`
+}
+
+// CreateManagedPostgresUserRequest is the body for
+// POST /v1/postgres/:id/users.
+type CreateManagedPostgresUserRequest struct {
+	Username string `json:"username"`
+	Role     string `json:"role"`
+}
+
+// UpdateManagedPostgresUserRoleRequest is the body for
+// PATCH /v1/postgres/:id/users/:username.
+type UpdateManagedPostgresUserRoleRequest struct {
+	Role string `json:"role"`
+}
+
 // ManagedPostgresDatabase is the public projection of a database within a
 // Managed Postgres cluster returned by list/create.
 type ManagedPostgresDatabase struct {
@@ -144,6 +174,14 @@ type managedPostgresClusterListEnvelope struct {
 
 type managedPostgresUserCredentialsEnvelope struct {
 	Data ManagedPostgresUserCredentials `json:"data"`
+}
+
+type managedPostgresUserEnvelope struct {
+	Data ManagedPostgresUser `json:"data"`
+}
+
+type managedPostgresUserListEnvelope struct {
+	Data []ManagedPostgresUser `json:"data"`
 }
 
 type managedPostgresDatabaseEnvelope struct {
@@ -221,6 +259,54 @@ func (f *Client) GetManagedPostgresUserCredentials(ctx context.Context, id, user
 	}
 
 	return env.Data, nil
+}
+
+func (f *Client) ListManagedPostgresUsers(ctx context.Context, id string) ([]ManagedPostgresUser, error) {
+	ctx = contextWithAction(ctx, managedPostgresUserList)
+
+	endpoint := fmt.Sprintf("/postgres/%s/users", url.PathEscape(id))
+
+	var env managedPostgresUserListEnvelope
+	if err := f._sendRequest(ctx, http.MethodGet, endpoint, nil, &env, nil); err != nil {
+		return nil, fmt.Errorf("failed to list Managed Postgres users: %w", err)
+	}
+
+	return env.Data, nil
+}
+
+func (f *Client) CreateManagedPostgresUser(ctx context.Context, id string, req CreateManagedPostgresUserRequest) (ManagedPostgresUser, error) {
+	ctx = contextWithAction(ctx, managedPostgresUserCreate)
+
+	endpoint := fmt.Sprintf("/postgres/%s/users", url.PathEscape(id))
+
+	var env managedPostgresUserEnvelope
+	if err := f._sendRequest(ctx, http.MethodPost, endpoint, req, &env, nil); err != nil {
+		return ManagedPostgresUser{}, fmt.Errorf("failed to create Managed Postgres user: %w", err)
+	}
+
+	return env.Data, nil
+}
+
+func (f *Client) UpdateManagedPostgresUserRole(ctx context.Context, id, username string, req UpdateManagedPostgresUserRoleRequest) error {
+	ctx = contextWithAction(ctx, managedPostgresUserUpdate)
+
+	endpoint := fmt.Sprintf("/postgres/%s/users/%s", url.PathEscape(id), url.PathEscape(username))
+	if err := f._sendRequest(ctx, http.MethodPatch, endpoint, req, nil, nil); err != nil {
+		return fmt.Errorf("failed to update Managed Postgres user role: %w", err)
+	}
+
+	return nil
+}
+
+func (f *Client) DeleteManagedPostgresUser(ctx context.Context, id, username string) error {
+	ctx = contextWithAction(ctx, managedPostgresUserDelete)
+
+	endpoint := fmt.Sprintf("/postgres/%s/users/%s", url.PathEscape(id), url.PathEscape(username))
+	if err := f._sendRequest(ctx, http.MethodDelete, endpoint, nil, nil, nil); err != nil {
+		return fmt.Errorf("failed to delete Managed Postgres user: %w", err)
+	}
+
+	return nil
 }
 
 func (f *Client) ListManagedPostgresDatabases(ctx context.Context, id string) ([]ManagedPostgresDatabase, error) {
