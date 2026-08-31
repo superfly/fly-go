@@ -460,7 +460,7 @@ type managedPostgresAttachmentEnvelope struct {
 // CreateManagedPostgresAttachment attaches an app to a Managed Postgres cluster.
 // The server returns 201 if the attachment was created, or 200 if it already
 // existed (idempotent find-or-create semantics). Both are treated as success.
-// The cluster ID and app name are escaped as URL path segments.
+// The cluster ID is escaped as URL path segments.
 func (f *Client) CreateManagedPostgresAttachment(ctx context.Context, id string, req CreateManagedPostgresAttachmentRequest) (ManagedPostgresAttachment, error) {
 	ctx = contextWithAction(ctx, managedPostgresAttachmentCreate)
 

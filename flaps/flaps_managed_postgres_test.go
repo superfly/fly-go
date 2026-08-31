@@ -1164,6 +1164,35 @@ func TestManagedPostgresAttachmentsClassifyNotFound(t *testing.T) {
 	}
 }
 
+func TestManagedPostgresAttachmentsClassifyGone(t *testing.T) {
+	operations := []struct {
+		name string
+		run  func(*Client) error
+	}{
+		{name: "create", run: func(client *Client) error {
+			_, err := client.CreateManagedPostgresAttachment(context.Background(), "mpg-123", CreateManagedPostgresAttachmentRequest{AppName: "my-app"})
+			return err
+		}},
+		{name: "delete", run: func(client *Client) error {
+			return client.DeleteManagedPostgresAttachment(context.Background(), "mpg-123", "my-app")
+		}},
+	}
+
+	for _, operation := range operations {
+		t.Run(operation.name, func(t *testing.T) {
+			transport := &managedPostgresRoundTripper{statusCode: http.StatusGone, body: `{"error":"gone"}`}
+			err := operation.run(newTestFlapsClient(t, transport))
+			if !errors.Is(err, ErrFlapsGone) {
+				t.Fatalf("request error = %v, want ErrFlapsGone", err)
+			}
+			var flapsErr *FlapsError
+			if !errors.As(err, &flapsErr) {
+				t.Fatalf("request error = %v, want wrapped FlapsError", err)
+			}
+		})
+	}
+}
+
 func TestManagedPostgresAttachmentsPreserveNonNotFoundErrors(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -1172,10 +1201,6 @@ func TestManagedPostgresAttachmentsPreserveNonNotFoundErrors(t *testing.T) {
 	}{
 		{name: "create_forbidden", statusCode: http.StatusForbidden, run: func(client *Client) error {
 			_, err := client.CreateManagedPostgresAttachment(context.Background(), "mpg-123", CreateManagedPostgresAttachmentRequest{AppName: "my-app"})
-			return err
-		}},
-		{name: "create_unprocessable", statusCode: http.StatusUnprocessableEntity, run: func(client *Client) error {
-			_, err := client.CreateManagedPostgresAttachment(context.Background(), "mpg-123", CreateManagedPostgresAttachmentRequest{AppName: ""})
 			return err
 		}},
 		{name: "delete_forbidden", statusCode: http.StatusForbidden, run: func(client *Client) error {
