@@ -121,6 +121,259 @@ func TestDeleteManagedPostgresClusterClassifiesGone(t *testing.T) {
 	}
 }
 
+func TestListManagedPostgresUsers(t *testing.T) {
+	transport := &managedPostgresRoundTripper{
+		statusCode: http.StatusOK,
+		body:       `{"data":[{"username":"app_user","role":"writer"},{"username":"analyst","role":"schema_admin"}]}`,
+	}
+	client := newTestFlapsClient(t, transport)
+
+	users, err := client.ListManagedPostgresUsers(context.Background(), "mpg-123")
+	if err != nil {
+		t.Fatalf("ListManagedPostgresUsers() error = %v", err)
+	}
+	if got, want := transport.req.Method, http.MethodGet; got != want {
+		t.Fatalf("request method = %q, want %q", got, want)
+	}
+	if got, want := transport.req.URL.RequestURI(), "/v1/postgres/mpg-123/users"; got != want {
+		t.Fatalf("request URI = %q, want %q", got, want)
+	}
+	if got, want := actionFromContext(transport.req.Context()), managedPostgresUserList; got != want {
+		t.Fatalf("request action = %q, want %q", got, want)
+	}
+	if len(users) != 2 {
+		t.Fatalf("user count = %d, want 2", len(users))
+	}
+	if got, want := users[0], (ManagedPostgresUser{Username: "app_user", Role: "writer"}); got != want {
+		t.Fatalf("users[0] = %#v, want %#v", got, want)
+	}
+	if got, want := users[1], (ManagedPostgresUser{Username: "analyst", Role: "schema_admin"}); got != want {
+		t.Fatalf("users[1] = %#v, want %#v", got, want)
+	}
+}
+
+func TestCreateManagedPostgresUser(t *testing.T) {
+	transport := &managedPostgresRoundTripper{
+		statusCode: http.StatusCreated,
+		body:       `{"data":{"username":"reporter","role":"reader"}}`,
+	}
+	client := newTestFlapsClient(t, transport)
+
+	user, err := client.CreateManagedPostgresUser(context.Background(), "mpg-123", CreateManagedPostgresUserRequest{
+		Username: "reporter",
+		Role:     "reader",
+	})
+	if err != nil {
+		t.Fatalf("CreateManagedPostgresUser() error = %v", err)
+	}
+	if got, want := transport.req.Method, http.MethodPost; got != want {
+		t.Fatalf("request method = %q, want %q", got, want)
+	}
+	if got, want := transport.req.URL.RequestURI(), "/v1/postgres/mpg-123/users"; got != want {
+		t.Fatalf("request URI = %q, want %q", got, want)
+	}
+	if got, want := actionFromContext(transport.req.Context()), managedPostgresUserCreate; got != want {
+		t.Fatalf("request action = %q, want %q", got, want)
+	}
+	body, err := io.ReadAll(transport.req.Body)
+	if err != nil {
+		t.Fatalf("read request body: %v", err)
+	}
+	var sent CreateManagedPostgresUserRequest
+	if err := json.Unmarshal(body, &sent); err != nil {
+		t.Fatalf("decode request body %q: %v", string(body), err)
+	}
+	if got, want := sent, (CreateManagedPostgresUserRequest{Username: "reporter", Role: "reader"}); got != want {
+		t.Fatalf("request body = %#v, want %#v", got, want)
+	}
+	if got, want := user, (ManagedPostgresUser{Username: "reporter", Role: "reader"}); got != want {
+		t.Fatalf("user = %#v, want %#v", got, want)
+	}
+}
+
+func TestUpdateManagedPostgresUserRole(t *testing.T) {
+	transport := &managedPostgresRoundTripper{statusCode: http.StatusNoContent}
+	client := newTestFlapsClient(t, transport)
+
+	err := client.UpdateManagedPostgresUserRole(context.Background(), "mpg-123", "reporter", UpdateManagedPostgresUserRoleRequest{Role: "writer"})
+	if err != nil {
+		t.Fatalf("UpdateManagedPostgresUserRole() error = %v", err)
+	}
+	if got, want := transport.req.Method, http.MethodPatch; got != want {
+		t.Fatalf("request method = %q, want %q", got, want)
+	}
+	if got, want := transport.req.URL.RequestURI(), "/v1/postgres/mpg-123/users/reporter"; got != want {
+		t.Fatalf("request URI = %q, want %q", got, want)
+	}
+	if got, want := actionFromContext(transport.req.Context()), managedPostgresUserUpdate; got != want {
+		t.Fatalf("request action = %q, want %q", got, want)
+	}
+	body, err := io.ReadAll(transport.req.Body)
+	if err != nil {
+		t.Fatalf("read request body: %v", err)
+	}
+	var sent UpdateManagedPostgresUserRoleRequest
+	if err := json.Unmarshal(body, &sent); err != nil {
+		t.Fatalf("decode request body %q: %v", string(body), err)
+	}
+	if got, want := sent.Role, "writer"; got != want {
+		t.Fatalf("sent role = %q, want %q", got, want)
+	}
+}
+
+func TestDeleteManagedPostgresUser(t *testing.T) {
+	transport := &managedPostgresRoundTripper{statusCode: http.StatusNoContent}
+	client := newTestFlapsClient(t, transport)
+
+	if err := client.DeleteManagedPostgresUser(context.Background(), "mpg-123", "reporter"); err != nil {
+		t.Fatalf("DeleteManagedPostgresUser() error = %v", err)
+	}
+	if got, want := transport.req.Method, http.MethodDelete; got != want {
+		t.Fatalf("request method = %q, want %q", got, want)
+	}
+	if got, want := transport.req.URL.RequestURI(), "/v1/postgres/mpg-123/users/reporter"; got != want {
+		t.Fatalf("request URI = %q, want %q", got, want)
+	}
+	if got, want := actionFromContext(transport.req.Context()), managedPostgresUserDelete; got != want {
+		t.Fatalf("request action = %q, want %q", got, want)
+	}
+	if transport.req.Body != nil {
+		t.Fatalf("request body is non-nil")
+	}
+}
+
+func TestManagedPostgresUsersPreserveEscapedPaths(t *testing.T) {
+	operations := []struct {
+		name       string
+		statusCode int
+		body       string
+		run        func(*Client, string, string) error
+	}{
+		{name: "list", statusCode: http.StatusOK, body: `{"data":[]}`, run: func(client *Client, id, _ string) error {
+			_, err := client.ListManagedPostgresUsers(context.Background(), id)
+			return err
+		}},
+		{name: "create", statusCode: http.StatusCreated, body: `{"data":{"username":"new_user","role":"reader"}}`, run: func(client *Client, id, _ string) error {
+			_, err := client.CreateManagedPostgresUser(context.Background(), id, CreateManagedPostgresUserRequest{Username: "new_user", Role: "reader"})
+			return err
+		}},
+		{name: "update", statusCode: http.StatusNoContent, run: func(client *Client, id, username string) error {
+			return client.UpdateManagedPostgresUserRole(context.Background(), id, username, UpdateManagedPostgresUserRoleRequest{Role: "reader"})
+		}},
+		{name: "delete", statusCode: http.StatusNoContent, run: func(client *Client, id, username string) error {
+			return client.DeleteManagedPostgresUser(context.Background(), id, username)
+		}},
+	}
+	paths := []struct {
+		name        string
+		clusterID   string
+		username    string
+		expectedURI func(string) string
+	}{
+		{name: "slash", clusterID: "a/b", username: "user/name", expectedURI: func(operation string) string {
+			if operation == "list" || operation == "create" {
+				return "/v1/postgres/a%2Fb/users"
+			}
+
+			return "/v1/postgres/a%2Fb/users/user%2Fname"
+		}},
+		{name: "slash_and_dot_segment", clusterID: "a/../b", username: "user/../name", expectedURI: func(operation string) string {
+			if operation == "list" || operation == "create" {
+				return "/v1/postgres/a%2F..%2Fb/users"
+			}
+
+			return "/v1/postgres/a%2F..%2Fb/users/user%2F..%2Fname"
+		}},
+	}
+
+	for _, operation := range operations {
+		for _, path := range paths {
+			t.Run(operation.name+"/"+path.name, func(t *testing.T) {
+				transport := &managedPostgresRoundTripper{statusCode: operation.statusCode, body: operation.body}
+				if err := operation.run(newTestFlapsClient(t, transport), path.clusterID, path.username); err != nil {
+					t.Fatalf("request error = %v", err)
+				}
+				if got, want := transport.req.URL.RequestURI(), path.expectedURI(operation.name); got != want {
+					t.Fatalf("request URI = %q, want %q", got, want)
+				}
+			})
+		}
+	}
+}
+
+func TestManagedPostgresUsersClassifyNotFound(t *testing.T) {
+	operations := []struct {
+		name string
+		run  func(*Client) error
+	}{
+		{name: "list", run: func(client *Client) error {
+			_, err := client.ListManagedPostgresUsers(context.Background(), "missing")
+			return err
+		}},
+		{name: "create", run: func(client *Client) error {
+			_, err := client.CreateManagedPostgresUser(context.Background(), "missing", CreateManagedPostgresUserRequest{Username: "reporter", Role: "reader"})
+			return err
+		}},
+		{name: "update", run: func(client *Client) error {
+			return client.UpdateManagedPostgresUserRole(context.Background(), "mpg-123", "missing", UpdateManagedPostgresUserRoleRequest{Role: "reader"})
+		}},
+		{name: "delete", run: func(client *Client) error {
+			return client.DeleteManagedPostgresUser(context.Background(), "mpg-123", "missing")
+		}},
+	}
+
+	for _, operation := range operations {
+		t.Run(operation.name, func(t *testing.T) {
+			transport := &managedPostgresRoundTripper{statusCode: http.StatusNotFound, body: `{"error":"not found"}`}
+			err := operation.run(newTestFlapsClient(t, transport))
+			if !errors.Is(err, ErrFlapsNotFound) {
+				t.Fatalf("request error = %v, want ErrFlapsNotFound", err)
+			}
+			var flapsErr *FlapsError
+			if !errors.As(err, &flapsErr) {
+				t.Fatalf("request error = %v, want wrapped FlapsError", err)
+			}
+		})
+	}
+}
+
+func TestManagedPostgresUsersPreserveNonNotFoundErrors(t *testing.T) {
+	tests := []struct {
+		name       string
+		statusCode int
+		run        func(*Client) error
+	}{
+		{name: "create_bad_request", statusCode: http.StatusBadRequest, run: func(client *Client) error {
+			_, err := client.CreateManagedPostgresUser(context.Background(), "mpg-123", CreateManagedPostgresUserRequest{Username: "reporter", Role: "invalid"})
+			return err
+		}},
+		{name: "create_conflict", statusCode: http.StatusConflict, run: func(client *Client) error {
+			_, err := client.CreateManagedPostgresUser(context.Background(), "mpg-123", CreateManagedPostgresUserRequest{Username: "reporter", Role: "reader"})
+			return err
+		}},
+		{name: "update_unprocessable", statusCode: http.StatusUnprocessableEntity, run: func(client *Client) error {
+			return client.UpdateManagedPostgresUserRole(context.Background(), "mpg-123", "reporter", UpdateManagedPostgresUserRoleRequest{Role: "invalid"})
+		}},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			transport := &managedPostgresRoundTripper{statusCode: test.statusCode, body: `{"error":"request rejected"}`}
+			err := test.run(newTestFlapsClient(t, transport))
+			if errors.Is(err, ErrFlapsNotFound) {
+				t.Fatalf("request error = %v, unexpectedly classified as not found", err)
+			}
+			var flapsErr *FlapsError
+			if !errors.As(err, &flapsErr) {
+				t.Fatalf("request error = %v, want FlapsError", err)
+			}
+			if got, want := flapsErr.ResponseStatusCode, test.statusCode; got != want {
+				t.Fatalf("response status = %d, want %d", got, want)
+			}
+		})
+	}
+}
+
 func TestListManagedPostgresDatabases(t *testing.T) {
 	transport := &managedPostgresRoundTripper{
 		statusCode: http.StatusOK,

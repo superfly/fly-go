@@ -76,4 +76,8 @@ const (
 	managedPostgresBackupList
 	managedPostgresBackupCreate
 	managedPostgresRestore
+	managedPostgresUserList
+	managedPostgresUserCreate
+	managedPostgresUserUpdate
+	managedPostgresUserDelete
 )
