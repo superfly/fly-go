@@ -96,11 +96,21 @@ type ManagedPostgresUserCredentials struct {
 	Password string `json:"password"`
 }
 
+// ManagedPostgresUserRole is a role assigned to a Managed Postgres user.
+type ManagedPostgresUserRole string
+
+// Roles the API accepts when creating or updating a Managed Postgres user.
+const (
+	ManagedPostgresUserRoleSchemaAdmin ManagedPostgresUserRole = "schema_admin"
+	ManagedPostgresUserRoleWriter      ManagedPostgresUserRole = "writer"
+	ManagedPostgresUserRoleReader      ManagedPostgresUserRole = "reader"
+)
+
 // ManagedPostgresUser is the public projection of a user within a Managed
 // Postgres cluster.
 type ManagedPostgresUser struct {
-	Username string `json:"username"`
-	Role     string `json:"role"`
+	Username string                  `json:"username"`
+	Role     ManagedPostgresUserRole `json:"role"`
 }
 
 // CreateManagedPostgresUserRequest is the body for

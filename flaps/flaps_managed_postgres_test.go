@@ -144,11 +144,17 @@ func TestListManagedPostgresUsers(t *testing.T) {
 	if len(users) != 2 {
 		t.Fatalf("user count = %d, want 2", len(users))
 	}
-	if got, want := users[0], (ManagedPostgresUser{Username: "app_user", Role: "writer"}); got != want {
-		t.Fatalf("users[0] = %#v, want %#v", got, want)
+	if got, want := users[0].Username, "app_user"; got != want {
+		t.Fatalf("users[0].Username = %q, want %q", got, want)
 	}
-	if got, want := users[1], (ManagedPostgresUser{Username: "analyst", Role: "schema_admin"}); got != want {
-		t.Fatalf("users[1] = %#v, want %#v", got, want)
+	if got, want := users[0].Role, ManagedPostgresUserRoleWriter; got != want {
+		t.Fatalf("users[0].Role = %q, want %q", got, want)
+	}
+	if got, want := users[1].Username, "analyst"; got != want {
+		t.Fatalf("users[1].Username = %q, want %q", got, want)
+	}
+	if got, want := users[1].Role, ManagedPostgresUserRoleSchemaAdmin; got != want {
+		t.Fatalf("users[1].Role = %q, want %q", got, want)
 	}
 }
 
@@ -186,8 +192,11 @@ func TestCreateManagedPostgresUser(t *testing.T) {
 	if got, want := sent, (CreateManagedPostgresUserRequest{Username: "reporter", Role: "reader"}); got != want {
 		t.Fatalf("request body = %#v, want %#v", got, want)
 	}
-	if got, want := user, (ManagedPostgresUser{Username: "reporter", Role: "reader"}); got != want {
-		t.Fatalf("user = %#v, want %#v", got, want)
+	if got, want := user.Username, "reporter"; got != want {
+		t.Fatalf("user.Username = %q, want %q", got, want)
+	}
+	if got, want := user.Role, ManagedPostgresUserRoleReader; got != want {
+		t.Fatalf("user.Role = %q, want %q", got, want)
 	}
 }
 
@@ -353,6 +362,12 @@ func TestManagedPostgresUsersPreserveNonNotFoundErrors(t *testing.T) {
 		}},
 		{name: "update_unprocessable", statusCode: http.StatusUnprocessableEntity, run: func(client *Client) error {
 			return client.UpdateManagedPostgresUserRole(context.Background(), "mpg-123", "reporter", UpdateManagedPostgresUserRoleRequest{Role: "invalid"})
+		}},
+		// Deleting a reserved user (postgres, flypgadmin, …) is rejected with
+		// 400 by the API. It must surface as a FlapsError carrying that status,
+		// not be silently swallowed or misclassified as 404.
+		{name: "delete_bad_request", statusCode: http.StatusBadRequest, run: func(client *Client) error {
+			return client.DeleteManagedPostgresUser(context.Background(), "mpg-123", "postgres")
 		}},
 	}
 
