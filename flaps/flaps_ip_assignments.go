@@ -27,6 +27,13 @@ const (
 	IPAssignmentTypeEgressPair IPAssignmentType = "egress_pair"
 )
 
+// IPAssignmentNetwork is the 6PN network a Flycast (private_v6) address belongs to.
+type IPAssignmentNetwork struct {
+	// Name is empty for the organization's default network.
+	Name    string `json:"name"`
+	OrgSlug string `json:"org_slug"`
+}
+
 type IPAssignment struct {
 	IP          string    `json:"ip"`
 	Region      string    `json:"region"`
@@ -34,6 +41,8 @@ type IPAssignment struct {
 	Shared      bool      `json:"shared"`
 	CreatedAt   time.Time `json:"created_at"`
 	Egress      bool      `json:"egress"`
+	// Network is set for Flycast (private_v6) addresses only.
+	Network *IPAssignmentNetwork `json:"network"`
 }
 
 func (ip IPAssignment) IsFlycast() bool {
@@ -84,6 +93,8 @@ type AssignIPResponse struct {
 	Shared      bool      `json:"shared"`
 	CreatedAt   time.Time `json:"created_at"`
 	Egress      bool      `json:"egress"`
+	// Network is set for Flycast (private_v6) addresses only.
+	Network *IPAssignmentNetwork `json:"network"`
 }
 
 func (f *Client) sendRequestIpAssignments(ctx context.Context, appName, method, endpoint string, in, out any, qs url.Values, headers map[string][]string) error {
