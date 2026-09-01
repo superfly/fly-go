@@ -13,24 +13,77 @@ type ListIPAssignmentsResponse struct {
 	IPs []IPAssignment `json:"ips"`
 }
 
+// IPAssignmentType is the type of IP address to allocate.
+type IPAssignmentType string
+
+const (
+	IPAssignmentTypeV4        IPAssignmentType = "v4"
+	IPAssignmentTypeV6        IPAssignmentType = "v6"
+	IPAssignmentTypeSharedV4  IPAssignmentType = "shared_v4"
+	IPAssignmentTypePrivateV6 IPAssignmentType = "private_v6"
+	IPAssignmentTypeEgressV4  IPAssignmentType = "egress_v4"
+	IPAssignmentTypeEgressV6  IPAssignmentType = "egress_v6"
+	// IPAssignmentTypeEgressPair allocates both an egress v4 and v6 address at once.
+	IPAssignmentTypeEgressPair IPAssignmentType = "egress_pair"
+)
+
 type IPAssignment struct {
 	IP          string    `json:"ip"`
 	Region      string    `json:"region"`
 	ServiceName string    `json:"service_name"`
 	Shared      bool      `json:"shared"`
 	CreatedAt   time.Time `json:"created_at"`
+	Egress      bool      `json:"egress"`
 }
 
 func (ip IPAssignment) IsFlycast() bool {
 	return strings.HasPrefix(ip.IP, "fdaa:")
 }
 
+func (ip IPAssignment) IsV6() bool {
+	return strings.Contains(ip.IP, ":")
+}
+
+func (ip IPAssignment) Type() IPAssignmentType {
+	switch {
+	case ip.Egress && ip.IsV6():
+		return IPAssignmentTypeEgressV6
+	case ip.Egress:
+		return IPAssignmentTypeEgressV4
+	case ip.IsFlycast():
+		return IPAssignmentTypePrivateV6
+	case ip.Shared:
+		return IPAssignmentTypeSharedV4
+	case ip.IsV6():
+		return IPAssignmentTypeV6
+	default:
+		return IPAssignmentTypeV4
+	}
+}
+
 type AssignIPRequest struct {
-	Type         string `json:"type"`
-	Region       string `json:"region"`
-	Organization string `json:"org_slug"`
-	Network      string `json:"network"`
-	ServiceName  string `json:"service_name"`
+	Type         IPAssignmentType `json:"type"`
+	Region       string           `json:"region"`
+	Organization string           `json:"org_slug"`
+	Network      string           `json:"network"`
+	ServiceName  string           `json:"service_name"`
+}
+
+// IPPair is the pair of addresses returned when an IPAssignmentTypeEgressPair is allocated.
+type IPPair struct {
+	V4 string `json:"v4"`
+	V6 string `json:"v6"`
+}
+
+type AssignIPResponse struct {
+	IP *string `json:"ip"`
+	// IPPair is set when EgressPair IP type was requested; in that case IP is nil.
+	IPPair      *IPPair   `json:"ip_pair"`
+	Region      string    `json:"region"`
+	ServiceName string    `json:"service_name"`
+	Shared      bool      `json:"shared"`
+	CreatedAt   time.Time `json:"created_at"`
+	Egress      bool      `json:"egress"`
 }
 
 func (f *Client) sendRequestIpAssignments(ctx context.Context, appName, method, endpoint string, in, out any, qs url.Values, headers map[string][]string) error {
@@ -52,7 +105,7 @@ func (f *Client) GetIPAssignments(ctx context.Context, appName string) (res *Lis
 	return
 }
 
-func (f *Client) AssignIP(ctx context.Context, appName string, req AssignIPRequest) (res *IPAssignment, err error) {
+func (f *Client) AssignIP(ctx context.Context, appName string, req AssignIPRequest) (res *AssignIPResponse, err error) {
 	ctx = contextWithAction(ctx, ipAssignmentCreate)
 
 	if err := f.sendRequestIpAssignments(ctx, appName, http.MethodPost, "", req, &res, nil, nil); err != nil {
