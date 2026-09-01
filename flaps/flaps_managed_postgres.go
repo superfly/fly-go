@@ -189,6 +189,20 @@ type EnableManagedPostgresExtensionRequest struct {
 	CreateSchema bool   `json:"create_schema"`
 }
 
+// ManagedPostgresAttachment is the public projection of an attachment between a
+// Managed Postgres cluster and an app.
+type ManagedPostgresAttachment struct {
+	PostgresClusterID string `json:"postgres_cluster_id"`
+	AppName           string `json:"app_name"`
+	AttachedAt        string `json:"attached_at"`
+}
+
+// CreateManagedPostgresAttachmentRequest is the body for
+// POST /v1/postgres/:id/attachments.
+type CreateManagedPostgresAttachmentRequest struct {
+	AppName string `json:"app_name"`
+}
+
 type managedPostgresClusterEnvelope struct {
 	Data ManagedPostgresCluster `json:"data"`
 }
@@ -434,6 +448,43 @@ func (f *Client) DisableManagedPostgresExtension(ctx context.Context, id, databa
 	}
 	if err := f._sendRequest(ctx, http.MethodDelete, endpoint, nil, nil, nil); err != nil {
 		return fmt.Errorf("failed to disable Managed Postgres extension: %w", err)
+	}
+
+	return nil
+}
+
+type managedPostgresAttachmentEnvelope struct {
+	Data ManagedPostgresAttachment `json:"data"`
+}
+
+// CreateManagedPostgresAttachment attaches an app to a Managed Postgres cluster.
+// The server returns 201 if the attachment was created, or 200 if it already
+// existed (idempotent find-or-create semantics). Both are treated as success.
+// The cluster ID is escaped as URL path segments.
+func (f *Client) CreateManagedPostgresAttachment(ctx context.Context, id string, req CreateManagedPostgresAttachmentRequest) (ManagedPostgresAttachment, error) {
+	ctx = contextWithAction(ctx, managedPostgresAttachmentCreate)
+
+	endpoint := fmt.Sprintf("/postgres/%s/attachments", url.PathEscape(id))
+
+	var env managedPostgresAttachmentEnvelope
+	// Both 200 and 201 are treated as success; the Machines API proxy preserves
+	// ui-ex's find-or-create status distinction.
+	if err := f._sendRequest(ctx, http.MethodPost, endpoint, req, &env, nil); err != nil {
+		return ManagedPostgresAttachment{}, fmt.Errorf("failed to create Managed Postgres attachment: %w", err)
+	}
+
+	return env.Data, nil
+}
+
+// DeleteManagedPostgresAttachment removes an app's attachment to a Managed Postgres
+// cluster. Returns no content on success. Both the cluster ID and app name are
+// escaped as URL path segments.
+func (f *Client) DeleteManagedPostgresAttachment(ctx context.Context, id, appName string) error {
+	ctx = contextWithAction(ctx, managedPostgresAttachmentDelete)
+
+	endpoint := fmt.Sprintf("/postgres/%s/attachments/%s", url.PathEscape(id), url.PathEscape(appName))
+	if err := f._sendRequest(ctx, http.MethodDelete, endpoint, nil, nil, nil); err != nil {
+		return fmt.Errorf("failed to delete Managed Postgres attachment: %w", err)
 	}
 
 	return nil

@@ -83,4 +83,6 @@ const (
 	managedPostgresExtensionList
 	managedPostgresExtensionEnable
 	managedPostgresExtensionDisable
+	managedPostgresAttachmentCreate
+	managedPostgresAttachmentDelete
 )
