@@ -11,10 +11,11 @@ import (
 )
 
 type CreateAppRequest struct {
-	Name      string `json:"name"`
-	Org       string `json:"org_slug"`
-	Network   string `json:"network"`
-	AppRoleID string `json:"app_role_id"`
+	Name           string `json:"name"`
+	Org            string `json:"org_slug"`
+	Network        string `json:"network"`
+	AppRoleID      string `json:"app_role_id"`
+	IdempotencyKey string `json:"idempotency_key,omitempty"`
 }
 
 func (f *Client) CreateApp(ctx context.Context, in CreateAppRequest) (app *App, err error) {
