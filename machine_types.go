@@ -458,6 +458,12 @@ type MachineMount struct {
 	ExtendThresholdPercent int    `toml:"extend_threshold_percent,omitempty" json:"extend_threshold_percent,omitempty"`
 	AddSizeGb              int    `toml:"add_size_gb,omitempty" json:"add_size_gb,omitempty"`
 	SizeGbLimit            int    `toml:"size_gb_limit,omitempty" json:"size_gb_limit,omitempty"`
+
+	// AddSizePercent grows by a percentage of the current size, rounded up to GiB.
+	// It is mutually exclusive with AddSizeGb.
+	AddSizePercent int `toml:"add_size_percent,omitempty" json:"add_size_percent,omitempty"`
+	// MinAddSizeGb is the minimum proportional growth in GiB (default 1).
+	MinAddSizeGb int `toml:"min_add_size_gb,omitempty" json:"min_add_size_gb,omitempty"`
 }
 
 type MachineGuest struct {
