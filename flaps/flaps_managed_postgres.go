@@ -126,6 +126,12 @@ type UpdateManagedPostgresUserRoleRequest struct {
 	Role string `json:"role"`
 }
 
+// RotateManagedPostgresUserPasswordRequest is the body for
+// POST /v1/postgres/:id/users/:username/rotate_password.
+type RotateManagedPostgresUserPasswordRequest struct {
+	KillSessions bool `json:"kill_sessions,omitempty"`
+}
+
 // ManagedPostgresDatabase is the public projection of a database within a
 // Managed Postgres cluster returned by list/create.
 type ManagedPostgresDatabase struct {
@@ -339,6 +345,19 @@ func (f *Client) UpdateManagedPostgresUserRole(ctx context.Context, id, username
 	}
 
 	return nil
+}
+
+func (f *Client) RotateManagedPostgresUserPassword(ctx context.Context, id, username string, req RotateManagedPostgresUserPasswordRequest) (ManagedPostgresUserCredentials, error) {
+	ctx = contextWithAction(ctx, managedPostgresUserRotatePassword)
+
+	endpoint := fmt.Sprintf("/postgres/%s/users/%s/rotate_password", url.PathEscape(id), url.PathEscape(username))
+
+	var env managedPostgresUserCredentialsEnvelope
+	if err := f._sendRequest(ctx, http.MethodPost, endpoint, req, &env, nil); err != nil {
+		return ManagedPostgresUserCredentials{}, fmt.Errorf("failed to rotate Managed Postgres user password: %w", err)
+	}
+
+	return env.Data, nil
 }
 
 func (f *Client) DeleteManagedPostgresUser(ctx context.Context, id, username string) error {

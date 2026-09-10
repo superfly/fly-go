@@ -252,6 +252,74 @@ func TestDeleteManagedPostgresUser(t *testing.T) {
 	}
 }
 
+func TestRotateManagedPostgresUserPassword(t *testing.T) {
+	tests := []struct {
+		name          string
+		killSessions  bool
+		wantKeyInJSON bool
+	}{
+		{
+			name:          "kill_sessions_true",
+			killSessions:  true,
+			wantKeyInJSON: true,
+		},
+		{
+			name:          "kill_sessions_false_omitted",
+			killSessions:  false,
+			wantKeyInJSON: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			transport := &managedPostgresRoundTripper{
+				statusCode: http.StatusOK,
+				body:       `{"data":{"username":"app_user","password":"newpassword123"}}`,
+			}
+			client := newTestFlapsClient(t, transport)
+
+			creds, err := client.RotateManagedPostgresUserPassword(context.Background(), "mpg-123", "app_user", RotateManagedPostgresUserPasswordRequest{KillSessions: tt.killSessions})
+			if err != nil {
+				t.Fatalf("RotateManagedPostgresUserPassword() error = %v", err)
+			}
+			if got, want := transport.req.Method, http.MethodPost; got != want {
+				t.Fatalf("request method = %q, want %q", got, want)
+			}
+			if got, want := transport.req.URL.RequestURI(), "/v1/postgres/mpg-123/users/app_user/rotate_password"; got != want {
+				t.Fatalf("request URI = %q, want %q", got, want)
+			}
+			if got, want := actionFromContext(transport.req.Context()), managedPostgresUserRotatePassword; got != want {
+				t.Fatalf("request action = %q, want %q", got, want)
+			}
+			body, err := io.ReadAll(transport.req.Body)
+			if err != nil {
+				t.Fatalf("read request body: %v", err)
+			}
+			var sent map[string]any
+			if err := json.Unmarshal(body, &sent); err != nil {
+				t.Fatalf("decode request body %q: %v", string(body), err)
+			}
+			if tt.wantKeyInJSON {
+				if got, ok := sent["kill_sessions"]; !ok {
+					t.Fatalf("kill_sessions key unexpectedly absent in request body: %s", body)
+				} else if got != true {
+					t.Fatalf("kill_sessions = %v, want true", got)
+				}
+			} else {
+				if _, ok := sent["kill_sessions"]; ok {
+					t.Fatalf("kill_sessions key unexpectedly present in request body: %s", body)
+				}
+			}
+			if got, want := creds.Username, "app_user"; got != want {
+				t.Fatalf("creds.Username = %q, want %q", got, want)
+			}
+			if got, want := creds.Password, "newpassword123"; got != want {
+				t.Fatalf("creds.Password = %q, want %q", got, want)
+			}
+		})
+	}
+}
+
 func TestManagedPostgresUsersPreserveEscapedPaths(t *testing.T) {
 	operations := []struct {
 		name       string
@@ -270,6 +338,10 @@ func TestManagedPostgresUsersPreserveEscapedPaths(t *testing.T) {
 		{name: "update", statusCode: http.StatusNoContent, run: func(client *Client, id, username string) error {
 			return client.UpdateManagedPostgresUserRole(context.Background(), id, username, UpdateManagedPostgresUserRoleRequest{Role: "reader"})
 		}},
+		{name: "rotate", statusCode: http.StatusOK, body: `{"data":{"username":"new_user","password":"newpwd123"}}`, run: func(client *Client, id, username string) error {
+			_, err := client.RotateManagedPostgresUserPassword(context.Background(), id, username, RotateManagedPostgresUserPasswordRequest{})
+			return err
+		}},
 		{name: "delete", statusCode: http.StatusNoContent, run: func(client *Client, id, username string) error {
 			return client.DeleteManagedPostgresUser(context.Background(), id, username)
 		}},
@@ -284,12 +356,18 @@ func TestManagedPostgresUsersPreserveEscapedPaths(t *testing.T) {
 			if operation == "list" || operation == "create" {
 				return "/v1/postgres/a%2Fb/users"
 			}
+			if operation == "rotate" {
+				return "/v1/postgres/a%2Fb/users/user%2Fname/rotate_password"
+			}
 
 			return "/v1/postgres/a%2Fb/users/user%2Fname"
 		}},
 		{name: "slash_and_dot_segment", clusterID: "a/../b", username: "user/../name", expectedURI: func(operation string) string {
 			if operation == "list" || operation == "create" {
 				return "/v1/postgres/a%2F..%2Fb/users"
+			}
+			if operation == "rotate" {
+				return "/v1/postgres/a%2F..%2Fb/users/user%2F..%2Fname/rotate_password"
 			}
 
 			return "/v1/postgres/a%2F..%2Fb/users/user%2F..%2Fname"
@@ -327,6 +405,10 @@ func TestManagedPostgresUsersClassifyNotFound(t *testing.T) {
 		{name: "update", run: func(client *Client) error {
 			return client.UpdateManagedPostgresUserRole(context.Background(), "mpg-123", "missing", UpdateManagedPostgresUserRoleRequest{Role: "reader"})
 		}},
+		{name: "rotate", run: func(client *Client) error {
+			_, err := client.RotateManagedPostgresUserPassword(context.Background(), "mpg-123", "missing", RotateManagedPostgresUserPasswordRequest{})
+			return err
+		}},
 		{name: "delete", run: func(client *Client) error {
 			return client.DeleteManagedPostgresUser(context.Background(), "mpg-123", "missing")
 		}},
@@ -363,6 +445,10 @@ func TestManagedPostgresUsersPreserveNonNotFoundErrors(t *testing.T) {
 		}},
 		{name: "update_unprocessable", statusCode: http.StatusUnprocessableEntity, run: func(client *Client) error {
 			return client.UpdateManagedPostgresUserRole(context.Background(), "mpg-123", "reporter", UpdateManagedPostgresUserRoleRequest{Role: "invalid"})
+		}},
+		{name: "rotate_conflict", statusCode: http.StatusConflict, run: func(client *Client) error {
+			_, err := client.RotateManagedPostgresUserPassword(context.Background(), "mpg-123", "reporter", RotateManagedPostgresUserPasswordRequest{})
+			return err
 		}},
 		// Deleting a reserved user (postgres, flypgadmin, …) is rejected with
 		// 400 by the API. It must surface as a FlapsError carrying that status,
@@ -1223,6 +1309,17 @@ func TestManagedPostgresAttachmentsPreserveNonNotFoundErrors(t *testing.T) {
 				t.Fatalf("response status = %d, want %d", got, want)
 			}
 		})
+	}
+}
+
+func TestManagedPostgresUserActions(t *testing.T) {
+	actions := map[flapsAction]string{
+		managedPostgresUserRotatePassword: "managedPostgresUserRotatePassword",
+	}
+	for action, want := range actions {
+		if got := action.String(); got != want {
+			t.Errorf("action string = %q, want %q", got, want)
+		}
 	}
 }
 
