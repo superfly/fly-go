@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+
+	fly "github.com/superfly/fly-go"
 )
 
 type ManagedPostgresEndpoint struct {
@@ -124,6 +126,12 @@ type CreateManagedPostgresUserRequest struct {
 // PATCH /v1/postgres/:id/users/:username.
 type UpdateManagedPostgresUserRoleRequest struct {
 	Role string `json:"role"`
+}
+
+// RotateManagedPostgresUserPasswordRequest is the body for
+// POST /v1/postgres/:id/users/:username/rotate_password.
+type RotateManagedPostgresUserPasswordRequest struct {
+	KillSessions bool `json:"kill_sessions,omitempty"`
 }
 
 // ManagedPostgresDatabase is the public projection of a database within a
@@ -293,6 +301,7 @@ func (f *Client) DeleteManagedPostgresCluster(ctx context.Context, id string) er
 
 func (f *Client) GetManagedPostgresUserCredentials(ctx context.Context, id, username string) (ManagedPostgresUserCredentials, error) {
 	ctx = contextWithAction(ctx, managedPostgresUserCredentialsGet)
+	ctx = fly.WithSensitiveResponseBody(ctx)
 
 	endpoint := fmt.Sprintf("/postgres/%s/users/%s/credentials", url.PathEscape(id), url.PathEscape(username))
 
@@ -339,6 +348,21 @@ func (f *Client) UpdateManagedPostgresUserRole(ctx context.Context, id, username
 	}
 
 	return nil
+}
+
+func (f *Client) RotateManagedPostgresUserPassword(ctx context.Context, id, username string, req RotateManagedPostgresUserPasswordRequest) (ManagedPostgresUserCredentials, error) {
+	ctx = contextWithAction(ctx, managedPostgresUserRotatePassword)
+	ctx = fly.WithSensitiveResponseBody(ctx)
+	ctx = fly.WithoutHTTPRetries(ctx)
+
+	endpoint := fmt.Sprintf("/postgres/%s/users/%s/rotate_password", url.PathEscape(id), url.PathEscape(username))
+
+	var env managedPostgresUserCredentialsEnvelope
+	if err := f._sendRequest(ctx, http.MethodPost, endpoint, req, &env, nil); err != nil {
+		return ManagedPostgresUserCredentials{}, fmt.Errorf("failed to rotate Managed Postgres user password: %w", err)
+	}
+
+	return env.Data, nil
 }
 
 func (f *Client) DeleteManagedPostgresUser(ctx context.Context, id, username string) error {

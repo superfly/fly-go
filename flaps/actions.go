@@ -80,6 +80,7 @@ const (
 	managedPostgresUserCreate
 	managedPostgresUserUpdate
 	managedPostgresUserDelete
+	managedPostgresUserRotatePassword
 	managedPostgresExtensionList
 	managedPostgresExtensionEnable
 	managedPostgresExtensionDisable
