@@ -1410,6 +1410,49 @@ func TestManagedPostgresCredentialResponsesAreRedactedFromLogs(t *testing.T) {
 	}
 }
 
+// TestManagedPostgresRotatePasswordErrorBodyIsNotRedacted proves that
+// redaction only applies to successful (2xx) responses: an error body from a
+// sensitive endpoint carries no credentials and should stay visible in logs
+// so failures remain debuggable.
+func TestManagedPostgresRotatePasswordErrorBodyIsNotRedacted(t *testing.T) {
+	logger := &fakeLogger{}
+	transport := &managedPostgresRoundTripper{
+		statusCode: http.StatusUnprocessableEntity,
+		body:       `{"error":"ROTATE_VALIDATION_MARKER"}`,
+	}
+	opts := NewClientOpts{
+		Transport: transport,
+		Logger:    logger,
+	}
+	t.Setenv("FLY_FLAPS_BASE_URL", "http://example.test")
+	client, err := NewWithOptions(context.Background(), opts)
+	if err != nil {
+		t.Fatalf("NewWithOptions: %v", err)
+	}
+
+	_, err = client.RotateManagedPostgresUserPassword(context.Background(), "mpg-123", "appuser", RotateManagedPostgresUserPasswordRequest{})
+	if err == nil {
+		t.Fatalf("RotateManagedPostgresUserPassword() expected error, got nil")
+	}
+
+	var markerLogged, redactedLogged bool
+	for _, line := range logger.lines {
+		if strings.Contains(line, "ROTATE_VALIDATION_MARKER") {
+			markerLogged = true
+		}
+		if strings.Contains(line, "redacted") {
+			redactedLogged = true
+		}
+	}
+
+	if !markerLogged {
+		t.Fatalf("error body marker not logged (should be visible, not redacted), got: %v", logger.lines)
+	}
+	if redactedLogged {
+		t.Fatalf("error body was redacted, want it visible: %v", logger.lines)
+	}
+}
+
 // TestManagedPostgresRotatePasswordSkipsAutoRetry proves rotation opts out of
 // the shared transport's 502/503 retry (so a flaky gateway can't rotate the
 // password twice), while an ordinary GET still retries as before.

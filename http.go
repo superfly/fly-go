@@ -102,7 +102,13 @@ func (t *LoggingTransport) logResponse(resp *http.Response) {
 		t.Logger.Debugf("<-- %d %s\n", resp.StatusCode, resp.Request.URL)
 	}
 
-	if hasSensitiveResponseBody(resp.Request.Context()) {
+	// Only redact successful responses: a credential-bearing body only
+	// appears on 2xx. Error bodies stay visible so failures remain
+	// debuggable from logs — verified for the current sensitive endpoints
+	// (rotate/get credentials) that their error responses don't echo back
+	// secrets; re-check this before marking a new endpoint sensitive if its
+	// errors could echo submitted values.
+	if resp.StatusCode < 300 && hasSensitiveResponseBody(resp.Request.Context()) {
 		t.Logger.Debugf("  <-- %s: [response body redacted: contains credentials]\n", resp.Request.URL)
 		return
 	}
