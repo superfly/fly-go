@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+
+	fly "github.com/superfly/fly-go"
 )
 
 type ManagedPostgresEndpoint struct {
@@ -299,6 +301,7 @@ func (f *Client) DeleteManagedPostgresCluster(ctx context.Context, id string) er
 
 func (f *Client) GetManagedPostgresUserCredentials(ctx context.Context, id, username string) (ManagedPostgresUserCredentials, error) {
 	ctx = contextWithAction(ctx, managedPostgresUserCredentialsGet)
+	ctx = fly.WithSensitiveResponseBody(ctx)
 
 	endpoint := fmt.Sprintf("/postgres/%s/users/%s/credentials", url.PathEscape(id), url.PathEscape(username))
 
@@ -349,6 +352,8 @@ func (f *Client) UpdateManagedPostgresUserRole(ctx context.Context, id, username
 
 func (f *Client) RotateManagedPostgresUserPassword(ctx context.Context, id, username string, req RotateManagedPostgresUserPasswordRequest) (ManagedPostgresUserCredentials, error) {
 	ctx = contextWithAction(ctx, managedPostgresUserRotatePassword)
+	ctx = fly.WithSensitiveResponseBody(ctx)
+	ctx = fly.WithoutHTTPRetries(ctx)
 
 	endpoint := fmt.Sprintf("/postgres/%s/users/%s/rotate_password", url.PathEscape(id), url.PathEscape(username))
 

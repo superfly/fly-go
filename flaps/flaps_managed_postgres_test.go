@@ -23,6 +23,7 @@ func (t *managedPostgresRoundTripper) RoundTrip(req *http.Request) (*http.Respon
 		StatusCode: t.statusCode,
 		Body:       io.NopCloser(strings.NewReader(t.body)),
 		Header:     make(http.Header),
+		Request:    req,
 	}, nil
 }
 
@@ -1320,6 +1321,189 @@ func TestManagedPostgresUserActions(t *testing.T) {
 		if got := action.String(); got != want {
 			t.Errorf("action string = %q, want %q", got, want)
 		}
+	}
+}
+
+func TestRotateManagedPostgresUserPasswordDoesNotLogPassword(t *testing.T) {
+	logger := &fakeLogger{}
+	transport := &managedPostgresRoundTripper{
+		statusCode: http.StatusOK,
+		body:       `{"data":{"username":"appuser","password":"sekret-XYZ"}}`,
+	}
+	opts := NewClientOpts{
+		Transport: transport,
+		Logger:    logger,
+	}
+	t.Setenv("FLY_FLAPS_BASE_URL", "http://example.test")
+	client, err := NewWithOptions(context.Background(), opts)
+	if err != nil {
+		t.Fatalf("NewWithOptions: %v", err)
+	}
+
+	creds, err := client.RotateManagedPostgresUserPassword(context.Background(), "mpg-123", "appuser", RotateManagedPostgresUserPasswordRequest{})
+	if err != nil {
+		t.Fatalf("RotateManagedPostgresUserPassword() error = %v", err)
+	}
+
+	if got, want := creds.Password, "sekret-XYZ"; got != want {
+		t.Fatalf("password = %q, want %q", got, want)
+	}
+
+	// Assert that the password is not logged
+	loggedPassword := false
+	redactedLogged := false
+	for _, line := range logger.lines {
+		if strings.Contains(line, "sekret-XYZ") {
+			loggedPassword = true
+		}
+		if strings.Contains(line, "redacted") {
+			redactedLogged = true
+		}
+	}
+
+	if loggedPassword {
+		t.Fatalf("password was logged, found 'sekret-XYZ' in logs")
+	}
+	if !redactedLogged {
+		t.Fatalf("expected redaction message in logs, got: %v", logger.lines)
+	}
+}
+
+func TestGetManagedPostgresUserCredentialsDoesNotLogPassword(t *testing.T) {
+	logger := &fakeLogger{}
+	transport := &managedPostgresRoundTripper{
+		statusCode: http.StatusOK,
+		body:       `{"data":{"username":"appuser","password":"sekret-ABC"}}`,
+	}
+	opts := NewClientOpts{
+		Transport: transport,
+		Logger:    logger,
+	}
+	t.Setenv("FLY_FLAPS_BASE_URL", "http://example.test")
+	client, err := NewWithOptions(context.Background(), opts)
+	if err != nil {
+		t.Fatalf("NewWithOptions: %v", err)
+	}
+
+	creds, err := client.GetManagedPostgresUserCredentials(context.Background(), "mpg-123", "appuser")
+	if err != nil {
+		t.Fatalf("GetManagedPostgresUserCredentials() error = %v", err)
+	}
+
+	if got, want := creds.Password, "sekret-ABC"; got != want {
+		t.Fatalf("password = %q, want %q", got, want)
+	}
+
+	// Assert that the password is not logged
+	loggedPassword := false
+	redactedLogged := false
+	for _, line := range logger.lines {
+		if strings.Contains(line, "sekret-ABC") {
+			loggedPassword = true
+		}
+		if strings.Contains(line, "redacted") {
+			redactedLogged = true
+		}
+	}
+
+	if loggedPassword {
+		t.Fatalf("password was logged, found 'sekret-ABC' in logs")
+	}
+	if !redactedLogged {
+		t.Fatalf("expected redaction message in logs, got: %v", logger.lines)
+	}
+}
+
+func TestGetManagedPostgresClusterLogsNonSensitiveBody(t *testing.T) {
+	logger := &fakeLogger{}
+	transport := &managedPostgresRoundTripper{
+		statusCode: http.StatusOK,
+		body:       `{"data":{"id":"mpg-123","name":"MARKER_NOT_SENSITIVE","status":"ready","region":"iad","plan":"basic","disk_size_gb":0,"cpus":0,"cpu_kind":"","memory_mb":0,"replicas":0,"pg_major_version":"","postgis_enabled":false,"endpoints":{"primary":{"direct":{"host":"","port":0},"pooler":{"host":"","port":0}}},"organization":{"name":"","slug":""},"created_at":"","attached_apps":[]}}`,
+	}
+	opts := NewClientOpts{
+		Transport: transport,
+		Logger:    logger,
+	}
+	t.Setenv("FLY_FLAPS_BASE_URL", "http://example.test")
+	client, err := NewWithOptions(context.Background(), opts)
+	if err != nil {
+		t.Fatalf("NewWithOptions: %v", err)
+	}
+
+	_, err = client.GetManagedPostgresCluster(context.Background(), "mpg-123")
+	if err != nil {
+		t.Fatalf("GetManagedPostgresCluster() error = %v", err)
+	}
+
+	// Assert that the marker IS logged (non-sensitive method should log body)
+	markerLogged := false
+	for _, line := range logger.lines {
+		if strings.Contains(line, "MARKER_NOT_SENSITIVE") {
+			markerLogged = true
+		}
+	}
+
+	if !markerLogged {
+		t.Fatalf("non-sensitive response body marker not logged, got: %v", logger.lines)
+	}
+}
+
+func TestRotateManagedPostgresUserPasswordDoesNotRetryOn502(t *testing.T) {
+	logger := &fakeLogger{}
+	transport := &scriptedTripper{steps: []step{
+		{statusCode: http.StatusBadGateway, body: `{"error":"bad gateway"}`},
+		{statusCode: http.StatusOK, body: `{"data":{"username":"appuser","password":"new-pw"}}`},
+	}}
+	opts := NewClientOpts{
+		Transport: transport,
+		Logger:    logger,
+	}
+	t.Setenv("FLY_FLAPS_BASE_URL", "http://example.test")
+	client, err := NewWithOptions(context.Background(), opts)
+	if err != nil {
+		t.Fatalf("NewWithOptions: %v", err)
+	}
+
+	_, err = client.RotateManagedPostgresUserPassword(context.Background(), "mpg-123", "appuser", RotateManagedPostgresUserPasswordRequest{})
+	if err == nil {
+		t.Fatalf("RotateManagedPostgresUserPassword() expected error, got nil")
+	}
+
+	var flapsErr *FlapsError
+	if !errors.As(err, &flapsErr) {
+		t.Fatalf("error = %v, want FlapsError", err)
+	}
+
+	if got, want := flapsErr.ResponseStatusCode, http.StatusBadGateway; got != want {
+		t.Fatalf("response status = %d, want %d", got, want)
+	}
+
+	if got, want := transport.callCount(), 1; got != want {
+		t.Fatalf("transport called %d times, want 1 (no retry)", got)
+	}
+}
+
+func TestGetManagedPostgresClusterRetriesOn502(t *testing.T) {
+	transport := &scriptedTripper{steps: []step{
+		{statusCode: http.StatusBadGateway, body: `{"error":"bad gateway"}`},
+		{statusCode: http.StatusOK, body: `{"data":{"id":"mpg-123","name":"test","status":"ready","region":"iad","plan":"basic","disk_size_gb":0,"cpus":0,"cpu_kind":"","memory_mb":0,"replicas":0,"pg_major_version":"","postgis_enabled":false,"endpoints":{"primary":{"direct":{"host":"","port":0},"pooler":{"host":"","port":0}}},"organization":{"name":"","slug":""},"created_at":"","attached_apps":[]}}`},
+	}}
+	opts := NewClientOpts{
+		Transport: transport,
+	}
+	t.Setenv("FLY_FLAPS_BASE_URL", "http://example.test")
+	client, err := NewWithOptions(context.Background(), opts)
+	if err != nil {
+		t.Fatalf("NewWithOptions: %v", err)
+	}
+
+	_, err = client.GetManagedPostgresCluster(context.Background(), "mpg-123")
+	if err != nil {
+		t.Fatalf("GetManagedPostgresCluster() error = %v", err)
+	}
+
+	if got, want := transport.callCount(), 2; got != want {
+		t.Fatalf("transport called %d times, want 2 (should retry)", got)
 	}
 }
 

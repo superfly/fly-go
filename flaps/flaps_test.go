@@ -135,11 +135,12 @@ func assertCookieHeader(w http.ResponseWriter, r *http.Request, want string) {
 }
 
 // step describes one scripted RoundTrip outcome. If err is non-nil, the
-// RoundTrip returns (nil, err); otherwise it returns a 200 response whose body
-// is body.
+// RoundTrip returns (nil, err); otherwise it returns a response with the
+// specified statusCode (or 200 if not set) and the given body.
 type step struct {
-	err  error
-	body string
+	err        error
+	body       string
+	statusCode int
 }
 
 type scriptedTripper struct {
@@ -152,7 +153,7 @@ type captureTripper struct {
 	req *http.Request
 }
 
-func (s *scriptedTripper) RoundTrip(*http.Request) (*http.Response, error) {
+func (s *scriptedTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.calls >= len(s.steps) {
@@ -165,10 +166,16 @@ func (s *scriptedTripper) RoundTrip(*http.Request) (*http.Response, error) {
 		return nil, st.err
 	}
 
+	statusCode := st.statusCode
+	if statusCode == 0 {
+		statusCode = http.StatusOK
+	}
+
 	return &http.Response{
-		StatusCode: http.StatusOK,
+		StatusCode: statusCode,
 		Body:       io.NopCloser(strings.NewReader(st.body)),
 		Header:     make(http.Header),
+		Request:    req,
 	}, nil
 }
 

@@ -16,6 +16,9 @@ func NewHTTPClient(logger Logger, transport http.RoundTripper) (*http.Client, er
 	retryTransport := rehttp.NewTransport(
 		transport,
 		rehttp.RetryAll(
+			func(attempt rehttp.Attempt) bool {
+				return !retriesDisabled(attempt.Request.Context())
+			},
 			rehttp.RetryMaxRetries(3),
 			rehttp.RetryAny(
 				rehttp.RetryTemporaryErr(),
@@ -97,6 +100,11 @@ func (t *LoggingTransport) logResponse(resp *http.Response) {
 		t.Logger.Debugf("<-- %d %s (%s)\n", resp.StatusCode, resp.Request.URL, shiftedDuration(time.Since(start), 2))
 	} else {
 		t.Logger.Debugf("<-- %d %s\n", resp.StatusCode, resp.Request.URL)
+	}
+
+	if hasSensitiveResponseBody(resp.Request.Context()) {
+		t.Logger.Debugf("  <-- %s: [response body redacted: contains credentials]\n", resp.Request.URL)
+		return
 	}
 
 	// Wrap the body so reads are logged as they happen without buffering or closing early.
