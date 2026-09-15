@@ -6,20 +6,22 @@ import (
 )
 
 type Volume struct {
-	ID                 string    `json:"id"`
-	Name               string    `json:"name"`
-	State              string    `json:"state"`
-	SizeGb             int       `json:"size_gb"`
-	Region             string    `json:"region"`
-	Zone               string    `json:"zone"`
-	Encrypted          bool      `json:"encrypted"`
-	AttachedMachine    *string   `json:"attached_machine_id"`
-	AttachedAllocation *string   `json:"attached_alloc_id"`
-	CreatedAt          time.Time `json:"created_at"`
-	HostDedicationID   string    `json:"host_dedication_id"`
-	SnapshotRetention  int       `json:"snapshot_retention"`
-	AutoBackupEnabled  bool      `json:"auto_backup_enabled"`
-	HostStatus         string    `json:"host_status,omitempty"`
+	ID                   string    `json:"id"`
+	Name                 string    `json:"name"`
+	State                string    `json:"state"`
+	SizeGb               int       `json:"size_gb"`
+	Region               string    `json:"region"`
+	Zone                 string    `json:"zone"`
+	Encrypted            bool      `json:"encrypted"`
+	AttachedMachine      *string   `json:"attached_machine_id"`
+	AttachedAllocation   *string   `json:"attached_alloc_id"`
+	CreatedAt            time.Time `json:"created_at"`
+	HostDedicationID     string    `json:"host_dedication_id"`
+	RequiredHostFeatures []string  `json:"required_host_features,omitempty"`
+	HostFeatures         []string  `json:"host_features,omitempty"`
+	SnapshotRetention    int       `json:"snapshot_retention"`
+	AutoBackupEnabled    bool      `json:"auto_backup_enabled"`
+	HostStatus           string    `json:"host_status,omitempty"`
 }
 
 func (v Volume) IsAttached() bool {
