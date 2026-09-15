@@ -105,3 +105,143 @@ func TestFlapsErrorSuggestion(t *testing.T) {
 		t.Errorf("Suggestion() = %q for an error with no status code, want empty", got)
 	}
 }
+
+func TestFlapsErrorSuggestionVolumePlacementCapacity(t *testing.T) {
+	err := flapsErrorWithBody(http.StatusPreconditionFailed, `{"error":"insufficient resources to create new machine with existing volume id 'vol_123'","status":"volume_placement_capacity"}`)
+
+	if got := err.Suggestion(); got == "" {
+		t.Fatal("Suggestion() is empty for a volume_placement_capacity error")
+	}
+}
+
+func TestCapacityScopeString(t *testing.T) {
+	cases := []struct {
+		scope CapacityScope
+		want  string
+	}{
+		{CapacityScopeNone, "none"},
+		{CapacityScopeHost, "host"},
+		{CapacityScopeVolumePlacement, "volume_placement"},
+		{CapacityScopeRegion, "region"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.want, func(t *testing.T) {
+			if got := tc.scope.String(); got != tc.want {
+				t.Errorf("String() = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestCapacityScopeOf(t *testing.T) {
+	cases := []struct {
+		name string
+		err  error
+		want CapacityScope
+	}{
+		{
+			name: "422 insufficient_capacity is region scope",
+			err:  flapsErrorWithBody(http.StatusUnprocessableEntity, `{"error":"could not find a candidate host","status":"insufficient_capacity"}`),
+			want: CapacityScopeRegion,
+		},
+		{
+			name: "412 volume_placement_capacity is volume placement scope",
+			err:  flapsErrorWithBody(http.StatusPreconditionFailed, `{"error":"insufficient resources to create new machine with existing volume id '123'","status":"volume_placement_capacity"}`),
+			want: CapacityScopeVolumePlacement,
+		},
+		{
+			name: "409 CPU sentinel wrapped by gate is host scope",
+			err:  flapsErrorWithBody(http.StatusConflict, `{"error":"aborted: could not reserve resource for machine: insufficient CPUs available to fulfill request on the current host"}`),
+			want: CapacityScopeHost,
+		},
+		{
+			name: "409 memory sentinel wrapped by gate is host scope",
+			err:  flapsErrorWithBody(http.StatusConflict, `{"error":"aborted: could not reserve resource for machine: insufficient memory available to fulfill request on the current host"}`),
+			want: CapacityScopeHost,
+		},
+		{
+			name: "409 bare IPs sentinel, no gate, is host scope",
+			err:  flapsErrorWithBody(http.StatusConflict, `{"error":"aborted: insufficient IPs available to fulfill request"}`),
+			want: CapacityScopeHost,
+		},
+		{
+			name: "409 create-path resource wrapper is host scope",
+			err:  flapsErrorWithBody(http.StatusConflict, `{"error":"aborted: insufficient resources available to fulfill request: insufficient memory available to fulfill request"}`),
+			want: CapacityScopeHost,
+		},
+		{
+			name: "409 no capacity is region scope",
+			err:  flapsErrorWithBody(http.StatusConflict, `{"error":"aborted: no capacity"}`),
+			want: CapacityScopeRegion,
+		},
+		{
+			name: "409 concurrent update is not a capacity error",
+			err:  flapsErrorWithBody(http.StatusConflict, `{"error":"aborted: machine update failed due to concurrent update"}`),
+			want: CapacityScopeNone,
+		},
+		{
+			name: "409 name collision is not a capacity error",
+			err:  flapsErrorWithBody(http.StatusConflict, `{"error":"already_exists: unique machine name violation, ..."}`),
+			want: CapacityScopeNone,
+		},
+		{
+			name: "409 empty body is not a capacity error",
+			err:  flapsErrorWithBody(http.StatusConflict, ``),
+			want: CapacityScopeNone,
+		},
+		{
+			name: "409 non-JSON body still matches on raw text",
+			err:  flapsErrorWithBody(http.StatusConflict, `insufficient CPUs available to fulfill request`),
+			want: CapacityScopeHost,
+		},
+		{
+			name: "500 with a matching phrase is not consulted at all",
+			err:  flapsErrorWithBody(http.StatusInternalServerError, `{"error":"insufficient CPUs available to fulfill request"}`),
+			want: CapacityScopeNone,
+		},
+		{
+			// A present code, even one this package doesn't recognize, wins
+			// over the text: reaching for the message after the API has
+			// already classified the error can only misclassify.
+			name: "a present but unrecognized status code outranks a matching phrase",
+			err:  flapsErrorWithBody(http.StatusUnprocessableEntity, `{"error":"insufficient CPUs available to fulfill request","status":"unknown"}`),
+			want: CapacityScopeNone,
+		},
+		{
+			name: "wrapped error is still classified",
+			err:  fmt.Errorf("failed to update VM 123: %w", flapsErrorWithBody(http.StatusConflict, `{"error":"aborted: could not reserve resource for machine: insufficient CPUs available to fulfill request on the current host"}`)),
+			want: CapacityScopeHost,
+		},
+		{
+			name: "non-FlapsError is not a capacity error",
+			err:  errors.New("insufficient CPUs available to fulfill request"),
+			want: CapacityScopeNone,
+		},
+		{
+			name: "nil",
+			err:  nil,
+			want: CapacityScopeNone,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := CapacityScopeOf(tc.err); got != tc.want {
+				t.Errorf("CapacityScopeOf() = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestIsCapacityError(t *testing.T) {
+	capacityErr := flapsErrorWithBody(http.StatusUnprocessableEntity, `{"error":"could not find a candidate host","status":"insufficient_capacity"}`)
+	if !IsCapacityError(capacityErr) {
+		t.Error("IsCapacityError() = false, want true for a region-scoped error")
+	}
+
+	nameErr := flapsErrorWithBody(http.StatusUnprocessableEntity, `{"error":"Validation failed: Name has already been taken","status":"name_taken"}`)
+	if IsCapacityError(nameErr) {
+		t.Error("IsCapacityError() = true, want false for a name_taken error")
+	}
+}
