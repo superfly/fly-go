@@ -16,9 +16,10 @@ var ErrFlapsGone = &FlapsError{ResponseStatusCode: http.StatusGone}
 type StatusCode string
 
 const (
-	unknown          StatusCode = "unknown"
-	regionOOCapacity StatusCode = "insufficient_capacity"
-	nameTaken        StatusCode = "name_taken"
+	unknown                 StatusCode = "unknown"
+	regionOOCapacity        StatusCode = "insufficient_capacity"
+	volumePlacementCapacity StatusCode = "volume_placement_capacity"
+	nameTaken               StatusCode = "name_taken"
 )
 
 type errorResponse struct {
@@ -54,6 +55,8 @@ func (fe *FlapsError) Suggestion() string {
 	case regionOOCapacity:
 		// TODO(billy): once we have support for 'backup regions', suggest creating adding those (or eveven better, just do it automatically)
 		return "Try choosing a different region for machine creation"
+	case volumePlacementCapacity:
+		return "The host holding this machine's volume is out of resources. Fork the volume to place it on another host."
 	case nameTaken:
 		// Worth spelling out: the API says the name is taken, and the caller
 		// looks at their own organization, sees no such app, and concludes the
@@ -182,4 +185,117 @@ func IsNameTakenError(err error) bool {
 	}
 
 	return strings.Contains(err.Error(), legacyNameTakenMessage)
+}
+
+// CapacityScope says which pool of resources a Machines API call ran out
+// of. A caller decides what to do from the scope alone: a host-scoped
+// failure is fixed by placing the machine somewhere else, a region-scoped
+// one is not fixable by the caller at all.
+type CapacityScope int
+
+const (
+	// CapacityScopeNone means the error is not a capacity failure.
+	CapacityScopeNone CapacityScope = iota
+
+	// CapacityScopeHost means the host the machine already lives on
+	// cannot fit the requested guest. Produced by machine update, which
+	// can only re-reserve resources on the current host. Recreating the
+	// machine lets the placer pick another host.
+	CapacityScopeHost
+
+	// CapacityScopeVolumePlacement means the machine must be created on
+	// the host holding one of its volumes, and that host cannot fit the
+	// guest. Only the volume's host is exhausted; the region may have room.
+	CapacityScopeVolumePlacement
+
+	// CapacityScopeRegion means no host in the region can place the
+	// machine or volume. Retrying, relocating, or recreating in the same
+	// region will not help.
+	CapacityScopeRegion
+)
+
+func (s CapacityScope) String() string {
+	switch s {
+	case CapacityScopeHost:
+		return "host"
+	case CapacityScopeVolumePlacement:
+		return "volume_placement"
+	case CapacityScopeRegion:
+		return "region"
+	default:
+		return "none"
+	}
+}
+
+func IsCapacityError(err error) bool {
+	return CapacityScopeOf(err) != CapacityScopeNone
+}
+
+func CapacityScopeOf(err error) CapacityScope {
+	var ferr *FlapsError
+	if !errors.As(err, &ferr) {
+		return CapacityScopeNone
+	}
+
+	if code := ferr.StatusCode(); code != nil && *code != "" {
+		switch *code {
+		case regionOOCapacity:
+			return CapacityScopeRegion
+		case volumePlacementCapacity:
+			return CapacityScopeVolumePlacement
+		default:
+			return CapacityScopeNone
+		}
+	}
+
+	if ferr.ResponseStatusCode != http.StatusConflict {
+		return CapacityScopeNone
+	}
+
+	return hostCapacityScopeFromText(ferr.responseErrorText())
+}
+
+// flydResourcePhrases are the messages flyd's resource managers attach to
+// a reservation that cannot be satisfied. They reach the client inside a 409 body,
+// sometimes wrapped as "could not reserve resource for machine: <phrase> on the
+// current host" by flyd. This is not an API contract, which is why this is a
+// fallback.
+var flydResourcePhrases = []string{
+	"insufficient CPUs available to fulfill request",
+	"insufficient memory available to fulfill request",
+	"insufficient IPs available to fulfill request",
+	// NOTE:
+	// This one only appears on the create path after flaps already tried
+	// every host, so one can say it's region scoped. Here we classify it
+	// as host though, because a client can try again and hit a proper 422
+	// insufficient_capacity if the problem is /not/ a host failure.
+	"insufficient resources available to fulfill request",
+}
+
+// flydNoCapacityPhrase is what flaps returns when every candidate host
+// refused a volume create or fork ("aborted: no capacity"). It is the
+// only 409 that means the whole region, not one host.
+const flydNoCapacityPhrase = "no capacity"
+
+func hostCapacityScopeFromText(text string) CapacityScope {
+	for _, phrase := range flydResourcePhrases {
+		if strings.Contains(text, phrase) {
+			return CapacityScopeHost
+		}
+	}
+
+	if strings.HasSuffix(strings.TrimSpace(text), flydNoCapacityPhrase) {
+		return CapacityScopeRegion
+	}
+
+	return CapacityScopeNone
+}
+
+func (fe *FlapsError) responseErrorText() string {
+	var errResp errorResponse
+	if json.Unmarshal(fe.ResponseBody, &errResp) == nil && errResp.Error != "" {
+		return errResp.Error
+	}
+
+	return string(fe.ResponseBody)
 }
