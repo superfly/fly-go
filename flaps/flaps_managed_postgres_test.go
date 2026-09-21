@@ -1237,3 +1237,39 @@ func TestManagedPostgresAttachmentActions(t *testing.T) {
 		}
 	}
 }
+
+func TestGetManagedPostgresClusterDecodesStorageFields(t *testing.T) {
+	transport := &managedPostgresRoundTripper{
+		statusCode: http.StatusOK,
+		body: `{"data":{"id":"mpg-123","name":"example","status":"ready","region":"iad",` +
+			`"disk_size_gb":10,"storage_used_bytes":1288490188,"storage_provisioned_bytes":21474836480}}`,
+	}
+	client := newTestFlapsClient(t, transport)
+
+	cluster, err := client.GetManagedPostgresCluster(context.Background(), "mpg-123")
+	if err != nil {
+		t.Fatalf("GetManagedPostgresCluster() error = %v", err)
+	}
+	if cluster.StorageUsedBytes == nil || *cluster.StorageUsedBytes != 1288490188 {
+		t.Fatalf("StorageUsedBytes = %v, want 1288490188", cluster.StorageUsedBytes)
+	}
+	if cluster.StorageProvisionedBytes == nil || *cluster.StorageProvisionedBytes != 21474836480 {
+		t.Fatalf("StorageProvisionedBytes = %v, want 21474836480", cluster.StorageProvisionedBytes)
+	}
+}
+
+func TestGetManagedPostgresClusterStorageFieldsNullWhenAbsent(t *testing.T) {
+	transport := &managedPostgresRoundTripper{
+		statusCode: http.StatusOK,
+		body:       `{"data":{"id":"mpg-123","name":"example","status":"creating","region":"iad","disk_size_gb":10}}`,
+	}
+	client := newTestFlapsClient(t, transport)
+
+	cluster, err := client.GetManagedPostgresCluster(context.Background(), "mpg-123")
+	if err != nil {
+		t.Fatalf("GetManagedPostgresCluster() error = %v", err)
+	}
+	if cluster.StorageUsedBytes != nil || cluster.StorageProvisionedBytes != nil {
+		t.Fatalf("storage fields = %v/%v, want nil/nil", cluster.StorageUsedBytes, cluster.StorageProvisionedBytes)
+	}
+}

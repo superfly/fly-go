@@ -40,22 +40,24 @@ const (
 // ManagedPostgresCluster is the public projection of a Managed Postgres
 // cluster returned by create/show.
 type ManagedPostgresCluster struct {
-	ID             string                       `json:"id"`
-	Name           string                       `json:"name"`
-	Status         string                       `json:"status"`
-	Region         string                       `json:"region"`
-	Plan           string                       `json:"plan"`
-	DiskSizeGB     int                          `json:"disk_size_gb"`
-	CPUs           int                          `json:"cpus"`
-	CPUKind        string                       `json:"cpu_kind"`
-	MemoryMB       int                          `json:"memory_mb"`
-	Replicas       int                          `json:"replicas"`
-	PGMajorVersion string                       `json:"pg_major_version"`
-	PostGISEnabled bool                         `json:"postgis_enabled"`
-	Endpoints      ManagedPostgresEndpoints     `json:"endpoints"`
-	Organization   ManagedPostgresOrganization  `json:"organization"`
-	CreatedAt      string                       `json:"created_at"`
-	AttachedApps   []ManagedPostgresAttachedApp `json:"attached_apps"`
+	ID                      string                       `json:"id"`
+	Name                    string                       `json:"name"`
+	Status                  string                       `json:"status"`
+	Region                  string                       `json:"region"`
+	Plan                    string                       `json:"plan"`
+	DiskSizeGB              int                          `json:"disk_size_gb"`
+	StorageUsedBytes        *int64                       `json:"storage_used_bytes"`
+	StorageProvisionedBytes *int64                       `json:"storage_provisioned_bytes"`
+	CPUs                    int                          `json:"cpus"`
+	CPUKind                 string                       `json:"cpu_kind"`
+	MemoryMB                int                          `json:"memory_mb"`
+	Replicas                int                          `json:"replicas"`
+	PGMajorVersion          string                       `json:"pg_major_version"`
+	PostGISEnabled          bool                         `json:"postgis_enabled"`
+	Endpoints               ManagedPostgresEndpoints     `json:"endpoints"`
+	Organization            ManagedPostgresOrganization  `json:"organization"`
+	CreatedAt               string                       `json:"created_at"`
+	AttachedApps            []ManagedPostgresAttachedApp `json:"attached_apps"`
 }
 
 // ManagedPostgresClusterSummary is the public projection returned by
