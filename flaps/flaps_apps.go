@@ -134,6 +134,7 @@ func retryListAppsPage(ctx context.Context, op func() error) error {
 		}, ferr.ResponseStatusCode) {
 			return err
 		}
+
 		return backoff.Permanent(err)
 	}, backoff.WithContext(backoff.WithMaxRetries(bo, 3), ctx))
 }

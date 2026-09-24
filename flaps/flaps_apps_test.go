@@ -35,6 +35,7 @@ func (t *listAppsRoundTripper) RoundTrip(req *http.Request) (*http.Response, err
 	if i < len(t.statuses) && t.statuses[i] != 0 {
 		status = t.statuses[i]
 	}
+
 	return &http.Response{
 		StatusCode: status,
 		Body:       io.NopCloser(strings.NewReader(t.bodies[i])),
