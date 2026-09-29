@@ -30,13 +30,16 @@ type Tokens struct {
 
 // Parse extracts individual tokens from a token string. The input token may
 // include an authorization scheme (`Bearer` or `FlyV1`) and/or a set of
-// comma-separated macaroon and user tokens.
+// comma-separated macaroon and user tokens. Empty entries are ignored.
 func Parse(token string) *Tokens {
 	token = StripAuthorizationScheme(token)
 	ret := &Tokens{}
 
 	for _, tok := range strings.Split(token, ",") {
 		tok = strings.TrimSpace(tok)
+		if tok == "" {
+			continue
+		}
 		switch pfx, _, _ := strings.Cut(tok, "_"); pfx {
 		case "fm1r", "fm1a", "fm2":
 			ret.macaroons = append(ret.macaroons, tok)
@@ -121,6 +124,9 @@ func (t *Tokens) AddTokens(toks ...string) *Tokens {
 
 	for _, tok := range toks {
 		tok = strings.TrimSpace(tok)
+		if tok == "" {
+			continue
+		}
 		switch pfx, _, _ := strings.Cut(tok, "_"); pfx {
 		case "fm1r", "fm1a", "fm2":
 			t.macaroons = append(t.macaroons, tok)

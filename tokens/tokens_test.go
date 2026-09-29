@@ -53,3 +53,25 @@ func TestAuthorizationHeader(t *testing.T) {
 	check(false, "foobar", "foobar")
 	check(false, "fm2_foobar", "fm2_foobar")
 }
+
+func TestEmptyTokensAreIgnored(t *testing.T) {
+	for _, input := range []string{"", "   ", ",", " , ,"} {
+		if toks := Parse(input); !toks.Empty() {
+			t.Errorf("Parse(%q): expected no tokens, got macaroons %q and user tokens %q", input, toks.GetMacaroonTokens(), toks.GetUserTokens())
+		}
+	}
+
+	toks := Parse("FlyV1 fm2_foobar, ,foobar,")
+	if got, want := toks.All(), "fm2_foobar,foobar"; got != want {
+		t.Errorf("Parse: expected %q, got %q", want, got)
+	}
+
+	toks = Parse("fm2_foobar").AddTokens("", " ", "foobar")
+	if got, want := toks.All(), "fm2_foobar,foobar"; got != want {
+		t.Errorf("AddTokens: expected %q, got %q", want, got)
+	}
+
+	if !new(Tokens).AddTokens("").Empty() {
+		t.Error("AddTokens(\"\"): expected no tokens")
+	}
+}
