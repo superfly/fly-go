@@ -245,7 +245,12 @@ func (t *Tokens) normalized(macaroonsAndUserTokens, includeScheme bool) string {
 	}
 
 	if macaroonsAndUserTokens {
-		return scheme + strings.Join(append(t.macaroons, t.oauths...), ",")
+		// Build a new slice: appending to t.macaroons would write into its
+		// spare capacity while only the read lock is held.
+		all := make([]string, 0, len(t.macaroons)+len(t.oauths))
+		all = append(all, t.macaroons...)
+		all = append(all, t.oauths...)
+		return scheme + strings.Join(all, ",")
 	}
 	if len(t.macaroons) == 0 {
 		return scheme + strings.Join(t.oauths, ",")
