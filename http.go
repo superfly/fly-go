@@ -5,7 +5,9 @@ import (
 	"context"
 	"io"
 	"math"
+	"mime"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -81,11 +83,7 @@ func (t *LoggingTransport) logRequest(req *http.Request) {
 	if err != nil {
 		t.Logger.Debug("error reading request body:", err)
 	} else {
-		t.Logger.Debug(string(data))
-	}
-
-	if req.Body != nil {
-		t.Logger.Debug(req.Body)
+		t.Logger.Debug(string(redactJSON(data)))
 	}
 
 	req.Body = io.NopCloser(bytes.NewReader(data))
@@ -102,40 +100,94 @@ func (t *LoggingTransport) logResponse(resp *http.Response) {
 		t.Logger.Debugf("<-- %d %s\n", resp.StatusCode, resp.Request.URL)
 	}
 
-	// Only redact successful responses: a credential-bearing body only
-	// appears on 2xx. Error bodies stay visible so failures remain
-	// debuggable from logs — verified for the current sensitive endpoints
-	// (rotate/get credentials) that their error responses don't echo back
-	// secrets; re-check this before marking a new endpoint sensitive if its
-	// errors could echo submitted values.
+	// A successful credentials response may contain secrets under fields that
+	// generic JSON key redaction does not recognize. Suppress its body entirely.
 	if resp.StatusCode < 300 && hasSensitiveResponseBody(resp.Request.Context()) {
 		t.Logger.Debugf("  <-- %s: [response body redacted: contains credentials]\n", resp.Request.URL)
 		return
 	}
 
-	// Wrap the body so reads are logged as they happen without buffering or closing early.
-	resp.Body = &loggingReadCloser{rc: resp.Body, logger: t.Logger, requestURL: resp.Request.URL.String()}
+	// Wrap the body so reads are logged without buffering what the caller sees or closing early.
+	// JSON bodies are logged whole once fully read so credential fields can be redacted;
+	// anything else is logged as it streams.
+	resp.Body = &loggingReadCloser{
+		rc:         resp.Body,
+		logger:     t.Logger,
+		requestURL: resp.Request.URL.String(),
+		json:       isJSONContentType(resp.Header.Get("Content-Type")),
+	}
 }
 
+// maxLoggedResponseBody caps how much of a JSON response is held back for redacted logging.
+const maxLoggedResponseBody = 1 << 20
+
 // loggingReadCloser logs bytes as they are read from the underlying ReadCloser.
-// This preserves streaming semantics by avoiding any pre-reading or buffering.
+// The caller always receives the bytes immediately; only the log write is deferred for JSON bodies.
 type loggingReadCloser struct {
 	requestURL string
 	rc         io.ReadCloser
 	logger     Logger
+	json       bool
+	buf        bytes.Buffer
+	truncated  bool
+	logged     bool
 }
 
 func (l *loggingReadCloser) Read(p []byte) (int, error) {
 	n, err := l.rc.Read(p)
 	if n > 0 {
-		l.logger.Debugf("  <-- %s: %s", l.requestURL, string(p[:n]))
+		if l.json {
+			l.buffer(p[:n])
+		} else {
+			l.logger.Debugf("  <-- %s: %s", l.requestURL, string(p[:n]))
+		}
+	}
+	if err != nil {
+		l.flush()
 	}
 
 	return n, err
 }
 
+func (l *loggingReadCloser) buffer(data []byte) {
+	if l.truncated {
+		return
+	}
+	if l.buf.Len()+len(data) > maxLoggedResponseBody {
+		l.truncated = true
+		l.buf.Reset()
+
+		return
+	}
+	l.buf.Write(data)
+}
+
+func (l *loggingReadCloser) flush() {
+	if !l.json || l.logged {
+		return
+	}
+	l.logged = true
+	switch {
+	case l.truncated:
+		l.logger.Debugf("  <-- %s: [body over %d bytes not logged]", l.requestURL, maxLoggedResponseBody)
+	case l.buf.Len() > 0:
+		l.logger.Debugf("  <-- %s: %s", l.requestURL, string(redactJSON(l.buf.Bytes())))
+	}
+}
+
 func (l *loggingReadCloser) Close() error {
+	l.flush()
+
 	return l.rc.Close()
+}
+
+func isJSONContentType(contentType string) bool {
+	mediaType, _, err := mime.ParseMediaType(contentType)
+	if err != nil {
+		return false
+	}
+
+	return mediaType == "application/json" || strings.HasSuffix(mediaType, "+json")
 }
 
 func shiftedDuration(d time.Duration, dicimal int) time.Duration {

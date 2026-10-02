@@ -3,9 +3,12 @@ package flaps
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"slices"
+	"strconv"
+	"time"
 
 	"github.com/cenkalti/backoff/v4"
 )
@@ -68,23 +71,72 @@ type ListAppsRequest struct {
 	AppRole string
 }
 
-func (f *Client) ListApps(ctx context.Context, req ListAppsRequest) (apps []App, err error) {
-	var res struct {
-		Apps []App `json:"apps"`
-	}
+func (f *Client) ListApps(ctx context.Context, req ListAppsRequest) ([]App, error) {
+	const pageSize = 5_000
 
-	query := url.Values{}
-	query.Set("org_slug", req.OrgSlug)
-	if req.AppRole != "" {
-		query.Set("app_role", req.AppRole)
-	}
+	var apps []App
+	var cursor string
+	for {
+		query := url.Values{}
+		query.Set("org_slug", req.OrgSlug)
+		query.Set("limit", strconv.Itoa(pageSize))
+		if req.AppRole != "" {
+			query.Set("app_role", req.AppRole)
+		}
+		if cursor != "" {
+			query.Set("cursor", cursor)
+		}
 
-	err = f._sendRequest(ctx, http.MethodGet, "/apps?"+query.Encode(), nil, &res, nil)
-	if err == nil {
-		apps = res.Apps
-	}
+		var page struct {
+			Apps       []App   `json:"apps"`
+			NextCursor *string `json:"next_cursor,omitempty"`
+		}
+		// Pages are independent requests, so a transient failure only
+		// retries the current page instead of the whole listing.
+		err := retryListAppsPage(ctx, func() error {
+			return f._sendRequest(ctx, http.MethodGet, "/apps?"+query.Encode(), nil, &page, nil)
+		})
+		if err != nil {
+			return nil, err
+		}
 
-	return
+		apps = append(apps, page.Apps...)
+		if page.NextCursor == nil || *page.NextCursor == "" {
+			return apps, nil
+		}
+		if *page.NextCursor == cursor {
+			return nil, fmt.Errorf("listing apps: server returned the same cursor again")
+		}
+		cursor = *page.NextCursor
+	}
+}
+
+// retryListAppsPage retries a page request a few times on rate limiting and
+// server errors. Other errors, such as an expired cursor, are returned as is.
+func retryListAppsPage(ctx context.Context, op func() error) error {
+	bo := backoff.NewExponentialBackOff()
+	bo.InitialInterval = 100 * time.Millisecond
+	bo.MaxInterval = 1 * time.Second
+	bo.RandomizationFactor = 0.5
+
+	return backoff.Retry(func() error {
+		err := op()
+		if err == nil {
+			return nil
+		}
+		var ferr *FlapsError
+		if errors.As(err, &ferr) && slices.Contains([]int{
+			http.StatusTooManyRequests,
+			http.StatusInternalServerError,
+			http.StatusBadGateway,
+			http.StatusServiceUnavailable,
+			http.StatusGatewayTimeout,
+		}, ferr.ResponseStatusCode) {
+			return err
+		}
+
+		return backoff.Permanent(err)
+	}, backoff.WithContext(backoff.WithMaxRetries(bo, 3), ctx))
 }
 
 func (f *Client) DeleteApp(ctx context.Context, name string) error {
