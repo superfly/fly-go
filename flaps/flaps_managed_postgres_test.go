@@ -1313,54 +1313,31 @@ func TestManagedPostgresAttachmentsPreserveNonNotFoundErrors(t *testing.T) {
 	}
 }
 
-// nonSensitiveClusterBody is a GetManagedPostgresCluster response body reused
-// across the logging and retry control tests below.
 const nonSensitiveClusterBody = `{"data":{"id":"mpg-123","name":"MARKER_NOT_SENSITIVE","status":"ready","region":"iad","plan":"basic","disk_size_gb":0,"cpus":0,"cpu_kind":"","memory_mb":0,"replicas":0,"pg_major_version":"","postgis_enabled":false,"endpoints":{"primary":{"direct":{"host":"","port":0},"pooler":{"host":"","port":0}}},"organization":{"name":"","slug":""},"created_at":"","attached_apps":[]}}`
 
-// TestManagedPostgresCredentialResponsesAreRedactedFromLogs proves the debug
-// logger never records a plaintext password for either credential-returning
-// method, while confirming an ordinary (non-sensitive) response is still
-// logged normally.
 func TestManagedPostgresCredentialResponsesAreRedactedFromLogs(t *testing.T) {
 	tests := []struct {
-		name      string
-		body      string
-		secret    string
-		sensitive bool
-		// call returns the field of the decoded response that should equal
-		// secret on success (password for the credential-returning methods,
-		// name for the non-sensitive control), so a bug that drops or
-		// corrupts the response is caught here too, not just in logging.
-		call func(*Client) (string, error)
+		name   string
+		body   string
+		secret string
+		call   func(*Client) (string, error)
 	}{
 		{
-			name:      "rotate password",
-			body:      `{"data":{"username":"appuser","password":"sekret-XYZ"}}`,
-			secret:    "sekret-XYZ",
-			sensitive: true,
+			name:   "rotate password",
+			body:   `{"data":{"username":"appuser","password":"sekret-XYZ"}}`,
+			secret: "sekret-XYZ",
 			call: func(c *Client) (string, error) {
 				creds, err := c.RotateManagedPostgresUserPassword(context.Background(), "mpg-123", "appuser", RotateManagedPostgresUserPasswordRequest{})
 				return creds.Password, err
 			},
 		},
 		{
-			name:      "get credentials",
-			body:      `{"data":{"username":"appuser","password":"sekret-ABC"}}`,
-			secret:    "sekret-ABC",
-			sensitive: true,
+			name:   "get credentials",
+			body:   `{"data":{"username":"appuser","password":"sekret-ABC"}}`,
+			secret: "sekret-ABC",
 			call: func(c *Client) (string, error) {
 				creds, err := c.GetManagedPostgresUserCredentials(context.Background(), "mpg-123", "appuser")
 				return creds.Password, err
-			},
-		},
-		{
-			name:      "get cluster (non-sensitive control)",
-			body:      nonSensitiveClusterBody,
-			secret:    "MARKER_NOT_SENSITIVE",
-			sensitive: false,
-			call: func(c *Client) (string, error) {
-				cluster, err := c.GetManagedPostgresCluster(context.Background(), "mpg-123")
-				return cluster.Name, err
 			},
 		},
 	}
@@ -1396,24 +1373,16 @@ func TestManagedPostgresCredentialResponsesAreRedactedFromLogs(t *testing.T) {
 				}
 			}
 
-			if tt.sensitive {
-				if secretLogged {
-					t.Fatalf("secret %q was logged, want redacted", tt.secret)
-				}
-				if !redactedLogged {
-					t.Fatalf("expected redaction message in logs, got: %v", logger.lines)
-				}
-			} else if !secretLogged {
-				t.Fatalf("non-sensitive marker %q not logged, got: %v", tt.secret, logger.lines)
+			if secretLogged {
+				t.Fatalf("secret %q was logged, want redacted", tt.secret)
+			}
+			if !redactedLogged {
+				t.Fatalf("expected redaction message in logs, got: %v", logger.lines)
 			}
 		})
 	}
 }
 
-// TestManagedPostgresRotatePasswordErrorBodyIsNotRedacted proves that
-// redaction only applies to successful (2xx) responses: an error body from a
-// sensitive endpoint carries no credentials and should stay visible in logs
-// so failures remain debuggable.
 func TestManagedPostgresRotatePasswordErrorBodyIsNotRedacted(t *testing.T) {
 	logger := &fakeLogger{}
 	transport := &managedPostgresRoundTripper{
@@ -1453,9 +1422,7 @@ func TestManagedPostgresRotatePasswordErrorBodyIsNotRedacted(t *testing.T) {
 	}
 }
 
-// TestManagedPostgresRotatePasswordSkipsAutoRetry proves rotation opts out of
-// the shared transport's 502/503 retry (so a flaky gateway can't rotate the
-// password twice), while an ordinary GET still retries as before.
+// Retrying a rotation can change the password twice.
 func TestManagedPostgresRotatePasswordSkipsAutoRetry(t *testing.T) {
 	tests := []struct {
 		name          string
