@@ -82,16 +82,17 @@ func _() {
 	_ = x[managedPostgresUserCreate-71]
 	_ = x[managedPostgresUserUpdate-72]
 	_ = x[managedPostgresUserDelete-73]
-	_ = x[managedPostgresExtensionList-74]
-	_ = x[managedPostgresExtensionEnable-75]
-	_ = x[managedPostgresExtensionDisable-76]
-	_ = x[managedPostgresAttachmentCreate-77]
-	_ = x[managedPostgresAttachmentDelete-78]
+	_ = x[managedPostgresUserRotatePassword-74]
+	_ = x[managedPostgresExtensionList-75]
+	_ = x[managedPostgresExtensionEnable-76]
+	_ = x[managedPostgresExtensionDisable-77]
+	_ = x[managedPostgresAttachmentCreate-78]
+	_ = x[managedPostgresAttachmentDelete-79]
 }
 
-const _flapsAction_name = "noneappCreateappGetmachineLaunchmachineUpdatemachineStartmachineWaitmachineStopmachineRestartmachineGetmachineListmachineDestroymachineKillmachineFindLeasemachineAcquireLeasemachineRefreshLeasemachineReleaseLeasemachineExecmachinePsmachineCordonmachineUncordonmachineSuspendappSecretsListappSecretGetappSecretSetappSecretDeleteappSecretUpdateipAssignmentListipAssignmentCreateipAssignmentDeletesecretkeysListsecretkeyGetsecretkeySetsecretkeyGeneratesecretkeyDeletesecretkeyEncryptsecretkeyDecryptsecretkeySignsecretkeyVerifyvolumeListvolumeCreatevolumetUpdatevolumeGetvolumeSnapshotCreatevolumeSnapshotListvolumeExtendvolumeDeletemetadataSetmetadataGetmetadataDelregionsGetplacementPostcertificateListcertificateCreateACMEcertificateCreateCustomcertificateGetcertificateCheckcertificateDeletecertificateDeleteACMEcertificateDeleteCustommanagedPostgresCreatemanagedPostgresGetmanagedPostgresUserCredentialsGetmanagedPostgresListmanagedPostgresDeletemanagedPostgresDatabaseListmanagedPostgresDatabaseCreatemanagedPostgresBackupListmanagedPostgresBackupCreatemanagedPostgresRestoremanagedPostgresUserListmanagedPostgresUserCreatemanagedPostgresUserUpdatemanagedPostgresUserDeletemanagedPostgresExtensionListmanagedPostgresExtensionEnablemanagedPostgresExtensionDisablemanagedPostgresAttachmentCreatemanagedPostgresAttachmentDelete"
+const _flapsAction_name = "noneappCreateappGetmachineLaunchmachineUpdatemachineStartmachineWaitmachineStopmachineRestartmachineGetmachineListmachineDestroymachineKillmachineFindLeasemachineAcquireLeasemachineRefreshLeasemachineReleaseLeasemachineExecmachinePsmachineCordonmachineUncordonmachineSuspendappSecretsListappSecretGetappSecretSetappSecretDeleteappSecretUpdateipAssignmentListipAssignmentCreateipAssignmentDeletesecretkeysListsecretkeyGetsecretkeySetsecretkeyGeneratesecretkeyDeletesecretkeyEncryptsecretkeyDecryptsecretkeySignsecretkeyVerifyvolumeListvolumeCreatevolumetUpdatevolumeGetvolumeSnapshotCreatevolumeSnapshotListvolumeExtendvolumeDeletemetadataSetmetadataGetmetadataDelregionsGetplacementPostcertificateListcertificateCreateACMEcertificateCreateCustomcertificateGetcertificateCheckcertificateDeletecertificateDeleteACMEcertificateDeleteCustommanagedPostgresCreatemanagedPostgresGetmanagedPostgresUserCredentialsGetmanagedPostgresListmanagedPostgresDeletemanagedPostgresDatabaseListmanagedPostgresDatabaseCreatemanagedPostgresBackupListmanagedPostgresBackupCreatemanagedPostgresRestoremanagedPostgresUserListmanagedPostgresUserCreatemanagedPostgresUserUpdatemanagedPostgresUserDeletemanagedPostgresUserRotatePasswordmanagedPostgresExtensionListmanagedPostgresExtensionEnablemanagedPostgresExtensionDisablemanagedPostgresAttachmentCreatemanagedPostgresAttachmentDelete"
 
-var _flapsAction_index = [...]uint16{0, 4, 13, 19, 32, 45, 57, 68, 79, 93, 103, 114, 128, 139, 155, 174, 193, 212, 223, 232, 245, 260, 274, 288, 300, 312, 327, 342, 358, 376, 394, 408, 420, 432, 449, 464, 480, 496, 509, 524, 534, 546, 559, 568, 588, 606, 618, 630, 641, 652, 663, 673, 686, 701, 722, 745, 759, 775, 792, 813, 836, 857, 875, 908, 927, 948, 975, 1004, 1029, 1056, 1078, 1101, 1126, 1151, 1176, 1204, 1234, 1265, 1296, 1327}
+var _flapsAction_index = [...]uint16{0, 4, 13, 19, 32, 45, 57, 68, 79, 93, 103, 114, 128, 139, 155, 174, 193, 212, 223, 232, 245, 260, 274, 288, 300, 312, 327, 342, 358, 376, 394, 408, 420, 432, 449, 464, 480, 496, 509, 524, 534, 546, 559, 568, 588, 606, 618, 630, 641, 652, 663, 673, 686, 701, 722, 745, 759, 775, 792, 813, 836, 857, 875, 908, 927, 948, 975, 1004, 1029, 1056, 1078, 1101, 1126, 1151, 1176, 1209, 1237, 1267, 1298, 1329, 1360}
 
 func (i flapsAction) String() string {
 	idx := int(i) - 0
