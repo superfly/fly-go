@@ -320,6 +320,7 @@ func (c *Client) RunWithContext(ctx context.Context, req *graphql.Request) (Quer
 	if action, ok := ctx.Value(contextKeyAction).(string); ok {
 		failed = action
 	}
+
 	return resp, fmt.Errorf("failed to run %s: %w", failed, err)
 }
 
