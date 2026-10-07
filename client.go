@@ -314,7 +314,8 @@ func (c *Client) RunWithContext(ctx context.Context, req *graphql.Request) (Quer
 		return resp, nil
 	}
 
-	return resp, fmt.Errorf("failed to run %s: %w", req.Query(), err)
+	// The operation's name says which query failed; the query itself would be most of the message
+	return resp, fmt.Errorf("failed to run %s: %w", actionFromCtx(ctx), err)
 }
 
 var compactPattern = regexp.MustCompile(`\s+`)
