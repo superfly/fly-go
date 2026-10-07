@@ -283,6 +283,21 @@ func TestRunWithContext_ErrorNamesTheOperationNotTheQuery(t *testing.T) {
 	}
 }
 
+// Callers of Run, or of RunWithContext from outside the package, can't name the operation
+func TestRunWithContext_ErrorKeepsTheQueryWithoutAnOperationName(t *testing.T) {
+	tripper := &scriptedTripper{steps: []step{
+		{body: `{"errors": [{"message": "You must be authenticated to view this."}]}`},
+	}}
+	client := newTestClient(tripper)
+
+	_, err := client.RunWithContext(context.Background(), graphql.NewRequest("query Foo { viewer { id } }"))
+
+	want := "failed to run query Foo { viewer { id } }: You must be authenticated to view this."
+	if err == nil || err.Error() != want {
+		t.Fatalf("error = %v, want %q", err, want)
+	}
+}
+
 func TestRunWithContext_RetriesQueryOnConnReset(t *testing.T) {
 	tripper := &scriptedTripper{steps: []step{
 		{err: connReset()},
