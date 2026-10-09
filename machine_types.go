@@ -740,6 +740,7 @@ func (mp *MachinePort) HasNonHttpPorts() bool {
 
 type ProxyProtoOptions struct {
 	Version string `toml:"version,omitempty" json:"version,omitempty"`
+	FlySrc  bool   `toml:"fly_src,omitempty" json:"fly_src,omitempty"`
 }
 
 type TLSOptions struct {
