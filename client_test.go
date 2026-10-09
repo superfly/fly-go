@@ -263,6 +263,41 @@ func TestGraphQLOperationKind(t *testing.T) {
 	}
 }
 
+func TestRunWithContext_ErrorNamesTheOperationNotTheQuery(t *testing.T) {
+	tripper := &scriptedTripper{steps: []step{
+		{body: `{"errors": [{"message": "You must be authenticated to view this."}]}`},
+	}}
+	client := newTestClient(tripper)
+
+	req := graphql.NewRequest("query ($appName: String!) { appcompact:app(name: $appName) { id name } }")
+	_, err := client.RunWithContext(ctxWithAction(context.Background(), "get_app_compact"), req)
+
+	want := "failed to run get_app_compact: You must be authenticated to view this."
+	if err == nil || err.Error() != want {
+		t.Fatalf("error = %v, want %q", err, want)
+	}
+	// Callers such as flyctl still unwrap the GraphQL error
+	var gqlErr *graphql.GraphQLError
+	if !errors.As(err, &gqlErr) {
+		t.Fatalf("error chain does not contain a *graphql.GraphQLError: %v", err)
+	}
+}
+
+// Callers of Run, or of RunWithContext from outside the package, can't name the operation
+func TestRunWithContext_ErrorKeepsTheQueryWithoutAnOperationName(t *testing.T) {
+	tripper := &scriptedTripper{steps: []step{
+		{body: `{"errors": [{"message": "You must be authenticated to view this."}]}`},
+	}}
+	client := newTestClient(tripper)
+
+	_, err := client.RunWithContext(context.Background(), graphql.NewRequest("query Foo { viewer { id } }"))
+
+	want := "failed to run query Foo { viewer { id } }: You must be authenticated to view this."
+	if err == nil || err.Error() != want {
+		t.Fatalf("error = %v, want %q", err, want)
+	}
+}
+
 func TestRunWithContext_RetriesQueryOnConnReset(t *testing.T) {
 	tripper := &scriptedTripper{steps: []step{
 		{err: connReset()},
