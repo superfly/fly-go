@@ -140,7 +140,7 @@ func retryListAppsPage(ctx context.Context, op func() error) error {
 }
 
 func (f *Client) DeleteApp(ctx context.Context, name string) error {
-	return f._sendRequest(ctx, http.MethodDelete, "/apps/"+name, nil, nil, nil)
+	return f._sendRequest(ctx, http.MethodDelete, "/apps/"+url.PathEscape(name), nil, nil, nil)
 }
 
 // AppNameAvailable reports whether name is free to use for a new app.
