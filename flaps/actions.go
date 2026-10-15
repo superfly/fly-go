@@ -70,12 +70,14 @@ const (
 	managedPostgresGet
 	managedPostgresUserCredentialsGet
 	managedPostgresList
+	managedPostgresPlanList
 	managedPostgresDelete
 	managedPostgresDatabaseList
 	managedPostgresDatabaseCreate
 	managedPostgresBackupList
 	managedPostgresBackupCreate
 	managedPostgresRestore
+	managedPostgresFork
 	managedPostgresUserList
 	managedPostgresUserCreate
 	managedPostgresUserUpdate

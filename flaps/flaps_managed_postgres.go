@@ -174,6 +174,29 @@ type RestoreManagedPostgresClusterRequest struct {
 	Name     string `json:"name,omitempty"`
 }
 
+// ForkManagedPostgresClusterRequest is the body for
+// POST /v1/postgres/:id/fork. Both fields are optional; empty values are
+// omitted so the API applies its defaults.
+type ForkManagedPostgresClusterRequest struct {
+	// Name for the fork. Defaults to the source's name with a -fork suffix.
+	Name string `json:"name,omitempty"`
+	// Plan for the fork. Defaults to the source cluster's plan.
+	Plan string `json:"plan,omitempty"`
+}
+
+// ManagedPostgresPlan is the public projection of a Managed Postgres plan
+// returned by GET /v1/postgres/plans.
+type ManagedPostgresPlan struct {
+	// Plan is the slug to pass as plan on create/fork, e.g. "basic". Slugs
+	// are not uniformly lowercase ("Performance" is capitalized).
+	Plan string `json:"plan"`
+	// CPUKind is "shared" or "performance".
+	CPUKind         string `json:"cpu_kind"`
+	CPUs            int    `json:"cpus"`
+	MemoryMB        int    `json:"memory_mb"`
+	MonthlyPriceUSD int    `json:"monthly_price_usd"`
+}
+
 // ManagedPostgresInstalledExtension describes an installed extension version
 // and schema.
 type ManagedPostgresInstalledExtension struct {
@@ -249,6 +272,10 @@ type managedPostgresExtensionListEnvelope struct {
 	Data []ManagedPostgresExtension `json:"data"`
 }
 
+type managedPostgresPlanListEnvelope struct {
+	Data []ManagedPostgresPlan `json:"data"`
+}
+
 func (f *Client) CreateManagedPostgresCluster(ctx context.Context, req CreateManagedPostgresClusterRequest) (ManagedPostgresCluster, error) {
 	ctx = contextWithAction(ctx, managedPostgresCreate)
 
@@ -285,6 +312,22 @@ func (f *Client) ListManagedPostgresClusters(ctx context.Context, req ListManage
 	var env managedPostgresClusterListEnvelope
 	if err := f._sendRequest(ctx, http.MethodGet, "/postgres?"+query.Encode(), nil, &env, nil); err != nil {
 		return nil, fmt.Errorf("failed to list Managed Postgres clusters: %w", err)
+	}
+
+	return env.Data, nil
+}
+
+// ListManagedPostgresPlans returns the Managed Postgres plans available to an
+// organization. orgSlug may be "personal".
+func (f *Client) ListManagedPostgresPlans(ctx context.Context, orgSlug string) ([]ManagedPostgresPlan, error) {
+	ctx = contextWithAction(ctx, managedPostgresPlanList)
+
+	query := url.Values{}
+	query.Set("org_slug", orgSlug)
+
+	var env managedPostgresPlanListEnvelope
+	if err := f._sendRequest(ctx, http.MethodGet, "/postgres/plans?"+query.Encode(), nil, &env, nil); err != nil {
+		return nil, fmt.Errorf("failed to list Managed Postgres plans: %w", err)
 	}
 
 	return env.Data, nil
@@ -436,6 +479,22 @@ func (f *Client) RestoreManagedPostgresCluster(ctx context.Context, id string, r
 	var env managedPostgresClusterEnvelope
 	if err := f._sendRequest(ctx, http.MethodPost, endpoint, req, &env, nil); err != nil {
 		return ManagedPostgresCluster{}, fmt.Errorf("failed to restore Managed Postgres cluster: %w", err)
+	}
+
+	return env.Data, nil
+}
+
+// ForkManagedPostgresCluster creates a new cluster from the current data of
+// the source cluster identified by id. The fork is provisioned asynchronously;
+// the returned cluster reflects its initial state.
+func (f *Client) ForkManagedPostgresCluster(ctx context.Context, id string, req ForkManagedPostgresClusterRequest) (ManagedPostgresCluster, error) {
+	ctx = contextWithAction(ctx, managedPostgresFork)
+
+	endpoint := fmt.Sprintf("/postgres/%s/fork", url.PathEscape(id))
+
+	var env managedPostgresClusterEnvelope
+	if err := f._sendRequest(ctx, http.MethodPost, endpoint, req, &env, nil); err != nil {
+		return ManagedPostgresCluster{}, fmt.Errorf("failed to fork Managed Postgres cluster: %w", err)
 	}
 
 	return env.Data, nil
