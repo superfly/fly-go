@@ -807,50 +807,72 @@ type MachineConfig struct {
 	// If you add anything here, ensure appconfig.Config.ToMachine() is updated
 
 	// An object filled with key/value pairs to be set as environment variables
-	Env      map[string]string `toml:"env,omitempty" json:"env,omitempty"`
-	Init     MachineInit       `toml:"init,omitempty" json:"init"`
-	Guest    *MachineGuest     `toml:"guest,omitempty" json:"guest,omitempty"`
+	Env map[string]string `toml:"env,omitempty" json:"env,omitempty"`
+	// Arguments for init, Fly.io's footprint inside the Machine, which controls how your own code is run
+	Init MachineInit `toml:"init,omitempty" json:"init"`
+	// The resources (CPUs, memory, etc.) allocated to the Machine
+	Guest *MachineGuest `toml:"guest,omitempty" json:"guest,omitempty"`
+	// Key/value pairs of Machine metadata. Fly.io uses metadata internally for routing, process groups, and clusters
 	Metadata map[string]string `toml:"metadata,omitempty" json:"metadata,omitempty"`
-	Mounts   []MachineMount    `toml:"mounts,omitempty" json:"mounts,omitempty"`
-	Services []MachineService  `toml:"services,omitempty" json:"services,omitempty"`
-	Metrics  *MachineMetrics   `toml:"metrics,omitempty" json:"metrics,omitempty"`
+	// Persistent volumes to mount in the Machine. A Machine can mount at most one volume, which must be on
+	// the same host. The mounted volume cannot be changed by updating the Machine
+	Mounts []MachineMount `toml:"mounts,omitempty" json:"mounts,omitempty"`
+	// Network services that Fly Proxy routes traffic to
+	Services []MachineService `toml:"services,omitempty" json:"services,omitempty"`
+	// An optional metrics endpoint for Prometheus on Fly.io to scrape
+	Metrics *MachineMetrics `toml:"metrics,omitempty" json:"metrics,omitempty"`
 	// An optional object that defines one or more named top-level checks. The key for each check is the check name.
-	Checks  map[string]MachineCheck `toml:"checks,omitempty" json:"checks,omitempty"`
-	Statics []*Static               `toml:"statics,omitempty" json:"statics,omitempty"`
+	Checks map[string]MachineCheck `toml:"checks,omitempty" json:"checks,omitempty"`
+	// Static files to serve under a URL prefix. Fly Proxy routes matching requests to a file server
+	// inside the Machine, bypassing your application's own process; the Machine must be running. The
+	// files are read either from a path inside the Machine or from a Tigris bucket that belongs to the
+	// app; no bucket is created for you
+	Statics []*Static `toml:"statics,omitempty" json:"statics,omitempty"`
 
 	// Set by fly deploy or fly machines commands
 
 	// The docker image to run
-	Image string  `toml:"image,omitempty" json:"image,omitempty"`
+	Image string `toml:"image,omitempty" json:"image,omitempty"`
+	// Files to write into the Machine, from either a raw value or an app secret
 	Files []*File `toml:"files,omitempty" json:"files,omitempty"`
 
 	// The following fields can only be set or updated by `fly machines run|update` commands
 	// "fly deploy" must preserve them, if you add anything here, ensure it is propagated on deploys
 
+	// Run the Machine at an interval: one of hourly, daily, weekly or monthly. The interval starts when
+	// the Machine is created
 	Schedule string `toml:"schedule,omitempty" json:"schedule,omitempty"`
 	// Optional boolean telling the Machine to destroy itself once it’s complete (default false)
-	AutoDestroy bool             `toml:"auto_destroy,omitempty" json:"auto_destroy,omitempty"`
-	Restart     *MachineRestart  `toml:"restart,omitempty" json:"restart,omitempty"`
-	DNS         *DNSConfig       `toml:"dns,omitempty" json:"dns,omitempty"`
-	Processes   []MachineProcess `toml:"processes,omitempty" json:"processes,omitempty"`
+	AutoDestroy bool `toml:"auto_destroy,omitempty" json:"auto_destroy,omitempty"`
+	// Whether and how the Machine is restarted after its main process exits
+	Restart *MachineRestart `toml:"restart,omitempty" json:"restart,omitempty"`
+	// DNS settings for the Machine
+	DNS *DNSConfig `toml:"dns,omitempty" json:"dns,omitempty"`
+	// Multiple processes to run within this one Machine, all from the Machine's image. Unrelated to the
+	// process groups in fly.toml, which run on separate Machines. To run processes from different
+	// images, use containers instead
+	Processes []MachineProcess `toml:"processes,omitempty" json:"processes,omitempty"`
 
 	// Standbys enable a machine to be a standby for another. In the event of a hardware failure,
 	// the standby machine will be started.
 	Standbys []string `toml:"standbys,omitempty" json:"standbys,omitempty"`
 
+	// How the Machine is shut down gracefully: the signal sent to it and how long to wait before a hard shutdown
 	StopConfig *StopConfig `toml:"stop_config,omitempty" json:"stop_config,omitempty"`
 
-	// Containers are a list of containers that will run in the machine. Currently restricted to
-	// only specific organizations.
+	// Containers are a list of containers that will run in the machine, each from its own image.
 	Containers []*ContainerConfig `toml:"containers,omitempty" json:"containers,omitempty"`
 
 	// Volumes describe the set of volumes that can be attached to the machine. Used in conjuction
 	// with containers
 	Volumes []*VolumeConfig `toml:"volumes,omitempty" json:"volumes,omitempty"`
 
-	Rootfs     *MachineRootfs     `toml:"rootfs,omitempty" json:"rootfs,omitempty"`
+	// The size of the Machine's root filesystem and whether it persists
+	Rootfs *MachineRootfs `toml:"rootfs,omitempty" json:"rootfs,omitempty"`
+	// A cache drive attached to the Machine
 	CacheDrive *MachineCacheDrive `toml:"cache_drive,omitempty" json:"cache_drive,omitempty"`
 
+	// Spot pricing settings for the Machine
 	Spot *MachineSpot `toml:"spot,omitempty" json:"spot,omitempty"`
 
 	// Deprecated: use Guest instead
@@ -880,9 +902,14 @@ func (c *MachineConfig) ProcessGroup() string {
 }
 
 type Static struct {
-	GuestPath     string `toml:"guest_path" json:"guest_path" validate:"required"`
-	UrlPrefix     string `toml:"url_prefix" json:"url_prefix" validate:"required"`
-	TigrisBucket  string `toml:"tigris_bucket" json:"tigris_bucket"`
+	// The path inside the Machine, or inside tigris_bucket when set, where the files to serve are located
+	GuestPath string `toml:"guest_path" json:"guest_path" validate:"required"`
+	// The URL prefix under which the files are served
+	UrlPrefix string `toml:"url_prefix" json:"url_prefix" validate:"required"`
+	// An existing Tigris bucket belonging to the app to read the files from, instead of the Machine's
+	// filesystem. The files are still served through the Machine
+	TigrisBucket string `toml:"tigris_bucket" json:"tigris_bucket"`
+	// The document served for requests to the URL prefix or any of its subfolders. Only works with tigris_bucket
 	IndexDocument string `toml:"index_document" json:"index_document"`
 }
 
