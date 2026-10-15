@@ -868,6 +868,208 @@ func TestRestoreManagedPostgresClusterPreservesValidationError(t *testing.T) {
 	}
 }
 
+func TestForkManagedPostgresCluster(t *testing.T) {
+	transport := &managedPostgresRoundTripper{
+		statusCode: http.StatusCreated,
+		body: `{"data":{"id":"mpg-fork","name":"forked-db","status":"creating",` +
+			`"region":"iad","plan":"starter","disk_size_gb":25,"pg_major_version":"17"}}`,
+	}
+	client := newTestFlapsClient(t, transport)
+
+	cluster, err := client.ForkManagedPostgresCluster(context.Background(), "mpg-source", ForkManagedPostgresClusterRequest{
+		Name: "forked-db",
+		Plan: "starter",
+	})
+	if err != nil {
+		t.Fatalf("ForkManagedPostgresCluster() error = %v", err)
+	}
+	if transport.req.Method != http.MethodPost {
+		t.Fatalf("request method = %q, want %q", transport.req.Method, http.MethodPost)
+	}
+	if got, want := transport.req.URL.Path, "/v1/postgres/mpg-source/fork"; got != want {
+		t.Fatalf("request path = %q, want %q", got, want)
+	}
+
+	body, err := io.ReadAll(transport.req.Body)
+	if err != nil {
+		t.Fatalf("read request body: %v", err)
+	}
+	var sent map[string]any
+	if err := json.Unmarshal(body, &sent); err != nil {
+		t.Fatalf("decode request body %q: %v", string(body), err)
+	}
+	if got, want := sent["name"], "forked-db"; got != want {
+		t.Fatalf("sent name = %v, want %q", got, want)
+	}
+	if got, want := sent["plan"], "starter"; got != want {
+		t.Fatalf("sent plan = %v, want %q", got, want)
+	}
+	if got, want := cluster.ID, "mpg-fork"; got != want {
+		t.Fatalf("cluster ID = %q, want %q", got, want)
+	}
+	if got, want := cluster.Name, "forked-db"; got != want {
+		t.Fatalf("cluster name = %q, want %q", got, want)
+	}
+	if got, want := cluster.Status, "creating"; got != want {
+		t.Fatalf("cluster status = %q, want %q", got, want)
+	}
+	if got, want := cluster.Plan, "starter"; got != want {
+		t.Fatalf("cluster plan = %q, want %q", got, want)
+	}
+}
+
+func TestForkManagedPostgresClusterOmitsEmptyNameAndPlan(t *testing.T) {
+	transport := &managedPostgresRoundTripper{
+		statusCode: http.StatusCreated,
+		body:       `{"data":{"id":"mpg-fork","name":"source-db-fork","status":"creating","plan":"basic"}}`,
+	}
+	client := newTestFlapsClient(t, transport)
+
+	cluster, err := client.ForkManagedPostgresCluster(context.Background(), "mpg-source", ForkManagedPostgresClusterRequest{})
+	if err != nil {
+		t.Fatalf("ForkManagedPostgresCluster() error = %v", err)
+	}
+	body, err := io.ReadAll(transport.req.Body)
+	if err != nil {
+		t.Fatalf("read request body: %v", err)
+	}
+	var sent map[string]any
+	if err := json.Unmarshal(body, &sent); err != nil {
+		t.Fatalf("decode request body %q: %v", string(body), err)
+	}
+	if _, ok := sent["plan"]; ok {
+		t.Fatalf("plan unexpectedly present in request: %s", body)
+	}
+	if _, ok := sent["name"]; ok {
+		t.Fatalf("name unexpectedly present in request: %s", body)
+	}
+	if got, want := cluster.Name, "source-db-fork"; got != want {
+		t.Fatalf("cluster name = %q, want %q", got, want)
+	}
+}
+
+func TestForkManagedPostgresClusterPreservesEscapedPath(t *testing.T) {
+	transport := &managedPostgresRoundTripper{
+		statusCode: http.StatusCreated,
+		body:       `{"data":{"id":"mpg-fork"}}`,
+	}
+	client := newTestFlapsClient(t, transport)
+
+	_, err := client.ForkManagedPostgresCluster(context.Background(), "a/../b", ForkManagedPostgresClusterRequest{})
+	if err != nil {
+		t.Fatalf("ForkManagedPostgresCluster() error = %v", err)
+	}
+	if got, want := transport.req.URL.RequestURI(), "/v1/postgres/a%2F..%2Fb/fork"; got != want {
+		t.Fatalf("request URI = %q, want %q", got, want)
+	}
+}
+
+func TestForkManagedPostgresClusterClassifiesNotFound(t *testing.T) {
+	transport := &managedPostgresRoundTripper{
+		statusCode: http.StatusNotFound,
+		body:       `{"error":"not found"}`,
+	}
+	client := newTestFlapsClient(t, transport)
+
+	_, err := client.ForkManagedPostgresCluster(context.Background(), "mpg-missing", ForkManagedPostgresClusterRequest{})
+	if !errors.Is(err, ErrFlapsNotFound) {
+		t.Fatalf("ForkManagedPostgresCluster() error = %v, want ErrFlapsNotFound", err)
+	}
+}
+
+func TestForkManagedPostgresClusterPreservesValidationError(t *testing.T) {
+	transport := &managedPostgresRoundTripper{
+		statusCode: http.StatusUnprocessableEntity,
+		body:       `{"error":"plan is invalid"}`,
+	}
+	client := newTestFlapsClient(t, transport)
+
+	_, err := client.ForkManagedPostgresCluster(context.Background(), "mpg-source", ForkManagedPostgresClusterRequest{
+		Plan: "nope",
+	})
+	var flapsErr *FlapsError
+	if !errors.As(err, &flapsErr) {
+		t.Fatalf("ForkManagedPostgresCluster() error = %v, want FlapsError", err)
+	}
+	if got, want := flapsErr.ResponseStatusCode, http.StatusUnprocessableEntity; got != want {
+		t.Fatalf("response status = %d, want %d", got, want)
+	}
+	if got, want := flapsErr.Error(), "plan is invalid"; got != want {
+		t.Fatalf("error message = %q, want %q", got, want)
+	}
+}
+
+func TestListManagedPostgresPlans(t *testing.T) {
+	transport := &managedPostgresRoundTripper{
+		statusCode: http.StatusOK,
+		body: `{"data":[` +
+			`{"plan":"basic","cpu_kind":"shared","cpus":2,"memory_mb":1024,"monthly_price_usd":38},` +
+			`{"plan":"Performance","cpu_kind":"performance","cpus":2,"memory_mb":8192,"monthly_price_usd":282}]}`,
+	}
+	client := newTestFlapsClient(t, transport)
+
+	plans, err := client.ListManagedPostgresPlans(context.Background(), "personal")
+	if err != nil {
+		t.Fatalf("ListManagedPostgresPlans() error = %v", err)
+	}
+	if transport.req.Method != http.MethodGet {
+		t.Fatalf("request method = %q, want %q", transport.req.Method, http.MethodGet)
+	}
+	if got, want := transport.req.URL.Path, "/v1/postgres/plans"; got != want {
+		t.Fatalf("request path = %q, want %q", got, want)
+	}
+	if got, want := transport.req.URL.Query().Get("org_slug"), "personal"; got != want {
+		t.Fatalf("org_slug = %q, want %q", got, want)
+	}
+	want := []ManagedPostgresPlan{
+		{Plan: "basic", CPUKind: "shared", CPUs: 2, MemoryMB: 1024, MonthlyPriceUSD: 38},
+		{Plan: "Performance", CPUKind: "performance", CPUs: 2, MemoryMB: 8192, MonthlyPriceUSD: 282},
+	}
+	if len(plans) != len(want) {
+		t.Fatalf("plan count = %d, want %d", len(plans), len(want))
+	}
+	for i := range want {
+		if plans[i] != want[i] {
+			t.Fatalf("plans[%d] = %+v, want %+v", i, plans[i], want[i])
+		}
+	}
+}
+
+func TestListManagedPostgresPlansEncodesOrgSlug(t *testing.T) {
+	transport := &managedPostgresRoundTripper{statusCode: http.StatusOK, body: `{"data":[]}`}
+	client := newTestFlapsClient(t, transport)
+
+	_, err := client.ListManagedPostgresPlans(context.Background(), "a&b=c")
+	if err != nil {
+		t.Fatalf("ListManagedPostgresPlans() error = %v", err)
+	}
+	if got, want := transport.req.URL.RawQuery, "org_slug=a%26b%3Dc"; got != want {
+		t.Fatalf("raw query = %q, want %q", got, want)
+	}
+}
+
+func TestListManagedPostgresPlansClassifiesNotFound(t *testing.T) {
+	transport := &managedPostgresRoundTripper{statusCode: http.StatusNotFound, body: `{"error":"not found"}`}
+	client := newTestFlapsClient(t, transport)
+
+	_, err := client.ListManagedPostgresPlans(context.Background(), "missing-org")
+	if !errors.Is(err, ErrFlapsNotFound) {
+		t.Fatalf("ListManagedPostgresPlans() error = %v, want ErrFlapsNotFound", err)
+	}
+}
+
+func TestManagedPostgresForkAndPlanActions(t *testing.T) {
+	actions := map[flapsAction]string{
+		managedPostgresFork:     "managedPostgresFork",
+		managedPostgresPlanList: "managedPostgresPlanList",
+	}
+	for action, want := range actions {
+		if got := action.String(); got != want {
+			t.Errorf("action string = %q, want %q", got, want)
+		}
+	}
+}
+
 func TestListManagedPostgresExtensions(t *testing.T) {
 	transport := &managedPostgresRoundTripper{
 		statusCode: http.StatusOK,
