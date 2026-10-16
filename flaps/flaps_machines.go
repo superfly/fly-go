@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"slices"
 	"time"
 
@@ -403,7 +404,7 @@ func (f *Client) Uncordon(ctx context.Context, appName, machineID string, nonce 
 }
 
 func (f *Client) SetMetadata(ctx context.Context, appName, machineID, key, value string) error {
-	endpoint := fmt.Sprintf("/%s/metadata/%s", machineID, key)
+	endpoint := fmt.Sprintf("/%s/metadata/%s", machineID, url.PathEscape(key))
 
 	ctx = contextWithAction(ctx, metadataSet)
 	ctx = contextWithMachineID(ctx, machineID)
@@ -437,7 +438,7 @@ func (f *Client) GetMetadata(ctx context.Context, appName, machineID string) (ma
 func (f *Client) DeleteMetadata(ctx context.Context, appName, machineID, key string) error {
 	ctx = contextWithAction(ctx, metadataDel)
 	ctx = contextWithMachineID(ctx, machineID)
-	endpoint := fmt.Sprintf("/%s/metadata/%s", machineID, key)
+	endpoint := fmt.Sprintf("/%s/metadata/%s", machineID, url.PathEscape(key))
 
 	err := f.sendRequestMachines(ctx, appName, http.MethodDelete, endpoint, nil, nil, nil)
 	if err != nil {
