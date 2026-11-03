@@ -38,6 +38,7 @@ func testAffinityToken(t *testing.T, app, instance string, expires time.Time) st
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	return base64.RawURLEncoding.EncodeToString(payload) + ".sig"
 }
 

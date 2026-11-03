@@ -213,6 +213,7 @@ func (f *Client) do(ctx context.Context, method, endpoint string, in interface{}
 		if err == nil {
 			f.captureAffinity(resp)
 		}
+
 		return resp, err
 	}
 

@@ -60,6 +60,7 @@ func parseAffinityClaims(token string) (affinityClaims, bool) {
 	if err := json.Unmarshal(payload, &c); err != nil || c.AppName == "" || c.ExpiresAt.IsZero() {
 		return affinityClaims{}, false
 	}
+
 	return c, true
 }
 
@@ -75,6 +76,7 @@ func appNameFromPath(u *url.URL) string {
 	if err != nil {
 		return ""
 	}
+
 	return name
 }
 
