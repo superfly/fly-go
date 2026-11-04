@@ -435,7 +435,7 @@ type MachineRootfs struct {
 }
 
 type MachineCacheDrive struct {
-	// Size of the cache drive in MiB. At most 51200; 0 uses the default
+	// Beta: size of the cache drive in MiB. At most 51200; 0 uses the default
 	SizeMB uint64 `toml:"size_mb,omitempty" json:"size_mb,omitempty"`
 }
 
@@ -950,9 +950,10 @@ type MachineConfig struct {
 	// with containers
 	Volumes []*VolumeConfig `toml:"volumes,omitempty" json:"volumes,omitempty"`
 
-	// The size of the Machine's root filesystem and whether it persists
+	// Beta: the size of the Machine's root filesystem and whether it persists. This field may be
+	// removed in the future
 	Rootfs *MachineRootfs `toml:"rootfs,omitempty" json:"rootfs,omitempty"`
-	// A cache drive attached to the Machine
+	// Beta: a cache drive attached to the Machine. This field may be removed in the future
 	CacheDrive *MachineCacheDrive `toml:"cache_drive,omitempty" json:"cache_drive,omitempty"`
 
 	// Spot pricing settings for the Machine
