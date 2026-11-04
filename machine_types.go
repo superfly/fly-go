@@ -426,11 +426,16 @@ func (mpr *MachinePersistRootfs) UnmarshalJSON(raw []byte) error {
 }
 
 type MachineRootfs struct {
+	// Whether changes to the root filesystem are kept. `never` (default): reset on every start.
+	// `restart`: kept across stops and restarts, reset when the Machine is updated. `always`: also
+	// kept across updates
 	Persist MachinePersistRootfs `toml:"persist,omitempty" json:"persist,omitempty" enums:"never,always,restart"`
-	SizeGB  uint64               `toml:"size_gb,omitempty" json:"size_gb,omitempty"`
+	// Size of the root filesystem in GB. At most 50; 0 uses the default
+	SizeGB uint64 `toml:"size_gb,omitempty" json:"size_gb,omitempty"`
 }
 
 type MachineCacheDrive struct {
+	// Beta: size of the cache drive in MiB. At most 51200; 0 uses the default
 	SizeMB uint64 `toml:"size_mb,omitempty" json:"size_mb,omitempty"`
 }
 
@@ -451,14 +456,26 @@ type MachineRestart struct {
 }
 
 type MachineMount struct {
-	Encrypted              bool   `toml:"encrypted,omitempty" json:"encrypted,omitempty"`
-	Path                   string `toml:"path,omitempty" json:"path,omitempty"`
-	SizeGb                 int    `toml:"size_gb,omitempty" json:"size_gb,omitempty"`
-	Volume                 string `toml:"volume,omitempty" json:"volume,omitempty"`
-	Name                   string `toml:"name,omitempty" json:"name,omitempty"`
-	ExtendThresholdPercent int    `toml:"extend_threshold_percent,omitempty" json:"extend_threshold_percent,omitempty"`
-	AddSizeGb              int    `toml:"add_size_gb,omitempty" json:"add_size_gb,omitempty"`
-	SizeGbLimit            int    `toml:"size_gb_limit,omitempty" json:"size_gb_limit,omitempty"`
+	// Whether the volume is encrypted. Set by Fly.io; ignored in requests
+	Encrypted bool `toml:"encrypted,omitempty" json:"encrypted,omitempty"`
+	// Absolute path in the Machine to mount the volume at. Required
+	Path string `toml:"path,omitempty" json:"path,omitempty"`
+	// Size of the volume in GB. Set by Fly.io; ignored in requests
+	SizeGb int `toml:"size_gb,omitempty" json:"size_gb,omitempty"`
+	// ID (`vol_...`) or name of the volume to mount. Required. With a name, any unattached volume
+	// of the app with that name in the Machine's region is used
+	Volume string `toml:"volume,omitempty" json:"volume,omitempty"`
+	// Name of the volume. Set by Fly.io; ignored in requests
+	Name string `toml:"name,omitempty" json:"name,omitempty"`
+	// Enable automatic volume extension: grow the volume when its usage exceeds this percentage.
+	// Between 50 and 99; 0 disables it
+	ExtendThresholdPercent int `toml:"extend_threshold_percent,omitempty" json:"extend_threshold_percent,omitempty"`
+	// With automatic extension, grow the volume by this many GB at a time. Between 1 and 100.
+	// Mutually exclusive with add_size_percent
+	AddSizeGb int `toml:"add_size_gb,omitempty" json:"add_size_gb,omitempty"`
+	// With automatic extension, never grow the volume beyond this size in GB. At most the
+	// organization's maximum volume size
+	SizeGbLimit int `toml:"size_gb_limit,omitempty" json:"size_gb_limit,omitempty"`
 
 	// AddSizePercent grows by a percentage of the current size, rounded up to GiB.
 	// It is mutually exclusive with AddSizeGb.
@@ -468,17 +485,35 @@ type MachineMount struct {
 }
 
 type MachineGuest struct {
-	CPUKind              string   `toml:"cpu_kind,omitempty" json:"cpu_kind,omitempty"`
-	CPUs                 int      `toml:"cpus,omitempty" json:"cpus,omitempty"`
-	MemoryMB             int      `toml:"memory_mb,omitempty" json:"memory_mb,omitempty"`
-	MaxMemoryMB          int      `toml:"max_memory_mb,omitempty" json:"max_memory_mb,omitempty"`
-	GPUs                 int      `toml:"gpus,omitempty" json:"gpus,omitempty"`
-	GPUKind              string   `toml:"gpu_kind,omitempty" json:"gpu_kind,omitempty"`
-	HostDedicationID     string   `toml:"host_dedication_id,omitempty" json:"host_dedication_id,omitempty"`
+	// Kind of CPU: shared or performance. Performance CPUs must be enabled for the organization.
+	// Defaults to shared when `guest` is omitted
+	CPUKind string `toml:"cpu_kind,omitempty" json:"cpu_kind,omitempty"`
+	// Number of CPUs: 1, 2, 4, 6, 8, 10, 12, 14, 16, 32, 64 or 128, up to 8 for shared and 16 for
+	// performance CPUs unless the organization's limit is higher. Defaults to 1 when `guest` is
+	// omitted
+	CPUs int `toml:"cpus,omitempty" json:"cpus,omitempty"`
+	// Memory in MiB. Must be a multiple of 256 for shared and 1024 for performance CPUs, and
+	// between 256 and 2048 (shared) or 2048 and 8192 (performance) per CPU. Defaults to 256 when
+	// `guest` is omitted
+	MemoryMB int `toml:"memory_mb,omitempty" json:"memory_mb,omitempty"`
+	// Memory in MiB that the Machine's memory limit can later be raised to without a restart, using
+	// the memory endpoints. Must be at least memory_mb and at most the per-CPU maximum. The Machine
+	// starts with a limit of memory_mb
+	MaxMemoryMB int `toml:"max_memory_mb,omitempty" json:"max_memory_mb,omitempty"`
+	// No longer supported. Requests that set it are rejected
+	GPUs int `toml:"gpus,omitempty" json:"gpus,omitempty"`
+	// No longer supported. Requests that set it are rejected
+	GPUKind string `toml:"gpu_kind,omitempty" json:"gpu_kind,omitempty"`
+	// Place the Machine on hosts dedicated to the organization under this ID. Only available to
+	// organizations with dedicated hosts
+	HostDedicationID string `toml:"host_dedication_id,omitempty" json:"host_dedication_id,omitempty"`
+	// Host features the Machine's host must have, such as `storage-tier-1`. At most 16, each made
+	// of lowercase letters, digits and dashes. Each feature must be enabled for the organization
 	RequiredHostFeatures []string `toml:"required_host_features,omitempty" json:"required_host_features,omitempty"`
 	// Deprecated: use MachineConfig.Rootfs instead
 	PersistRootfs MachinePersistRootfs `toml:"persist_rootfs,omitempty" json:"persist_rootfs,omitempty" enums:"never,always,restart"`
 
+	// Extra arguments appended to the guest kernel command line
 	KernelArgs []string `toml:"kernel_args,omitempty" json:"kernel_args,omitempty"`
 }
 
@@ -587,9 +622,12 @@ var MachinePresets map[string]*MachineGuest = map[string]*MachineGuest{
 }
 
 type MachineMetrics struct {
-	Port  int    `toml:"port,omitempty" json:"port,omitempty"`
-	Path  string `toml:"path,omitempty" json:"path,omitempty"`
-	Https bool   `toml:"https,omitempty" json:"https,omitempty"`
+	// Port in the Machine to scrape metrics from
+	Port int `toml:"port,omitempty" json:"port,omitempty"`
+	// HTTP path to scrape. Defaults to `/`
+	Path string `toml:"path,omitempty" json:"path,omitempty"`
+	// Scrape over HTTPS instead of HTTP
+	Https bool `toml:"https,omitempty" json:"https,omitempty"`
 }
 
 type MachineCheckKind string
@@ -625,8 +663,9 @@ type MachineCheck struct {
 	// For http checks with https protocol, whether or not to verify the TLS certificate
 	HTTPSkipTLSVerify *bool `toml:"tls_skip_verify,omitempty" json:"tls_skip_verify,omitempty"`
 	// If the protocol is https, the hostname to use for TLS certificate validation
-	HTTPTLSServerName *string             `toml:"tls_server_name,omitempty" json:"tls_server_name,omitempty"`
-	HTTPHeaders       []MachineHTTPHeader `toml:"headers,omitempty" json:"headers,omitempty"`
+	HTTPTLSServerName *string `toml:"tls_server_name,omitempty" json:"tls_server_name,omitempty"`
+	// For http checks, headers to send with the request
+	HTTPHeaders []MachineHTTPHeader `toml:"headers,omitempty" json:"headers,omitempty"`
 }
 
 type MachineServiceCheck struct {
@@ -649,8 +688,9 @@ type MachineServiceCheck struct {
 	// For http checks with https protocol, whether or not to verify the TLS certificate
 	HTTPSkipTLSVerify *bool `toml:"tls_skip_verify,omitempty" json:"tls_skip_verify,omitempty"`
 	// If the protocol is https, the hostname to use for TLS certificate validation
-	HTTPTLSServerName *string             `toml:"tls_server_name,omitempty" json:"tls_server_name,omitempty"`
-	HTTPHeaders       []MachineHTTPHeader `toml:"headers,omitempty" json:"headers,omitempty"`
+	HTTPTLSServerName *string `toml:"tls_server_name,omitempty" json:"tls_server_name,omitempty"`
+	// For http checks, headers to send with the request
+	HTTPHeaders []MachineHTTPHeader `toml:"headers,omitempty" json:"headers,omitempty"`
 }
 
 // @description For http checks, an array of objects with string field Name and array of strings field Values. The key/value pairs specify header and header values that will get passed with the check call.
@@ -677,13 +717,23 @@ type MachineCheckStatus struct {
 }
 
 type MachinePort struct {
-	Port              *int               `toml:"port,omitempty" json:"port,omitempty"`
-	StartPort         *int               `toml:"start_port,omitempty" json:"start_port,omitempty"`
-	EndPort           *int               `toml:"end_port,omitempty" json:"end_port,omitempty"`
-	Handlers          []string           `toml:"handlers,omitempty" json:"handlers,omitempty"`
-	ForceHTTPS        bool               `toml:"force_https,omitempty" json:"force_https,omitempty"`
-	TLSOptions        *TLSOptions        `toml:"tls_options,omitempty" json:"tls_options,omitempty"`
-	HTTPOptions       *HTTPOptions       `toml:"http_options,omitempty" json:"http_options,omitempty"`
+	// Public port. Use either port, or start_port and end_port
+	Port *int `toml:"port,omitempty" json:"port,omitempty"`
+	// First public port of a range
+	StartPort *int `toml:"start_port,omitempty" json:"start_port,omitempty"`
+	// Last public port of a range
+	EndPort *int `toml:"end_port,omitempty" json:"end_port,omitempty"`
+	// How Fly Proxy handles connections before forwarding them: `tls` terminates TLS, `pg_tls`
+	// terminates PostgreSQL TLS, `http` handles HTTP, `proxy_proto` adds a PROXY protocol header.
+	// Without handlers, raw TCP is forwarded
+	Handlers []string `toml:"handlers,omitempty" json:"handlers,omitempty"`
+	// Redirect plain HTTP requests to HTTPS
+	ForceHTTPS bool `toml:"force_https,omitempty" json:"force_https,omitempty"`
+	// Options for the `tls` handler
+	TLSOptions *TLSOptions `toml:"tls_options,omitempty" json:"tls_options,omitempty"`
+	// Options for the `http` handler
+	HTTPOptions *HTTPOptions `toml:"http_options,omitempty" json:"http_options,omitempty"`
+	// Options for the `proxy_proto` handler
 	ProxyProtoOptions *ProxyProtoOptions `toml:"proxy_proto_options,omitempty" json:"proxy_proto_options,omitempty"`
 }
 
@@ -739,62 +789,95 @@ func (mp *MachinePort) HasNonHttpPorts() bool {
 }
 
 type ProxyProtoOptions struct {
+	// PROXY protocol version: v1 (default) or v2
 	Version string `toml:"version,omitempty" json:"version,omitempty"`
-	FlySrc  bool   `toml:"fly_src,omitempty" json:"fly_src,omitempty"`
+	// With version v2, add the Fly-Src header and its signature to the PROXY protocol header
+	FlySrc bool `toml:"fly_src,omitempty" json:"fly_src,omitempty"`
 }
 
 type TLSOptions struct {
-	ALPN              []string `toml:"alpn,omitempty" json:"alpn,omitempty"`
-	Versions          []string `toml:"versions,omitempty" json:"versions,omitempty"`
-	DefaultSelfSigned *bool    `toml:"default_self_signed,omitempty" json:"default_self_signed,omitempty"`
+	// ALPN protocols to offer, e.g. `h2`, `http/1.1`. Defaults to `h2` and `http/1.1`
+	ALPN []string `toml:"alpn,omitempty" json:"alpn,omitempty"`
+	// TLS versions to accept: `TLSv1.2`, `TLSv1.3`. Defaults to both
+	Versions []string `toml:"versions,omitempty" json:"versions,omitempty"`
+	// Use a self-signed certificate when there is no certificate for the requested hostname
+	DefaultSelfSigned *bool `toml:"default_self_signed,omitempty" json:"default_self_signed,omitempty"`
 }
 
 type ReplayCache struct {
+	// Requests whose path starts with this prefix use the rule. May start with a hostname, e.g.
+	// `example.com/api/*`
 	PathPrefix string `toml:"path_prefix" json:"path_prefix"`
-	TTLSeconds int    `toml:"ttl_seconds" json:"ttl_seconds"`
+	// How long a cached replay is used, in seconds
+	TTLSeconds int `toml:"ttl_seconds" json:"ttl_seconds"`
 	// Currently either "cookie" or "header"
 	Type string `toml:"type" json:"type" enums:"cookie,header"`
 	// Name of the cookie or header to key the cache on
-	Name        string `toml:"name" json:"name"`
-	AllowBypass bool   `toml:"allow_bypass,omitempty" json:"allow_bypass,omitempty"`
+	Name string `toml:"name" json:"name"`
+	// Let clients skip the cache by sending the `fly-replay-cache-control: skip` header
+	AllowBypass bool `toml:"allow_bypass,omitempty" json:"allow_bypass,omitempty"`
 }
 
 type HTTPOptions struct {
-	Compress           *bool                `toml:"compress,omitempty" json:"compress,omitempty"`
-	Response           *HTTPResponseOptions `toml:"response,omitempty" json:"response,omitempty"`
-	H2Backend          *bool                `toml:"h2_backend,omitempty" json:"h2_backend,omitempty"`
-	IdleTimeout        *uint32              `toml:"idle_timeout,omitempty" json:"idle_timeout,omitempty"`
-	HeadersReadTimeout *uint32              `toml:"headers_read_timeout,omitempty" json:"headers_read_timeout,omitempty"`
-	ReplayCache        []ReplayCache        `toml:"replay_cache,omitempty" json:"replay_cache,omitempty"`
+	// Compress response bodies. Defaults to true
+	Compress *bool `toml:"compress,omitempty" json:"compress,omitempty"`
+	// Changes Fly Proxy makes to responses
+	Response *HTTPResponseOptions `toml:"response,omitempty" json:"response,omitempty"`
+	// Use HTTP/2 to talk to the Machine
+	H2Backend *bool `toml:"h2_backend,omitempty" json:"h2_backend,omitempty"`
+	// Seconds a client connection can be idle between requests before it's closed. Defaults to 300
+	IdleTimeout *uint32 `toml:"idle_timeout,omitempty" json:"idle_timeout,omitempty"`
+	// Seconds Fly Proxy waits for a client to send request headers. Defaults to 5
+	HeadersReadTimeout *uint32 `toml:"headers_read_timeout,omitempty" json:"headers_read_timeout,omitempty"`
+	// Cache `fly-replay` responses from the Machine: once a client is replayed, its further
+	// requests are replayed directly, keyed on a cookie or header, without asking the Machine again
+	ReplayCache []ReplayCache `toml:"replay_cache,omitempty" json:"replay_cache,omitempty"`
 }
 
 type HTTPResponseOptions struct {
-	Headers  map[string]any `toml:"headers,omitempty" json:"headers,omitempty"`
-	Pristine *bool          `toml:"pristine,omitempty" json:"pristine,omitempty"`
+	// Response headers to set. A string sets the header, a list of strings sets it to multiple
+	// values, and false removes it
+	Headers map[string]any `toml:"headers,omitempty" json:"headers,omitempty"`
+	// Don't let Fly Proxy add or change any response headers
+	Pristine *bool `toml:"pristine,omitempty" json:"pristine,omitempty"`
 }
 
 type MachineService struct {
-	Protocol     string `toml:"protocol,omitempty" json:"protocol,omitempty"`
-	InternalPort int    `toml:"internal_port,omitempty" json:"internal_port,omitempty"`
+	// Protocol: tcp or udp. Defaults to tcp
+	Protocol string `toml:"protocol,omitempty" json:"protocol,omitempty"`
+	// Port in the Machine that Fly Proxy forwards traffic to. Defaults to 8080
+	InternalPort int `toml:"internal_port,omitempty" json:"internal_port,omitempty"`
 	// Accepts a string (new format) or a boolean (old format). For backward compatibility with older clients, the API continues to use booleans for "off" and "stop" in responses.
 	// * "off" or false - Do not autostop the Machine.
 	// * "stop" or true - Automatically stop the Machine.
 	// * "suspend" - Automatically suspend the Machine, falling back to a full stop if this is not possible.
-	Autostop           *MachineAutostop `toml:"autostop,omitempty" json:"autostop,omitempty" swaggertype:"string" enums:"off,stop,suspend"`
-	Autostart          *bool            `toml:"autostart,omitempty" json:"autostart,omitempty"`
-	MinMachinesRunning *int             `toml:"min_machines_running,omitempty" json:"min_machines_running,omitempty"`
-	Ports              []MachinePort    `toml:"ports,omitempty" json:"ports,omitempty"`
+	Autostop *MachineAutostop `toml:"autostop,omitempty" json:"autostop,omitempty" swaggertype:"string" enums:"off,stop,suspend"`
+	// Whether Fly Proxy starts stopped or suspended Machines when requests arrive. Defaults to true
+	Autostart *bool `toml:"autostart,omitempty" json:"autostart,omitempty"`
+	// When autostop is on, the number of Machines Fly Proxy keeps running in the app's primary
+	// region (`PRIMARY_REGION` env var). Machines in other regions can all be stopped
+	MinMachinesRunning *int `toml:"min_machines_running,omitempty" json:"min_machines_running,omitempty"`
+	// Public ports that Fly Proxy accepts traffic on
+	Ports []MachinePort `toml:"ports,omitempty" json:"ports,omitempty"`
 	// An optional list of service checks
-	Checks                   []MachineServiceCheck      `toml:"checks,omitempty" json:"checks,omitempty"`
-	Concurrency              *MachineServiceConcurrency `toml:"concurrency,omitempty" json:"concurrency,omitempty"`
-	ForceInstanceKey         *string                    `toml:"force_instance_key" json:"force_instance_key"`
-	ForceInstanceDescription *string                    `toml:"force_instance_description,omitempty" json:"force_instance_description,omitempty"`
+	Checks []MachineServiceCheck `toml:"checks,omitempty" json:"checks,omitempty"`
+	// Load limits Fly Proxy uses to balance traffic across Machines
+	Concurrency *MachineServiceConcurrency `toml:"concurrency,omitempty" json:"concurrency,omitempty"`
+	// Currently has no effect
+	ForceInstanceKey *string `toml:"force_instance_key" json:"force_instance_key"`
+	// Currently has no effect
+	ForceInstanceDescription *string `toml:"force_instance_description,omitempty" json:"force_instance_description,omitempty"`
 }
 
 type MachineServiceConcurrency struct {
-	Type      string `toml:"type,omitempty" json:"type,omitempty"`
-	HardLimit int    `toml:"hard_limit,omitempty" json:"hard_limit,omitempty"`
-	SoftLimit int    `toml:"soft_limit,omitempty" json:"soft_limit,omitempty"`
+	// What to count: `connections` (default) or `requests`
+	Type string `toml:"type,omitempty" json:"type,omitempty"`
+	// Fly Proxy sends no more than this many connections or requests to a Machine at once. 0 means
+	// no hard limit
+	HardLimit int `toml:"hard_limit,omitempty" json:"hard_limit,omitempty"`
+	// Above this many connections or requests, Fly Proxy prefers other Machines. Defaults to 20,
+	// and is lowered to hard_limit if higher
+	SoftLimit int `toml:"soft_limit,omitempty" json:"soft_limit,omitempty"`
 }
 
 type ContainerStatus struct {
@@ -867,9 +950,10 @@ type MachineConfig struct {
 	// with containers
 	Volumes []*VolumeConfig `toml:"volumes,omitempty" json:"volumes,omitempty"`
 
-	// The size of the Machine's root filesystem and whether it persists
+	// Beta: the size of the Machine's root filesystem and whether it persists. This field may be
+	// removed in the future
 	Rootfs *MachineRootfs `toml:"rootfs,omitempty" json:"rootfs,omitempty"`
-	// A cache drive attached to the Machine
+	// Beta: a cache drive attached to the Machine. This field may be removed in the future
 	CacheDrive *MachineCacheDrive `toml:"cache_drive,omitempty" json:"cache_drive,omitempty"`
 
 	// Spot pricing settings for the Machine
@@ -914,37 +998,59 @@ type Static struct {
 }
 
 type MachineInit struct {
-	Exec       []string `toml:"exec,omitempty" json:"exec,omitempty"`
+	// Command to run instead of the image's ENTRYPOINT and CMD. Takes precedence over entrypoint
+	// and cmd
+	Exec []string `toml:"exec,omitempty" json:"exec,omitempty"`
+	// Replaces the image's ENTRYPOINT
 	Entrypoint []string `toml:"entrypoint,omitempty" json:"entrypoint,omitempty"`
-	Cmd        []string `toml:"cmd,omitempty" json:"cmd,omitempty"`
-	Tty        bool     `toml:"tty,omitempty" json:"tty,omitempty"`
-	SwapSizeMB *int     `toml:"swap_size_mb,omitempty" json:"swap_size_mb,omitempty"`
+	// Replaces the image's CMD. It's appended to the entrypoint
+	Cmd []string `toml:"cmd,omitempty" json:"cmd,omitempty"`
+	// Currently has no effect
+	Tty bool `toml:"tty,omitempty" json:"tty,omitempty"`
+	// Size in MiB of a swap device to give the Machine. Machines with swap cannot be suspended
+	SwapSizeMB *int `toml:"swap_size_mb,omitempty" json:"swap_size_mb,omitempty"`
+	// Currently has no effect. Use `guest.kernel_args` instead
 	KernelArgs []string `toml:"kernel_args,omitempty" json:"kernel_args,omitempty"`
 }
 
 type DNSConfig struct {
-	SkipRegistration bool             `toml:"skip_registration,omitempty" json:"skip_registration,omitempty"`
-	Nameservers      []string         `toml:"nameservers,omitempty" json:"nameservers,omitempty"`
-	Searches         []string         `toml:"searches,omitempty" json:"searches,omitempty"`
-	Options          []dnsOption      `toml:"options,omitempty" json:"options,omitempty"`
-	DNSForwardRules  []dnsForwardRule `toml:"dns_forward_rules,omitempty" json:"dns_forward_rules,omitempty"`
-	Hostname         string           `toml:"hostname,omitempty" json:"hostname,omitempty"`
-	HostnameFqdn     string           `toml:"hostname_fqdn,omitempty" json:"hostname_fqdn,omitempty"`
+	// Currently has no effect
+	SkipRegistration bool `toml:"skip_registration,omitempty" json:"skip_registration,omitempty"`
+	// Nameservers to use instead of the default, Fly.io's private DNS server `fdaa::3`
+	Nameservers []string `toml:"nameservers,omitempty" json:"nameservers,omitempty"`
+	// Search domains for /etc/resolv.conf
+	Searches []string `toml:"searches,omitempty" json:"searches,omitempty"`
+	// Options for /etc/resolv.conf
+	Options []dnsOption `toml:"options,omitempty" json:"options,omitempty"`
+	// Forward DNS queries for some domains to other DNS servers
+	DNSForwardRules []dnsForwardRule `toml:"dns_forward_rules,omitempty" json:"dns_forward_rules,omitempty"`
+	// Hostname of the Machine. Defaults to the Machine ID. Also added to /etc/hosts with the
+	// Machine's 6PN address
+	Hostname string `toml:"hostname,omitempty" json:"hostname,omitempty"`
+	// Fully qualified domain name added to /etc/hosts for `hostname`
+	HostnameFqdn string `toml:"hostname_fqdn,omitempty" json:"hostname_fqdn,omitempty"`
 }
 
 type dnsForwardRule struct {
+	// Domain to forward queries for, including subdomains. Must end in a dot, e.g. `example.com.`
 	Basename string `toml:"basename,omitempty" json:"basename,omitempty"`
-	Addr     string `toml:"addr,omitempty" json:"addr,omitempty"`
+	// Address and port of the DNS server to forward queries to over TCP, e.g. `10.0.0.1:53`
+	Addr string `toml:"addr,omitempty" json:"addr,omitempty"`
 }
 
 type dnsOption struct {
-	Name  string `toml:"name,omitempty" json:"name,omitempty"`
+	// Option name, e.g. `ndots`
+	Name string `toml:"name,omitempty" json:"name,omitempty"`
+	// Option value, e.g. `5`
 	Value string `toml:"value,omitempty" json:"value,omitempty"`
 }
 
 type StopConfig struct {
+	// How long to wait for the Machine to exit after sending the signal, before killing it. At most
+	// 5 minutes (1 minute for spot Machines). Defaults to 5s (60s for spot Machines)
 	Timeout *Duration `toml:"timeout,omitempty" json:"timeout,omitempty" swaggertype:"string" example:"10s"`
-	Signal  *string   `toml:"signal,omitempty" json:"signal,omitempty" enums:"SIGHUP,SIGINT,SIGQUIT,SIGKILL,SIGUSR1,SIGUSR2,SIGTERM"`
+	// Signal to send to the Machine's processes. Defaults to SIGINT
+	Signal *string `toml:"signal,omitempty" json:"signal,omitempty" enums:"SIGHUP,SIGINT,SIGQUIT,SIGKILL,SIGUSR1,SIGUSR2,SIGTERM"`
 }
 
 // @description A file that will be written to the Machine. One of RawValue or SecretName must be set.
@@ -1021,7 +1127,10 @@ type ContainerMount struct {
 }
 
 type ContainerDependency struct {
-	Name      string                       `toml:"name" json:"name"`
+	// Name of the container this one depends on
+	Name string `toml:"name" json:"name"`
+	// When the container can start: once the dependency has `started`, is `healthy`, or has
+	// `exited_successfully`
 	Condition ContainerDependencyCondition `toml:"condition" json:"condition" enums:"exited_successfully,healthy,started"`
 }
 
@@ -1059,8 +1168,11 @@ const (
 )
 
 type ContainerHealthcheckType struct {
+	// Check that an HTTP request succeeds
 	HTTP *HTTPHealthcheck `toml:"http,omitempty" json:"http,omitempty"`
-	TCP  *TCPHealthcheck  `toml:"tcp,omitempty" json:"tcp,omitempty"`
+	// Check that a TCP connection can be opened
+	TCP *TCPHealthcheck `toml:"tcp,omitempty" json:"tcp,omitempty"`
+	// Check that a command run in the container exits with status 0
 	Exec *ExecHealthcheck `toml:"exec,omitempty" json:"exec,omitempty"`
 }
 
@@ -1179,11 +1291,17 @@ type LaunchMachineInput struct {
 }
 
 type MachineProcess struct {
-	ExecOverride       []string          `toml:"exec,omitempty" json:"exec,omitempty"`
-	EntrypointOverride []string          `toml:"entrypoint,omitempty" json:"entrypoint,omitempty"`
-	CmdOverride        []string          `toml:"cmd,omitempty" json:"cmd,omitempty"`
-	UserOverride       string            `toml:"user,omitempty" json:"user,omitempty"`
-	ExtraEnv           map[string]string `toml:"env,omitempty" json:"env,omitempty"`
+	// Command to run instead of the image's ENTRYPOINT and CMD. Takes precedence over entrypoint
+	// and cmd
+	ExecOverride []string `toml:"exec,omitempty" json:"exec,omitempty"`
+	// Replaces the image's ENTRYPOINT for this process
+	EntrypointOverride []string `toml:"entrypoint,omitempty" json:"entrypoint,omitempty"`
+	// Replaces the image's CMD for this process. It's appended to the entrypoint
+	CmdOverride []string `toml:"cmd,omitempty" json:"cmd,omitempty"`
+	// User to run the process as, instead of the image's USER
+	UserOverride string `toml:"user,omitempty" json:"user,omitempty"`
+	// Environment variables for this process, in addition to the Machine's `env`
+	ExtraEnv map[string]string `toml:"env,omitempty" json:"env,omitempty"`
 	// Secrets can be provided at the process level to explicitly indicate which secrets should be
 	// used for the process. If not provided, the secrets provided at the machine level will be used.
 	Secrets []MachineSecret `toml:"secrets,omitempty" json:"secrets,omitempty"`
