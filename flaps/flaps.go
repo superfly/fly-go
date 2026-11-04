@@ -35,6 +35,8 @@ type Client struct {
 	httpClient         *http.Client
 	userAgent          string
 	flyForceInstanceID string
+	affinity           AffinityStore
+	logger             fly.Logger
 }
 
 type NewClientOpts struct {
@@ -54,6 +56,11 @@ type NewClientOpts struct {
 	// optional; if non-nil, attaches the Fly-Client-* headers/UA suffix
 	// derived from these signals
 	ClientSignals *clientsignals.Signals
+
+	// optional; if non-nil, app affinity tokens are loaded from and saved
+	// to it, so they outlive this client. The in-memory cookie jar carries
+	// affinity within a client either way.
+	AffinityStore AffinityStore
 }
 
 func NewWithOptions(ctx context.Context, opts NewClientOpts) (*Client, error) {
@@ -113,6 +120,8 @@ func NewWithOptions(ctx context.Context, opts NewClientOpts) (*Client, error) {
 		httpClient:         httpClient,
 		userAgent:          userAgent,
 		flyForceInstanceID: flyForceInstanceID,
+		affinity:           opts.AffinityStore,
+		logger:             opts.Logger,
 	}, nil
 }
 
@@ -198,8 +207,14 @@ func (f *Client) do(ctx context.Context, method, endpoint string, in interface{}
 		}
 
 		req.Header.Set("User-Agent", f.userAgent)
+		f.attachAffinity(req)
 
-		return f.httpClient.Do(req)
+		resp, err := f.httpClient.Do(req)
+		if err == nil {
+			f.captureAffinity(resp)
+		}
+
+		return resp, err
 	}
 
 	if !safeToRetry {
