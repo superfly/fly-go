@@ -126,10 +126,11 @@ type ManagedPostgresUser struct {
 	Roles []string `json:"roles"`
 	// DatabasesLimited is false when the user can reach every database,
 	// including ones created later. Clusters that can't limit users report
-	// false.
+	// false. For a user with no built-in role, false says nothing about its
+	// access, which comes from SQL grants.
 	DatabasesLimited bool `json:"databases_limited"`
-	// Databases lists the databases a limited user can reach. It is empty
-	// when DatabasesLimited is false.
+	// Databases lists the databases a limited user can reach, sorted by
+	// name. It is empty when DatabasesLimited is false.
 	Databases []string `json:"databases"`
 }
 
@@ -138,10 +139,10 @@ type ManagedPostgresUser struct {
 type CreateManagedPostgresUserRequest struct {
 	Username string `json:"username"`
 	Role     string `json:"role"`
-	// Databases limits a custom user to these databases. Leave it empty to
-	// give the user every database, including ones created later. An empty
-	// list is never sent.
-	Databases []string `json:"databases,omitempty"`
+	// Databases limits a custom user to these databases. Leave it nil to
+	// give the user every database, including ones created later. A non-nil
+	// empty list is sent as is, and the API rejects it.
+	Databases []string `json:"databases,omitzero"`
 }
 
 // UpdateManagedPostgresUserRoleRequest is the body for
@@ -164,8 +165,9 @@ type SetManagedPostgresUserDatabasesRequest struct {
 	// created later. Databases must then be empty.
 	DatabasesLimited bool `json:"databases_limited"`
 	// Databases is the full list a limited user can reach. It is required
-	// when DatabasesLimited is true. An empty list is never sent.
-	Databases []string `json:"databases,omitempty"`
+	// when DatabasesLimited is true. Nil is left out; a non-nil empty list
+	// is sent as is, and the API rejects it for a limited user.
+	Databases []string `json:"databases,omitzero"`
 }
 
 // ManagedPostgresRole is a customer role: one made with SQL, not one of the
@@ -491,8 +493,9 @@ func (f *Client) ListManagedPostgresRoles(ctx context.Context, id string) ([]Man
 
 // ListManagedPostgresRoleMembers returns the direct members of a customer
 // role, sorted by name in byte order. It reads every page. The role goes in
-// the query, so any name works. A missing role matches ErrFlapsNotFound, and
-// a cluster too old to report roles matches ErrFlapsNotImplemented.
+// the query, so any name works. A 404 matches ErrFlapsNotFound; it means the
+// role, the cluster or the API route is missing. A cluster too old to report
+// roles matches ErrFlapsNotImplemented.
 func (f *Client) ListManagedPostgresRoleMembers(ctx context.Context, id, role string) ([]ManagedPostgresRoleMember, error) {
 	ctx = contextWithAction(ctx, managedPostgresRoleMemberList)
 
@@ -534,9 +537,10 @@ const managedPostgresPageSize = 1_000
 // listManagedPostgresPages reads every page of a paged Managed Postgres list.
 // query holds the list's own parameters; limit and cursor are added here.
 // Only a failed page is retried, and any page that still fails fails the
-// whole call.
+// whole call. An empty list is a non-nil empty slice.
 func listManagedPostgresPages[T any](ctx context.Context, f *Client, endpoint string, query url.Values) ([]T, error) {
-	var items []T
+	items := []T{}
+	seen := map[string]bool{}
 	var cursor string
 	for {
 		query.Set("limit", strconv.Itoa(managedPostgresPageSize))
@@ -557,9 +561,11 @@ func listManagedPostgresPages[T any](ctx context.Context, f *Client, endpoint st
 		if page.NextCursor == "" {
 			return items, nil
 		}
-		if page.NextCursor == cursor {
+		// A cursor seen before means the server is looping.
+		if seen[page.NextCursor] {
 			return nil, errors.New("server returned the same cursor again")
 		}
+		seen[page.NextCursor] = true
 		cursor = page.NextCursor
 	}
 }

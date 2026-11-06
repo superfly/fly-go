@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"maps"
 	"net/http"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -1834,7 +1836,9 @@ func TestCreateManagedPostgresUserDatabases(t *testing.T) {
 		wantKey   bool
 	}{
 		{name: "nil_omitted", databases: nil},
-		{name: "empty_omitted", databases: []string{}},
+		// An empty list is sent so the API rejects it, instead of reading
+		// a missing key as every database.
+		{name: "empty_sent", databases: []string{}, wantKey: true},
 		{name: "set", databases: []string{"app1", "app2"}, wantKey: true},
 	}
 
@@ -1867,9 +1871,14 @@ func TestCreateManagedPostgresUserDatabases(t *testing.T) {
 				t.Fatalf("databases key present = %v, want %v in %s", ok, tt.wantKey, body)
 			}
 			if tt.wantKey {
-				list, _ := got.([]any)
-				if len(list) != 2 || list[0] != "app1" || list[1] != "app2" {
-					t.Fatalf("sent databases = %#v, want [app1 app2]", got)
+				list, isList := got.([]any)
+				if !isList || len(list) != len(tt.databases) {
+					t.Fatalf("sent databases = %#v, want %#v", got, tt.databases)
+				}
+				for i, name := range tt.databases {
+					if list[i] != name {
+						t.Fatalf("sent databases = %#v, want %#v", got, tt.databases)
+					}
 				}
 			}
 			if !user.DatabasesLimited || strings.Join(user.Databases, ",") != "app1,app2" {
@@ -1894,9 +1903,16 @@ func TestSetManagedPostgresUserDatabases(t *testing.T) {
 			want: `{"databases_limited":false}`,
 		},
 		{
-			name: "not_limited_ignores_empty_list",
+			name: "not_limited_sends_empty_list",
 			req:  SetManagedPostgresUserDatabasesRequest{DatabasesLimited: false, Databases: []string{}},
-			want: `{"databases_limited":false}`,
+			want: `{"databases_limited":false,"databases":[]}`,
+		},
+		{
+			// Sent as is, so the API rejects it instead of reading it as
+			// every database.
+			name: "limited_sends_empty_list",
+			req:  SetManagedPostgresUserDatabasesRequest{DatabasesLimited: true, Databases: []string{}},
+			want: `{"databases_limited":true,"databases":[]}`,
 		},
 		{
 			name: "limited",
@@ -2013,32 +2029,56 @@ func TestListManagedPostgresRoleMembersTraversesPages(t *testing.T) {
 }
 
 func TestListManagedPostgresRolesRetriesFailedPage(t *testing.T) {
-	transport := &listAppsRoundTripper{
-		bodies: []string{
-			`{"data":[{"name":"a","member_count":1}],"next_cursor":"page-2"}`,
-			`{"error":"internal error"}`,
-			`{"data":[{"name":"b","member_count":2}]}`,
-		},
-		statuses: []int{0, http.StatusInternalServerError},
+	for _, status := range []int{http.StatusInternalServerError, http.StatusServiceUnavailable, http.StatusTooManyRequests} {
+		t.Run(strconv.Itoa(status), func(t *testing.T) {
+			transport := &listAppsRoundTripper{
+				bodies: []string{
+					`{"data":[{"name":"a","member_count":1}],"next_cursor":"page-2"}`,
+					`{"error":"try again"}`,
+					`{"data":[{"name":"b","member_count":2}]}`,
+				},
+				statuses: []int{0, status},
+			}
+			client := newTestFlapsClient(t, transport)
+
+			roles, err := client.ListManagedPostgresRoles(context.Background(), "mpg-123")
+			if err != nil {
+				t.Fatalf("ListManagedPostgresRoles() error = %v", err)
+			}
+			if len(roles) != 2 || roles[0].Name != "a" || roles[1].Name != "b" {
+				t.Fatalf("roles = %#v, want a, b", roles)
+			}
+			if len(transport.requests) != 3 {
+				t.Fatalf("request count = %d, want 3", len(transport.requests))
+			}
+			if got, want := transport.requests[2].URL.Query().Get("cursor"), "page-2"; got != want {
+				t.Fatalf("retried request cursor = %q, want %q", got, want)
+			}
+		})
 	}
+}
+
+func TestListManagedPostgresRolesEmptyIsNotNil(t *testing.T) {
+	transport := &managedPostgresRoundTripper{statusCode: http.StatusOK, body: `{"data":[]}`}
 	client := newTestFlapsClient(t, transport)
 
 	roles, err := client.ListManagedPostgresRoles(context.Background(), "mpg-123")
 	if err != nil {
 		t.Fatalf("ListManagedPostgresRoles() error = %v", err)
 	}
-	if len(roles) != 2 || roles[0].Name != "a" || roles[1].Name != "b" {
-		t.Fatalf("roles = %#v, want a, b", roles)
+	if roles == nil || len(roles) != 0 {
+		t.Fatalf("roles = %#v, want an empty non-nil slice", roles)
 	}
-	if len(transport.requests) != 3 {
-		t.Fatalf("request count = %d, want 3", len(transport.requests))
+	out, err := json.Marshal(roles)
+	if err != nil {
+		t.Fatalf("encode roles: %v", err)
 	}
-	if got, want := transport.requests[2].URL.Query().Get("cursor"), "page-2"; got != want {
-		t.Fatalf("retried request cursor = %q, want %q", got, want)
+	if got, want := string(out), "[]"; got != want {
+		t.Fatalf("encoded roles = %s, want %s", got, want)
 	}
 }
 
-func TestListManagedPostgresRolesDoesNotRetryClientErrors(t *testing.T) {
+func TestListManagedPostgresRolesDoesNotRetryPagingOrVersionErrors(t *testing.T) {
 	tests := []struct {
 		name   string
 		status int
@@ -2066,21 +2106,34 @@ func TestListManagedPostgresRolesDoesNotRetryClientErrors(t *testing.T) {
 }
 
 func TestListManagedPostgresRolesRejectsRepeatedCursor(t *testing.T) {
-	transport := &listAppsRoundTripper{bodies: []string{
-		`{"data":[{"name":"a"}],"next_cursor":"same"}`,
-		`{"data":[{"name":"b"}],"next_cursor":"same"}`,
-	}}
-	client := newTestFlapsClient(t, transport)
+	tests := []struct {
+		name    string
+		cursors []string
+	}{
+		{name: "immediate", cursors: []string{"A", "A"}},
+		{name: "earlier", cursors: []string{"A", "B", "A"}},
+	}
 
-	roles, err := client.ListManagedPostgresRoles(context.Background(), "mpg-123")
-	if err == nil {
-		t.Fatalf("ListManagedPostgresRoles() = %#v, want an error", roles)
-	}
-	if !strings.Contains(err.Error(), "same cursor") {
-		t.Fatalf("ListManagedPostgresRoles() error = %v, want a repeated cursor error", err)
-	}
-	if len(transport.requests) != 2 {
-		t.Fatalf("request count = %d, want 2", len(transport.requests))
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var bodies []string
+			for i, cursor := range tt.cursors {
+				bodies = append(bodies, fmt.Sprintf(`{"data":[{"name":"r%d"}],"next_cursor":%q}`, i, cursor))
+			}
+			transport := &listAppsRoundTripper{bodies: bodies}
+			client := newTestFlapsClient(t, transport)
+
+			roles, err := client.ListManagedPostgresRoles(context.Background(), "mpg-123")
+			if err == nil {
+				t.Fatalf("ListManagedPostgresRoles() = %#v, want an error", roles)
+			}
+			if !strings.Contains(err.Error(), "same cursor") {
+				t.Fatalf("ListManagedPostgresRoles() error = %v, want a repeated cursor error", err)
+			}
+			if got, want := len(transport.requests), len(tt.cursors); got != want {
+				t.Fatalf("request count = %d, want %d", got, want)
+			}
+		})
 	}
 }
 
@@ -2104,6 +2157,9 @@ func TestManagedPostgresRolesAndLimitsClassifyNotImplemented(t *testing.T) {
 		{name: "create", message: "failed to create Managed Postgres user: Custom users and database limits are not available on this cluster yet", run: func(client *Client) error {
 			_, err := client.CreateManagedPostgresUser(context.Background(), "mpg-123", CreateManagedPostgresUserRequest{Username: "analytics", Role: "custom"})
 			return err
+		}},
+		{name: "update", message: "failed to update Managed Postgres user role: Custom users and database limits are not available on this cluster yet", run: func(client *Client) error {
+			return client.UpdateManagedPostgresUserRole(context.Background(), "mpg-123", "analytics", UpdateManagedPostgresUserRoleRequest{Role: string(ManagedPostgresUserRoleCustom)})
 		}},
 	}
 
