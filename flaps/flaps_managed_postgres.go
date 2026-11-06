@@ -2,9 +2,11 @@ package flaps
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 
 	fly "github.com/superfly/fly-go"
 )
@@ -108,6 +110,9 @@ const (
 	ManagedPostgresUserRoleSchemaAdmin ManagedPostgresUserRole = "schema_admin"
 	ManagedPostgresUserRoleWriter      ManagedPostgresUserRole = "writer"
 	ManagedPostgresUserRoleReader      ManagedPostgresUserRole = "reader"
+	// ManagedPostgresUserRoleCustom grants nothing until an admin grants it
+	// with SQL. It is the only role that can be limited to databases.
+	ManagedPostgresUserRoleCustom ManagedPostgresUserRole = "custom"
 )
 
 // ManagedPostgresUser is the public projection of a user within a Managed
@@ -115,6 +120,18 @@ const (
 type ManagedPostgresUser struct {
 	Username string                  `json:"username"`
 	Role     ManagedPostgresUserRole `json:"role"`
+	// Roles lists the customer roles the user is a direct member of, sorted
+	// by name in byte order. It is nil when the cluster doesn't report them
+	// yet, and empty when the user is in none.
+	Roles []string `json:"roles"`
+	// DatabasesLimited is false when the user can reach every database,
+	// including ones created later. Clusters that can't limit users report
+	// false. For a user with no built-in role, false says nothing about its
+	// access, which comes from SQL grants.
+	DatabasesLimited bool `json:"databases_limited"`
+	// Databases lists the databases a limited user can reach, sorted by
+	// name. It is empty when DatabasesLimited is false.
+	Databases []string `json:"databases"`
 }
 
 // CreateManagedPostgresUserRequest is the body for
@@ -122,6 +139,10 @@ type ManagedPostgresUser struct {
 type CreateManagedPostgresUserRequest struct {
 	Username string `json:"username"`
 	Role     string `json:"role"`
+	// Databases limits a custom user to these databases. Leave it nil to
+	// give the user every database, including ones created later. A non-nil
+	// empty list is sent as is, and the API rejects it.
+	Databases []string `json:"databases,omitzero"`
 }
 
 // UpdateManagedPostgresUserRoleRequest is the body for
@@ -134,6 +155,32 @@ type UpdateManagedPostgresUserRoleRequest struct {
 // POST /v1/postgres/:id/users/:username/rotate_password.
 type RotateManagedPostgresUserPasswordRequest struct {
 	KillSessions bool `json:"kill_sessions,omitempty"`
+}
+
+// SetManagedPostgresUserDatabasesRequest is the body for
+// PUT /v1/postgres/:id/users/:username/databases. It replaces the user's
+// whole database list.
+type SetManagedPostgresUserDatabasesRequest struct {
+	// DatabasesLimited false gives the user every database, including ones
+	// created later. Databases must then be empty.
+	DatabasesLimited bool `json:"databases_limited"`
+	// Databases is the full list a limited user can reach. It is required
+	// when DatabasesLimited is true. Nil is left out; a non-nil empty list
+	// is sent as is, and the API rejects it for a limited user.
+	Databases []string `json:"databases,omitzero"`
+}
+
+// ManagedPostgresRole is a customer role: one made with SQL, not one of the
+// built-in roles.
+type ManagedPostgresRole struct {
+	Name        string `json:"name"`
+	MemberCount int    `json:"member_count"`
+}
+
+// ManagedPostgresRoleMember is a direct member of a customer role: a user or
+// another role.
+type ManagedPostgresRoleMember struct {
+	Name string `json:"name"`
 }
 
 // ManagedPostgresDatabase is the public projection of a database within a
@@ -274,6 +321,13 @@ type managedPostgresExtensionListEnvelope struct {
 
 type managedPostgresPlanListEnvelope struct {
 	Data []ManagedPostgresPlan `json:"data"`
+}
+
+// managedPostgresPageEnvelope is one page of a paged Managed Postgres list.
+// NextCursor is missing or empty on the last page.
+type managedPostgresPageEnvelope[T any] struct {
+	Data       []T    `json:"data"`
+	NextCursor string `json:"next_cursor"`
 }
 
 func (f *Client) CreateManagedPostgresCluster(ctx context.Context, req CreateManagedPostgresClusterRequest) (ManagedPostgresCluster, error) {
@@ -419,6 +473,101 @@ func (f *Client) DeleteManagedPostgresUser(ctx context.Context, id, username str
 	}
 
 	return nil
+}
+
+// ListManagedPostgresRoles returns the cluster's customer roles, sorted by
+// name in byte order. It reads every page. A cluster too old to report roles
+// gives an error that matches ErrFlapsNotImplemented.
+func (f *Client) ListManagedPostgresRoles(ctx context.Context, id string) ([]ManagedPostgresRole, error) {
+	ctx = contextWithAction(ctx, managedPostgresRoleList)
+
+	endpoint := fmt.Sprintf("/postgres/%s/roles", url.PathEscape(id))
+
+	roles, err := listManagedPostgresPages[ManagedPostgresRole](ctx, f, endpoint, url.Values{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list Managed Postgres roles: %w", err)
+	}
+
+	return roles, nil
+}
+
+// ListManagedPostgresRoleMembers returns the direct members of a customer
+// role, sorted by name in byte order. It reads every page. The role goes in
+// the query, so any name works. A 404 matches ErrFlapsNotFound; it means the
+// role, the cluster or the API route is missing. A cluster too old to report
+// roles matches ErrFlapsNotImplemented.
+func (f *Client) ListManagedPostgresRoleMembers(ctx context.Context, id, role string) ([]ManagedPostgresRoleMember, error) {
+	ctx = contextWithAction(ctx, managedPostgresRoleMemberList)
+
+	endpoint := fmt.Sprintf("/postgres/%s/roles/members", url.PathEscape(id))
+
+	query := url.Values{}
+	query.Set("role", role)
+
+	members, err := listManagedPostgresPages[ManagedPostgresRoleMember](ctx, f, endpoint, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list Managed Postgres role members: %w", err)
+	}
+
+	return members, nil
+}
+
+// SetManagedPostgresUserDatabases replaces the databases a custom user can
+// reach. Limiting a user ends its sessions in the databases it loses.
+//
+// The change is applied before those sessions are ended. If ending them
+// fails, the call returns an error, usually with status 500, although the
+// new limits are in place. The call is a full replace, so retrying it with
+// the same request is safe. A cluster too old for database limits gives an
+// error that matches ErrFlapsNotImplemented.
+func (f *Client) SetManagedPostgresUserDatabases(ctx context.Context, id, username string, req SetManagedPostgresUserDatabasesRequest) error {
+	ctx = contextWithAction(ctx, managedPostgresUserDatabasesSet)
+
+	endpoint := fmt.Sprintf("/postgres/%s/users/%s/databases", url.PathEscape(id), url.PathEscape(username))
+	if err := f._sendRequest(ctx, http.MethodPut, endpoint, req, nil, nil); err != nil {
+		return fmt.Errorf("failed to set Managed Postgres user databases: %w", err)
+	}
+
+	return nil
+}
+
+// managedPostgresPageSize is the largest page the API serves.
+const managedPostgresPageSize = 1_000
+
+// listManagedPostgresPages reads every page of a paged Managed Postgres list.
+// query holds the list's own parameters; limit and cursor are added here.
+// Only a failed page is retried, and any page that still fails fails the
+// whole call. An empty list is a non-nil empty slice.
+func listManagedPostgresPages[T any](ctx context.Context, f *Client, endpoint string, query url.Values) ([]T, error) {
+	items := []T{}
+	seen := map[string]bool{}
+	var cursor string
+	for {
+		query.Set("limit", strconv.Itoa(managedPostgresPageSize))
+		if cursor != "" {
+			query.Set("cursor", cursor)
+		}
+
+		var page managedPostgresPageEnvelope[T]
+		err := retryListAppsPage(ctx, func() error {
+			page = managedPostgresPageEnvelope[T]{}
+			return f._sendRequest(ctx, http.MethodGet, endpoint+"?"+query.Encode(), nil, &page, nil)
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		items = append(items, page.Data...)
+		if page.NextCursor == "" {
+			return items, nil
+		}
+		// A cursor seen before means the server is looping.
+		if seen[page.NextCursor] {
+			return nil, errors.New("server returned the same cursor again")
+		}
+		seen[page.NextCursor] = true
+		cursor = page.NextCursor
+	}
 }
 
 func (f *Client) ListManagedPostgresDatabases(ctx context.Context, id string) ([]ManagedPostgresDatabase, error) {
