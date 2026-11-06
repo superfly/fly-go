@@ -7,6 +7,7 @@ import (
 	"io"
 	"maps"
 	"net/http"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -191,8 +192,14 @@ func TestCreateManagedPostgresUser(t *testing.T) {
 	if err := json.Unmarshal(body, &sent); err != nil {
 		t.Fatalf("decode request body %q: %v", string(body), err)
 	}
-	if got, want := sent, (CreateManagedPostgresUserRequest{Username: "reporter", Role: "reader"}); got != want {
-		t.Fatalf("request body = %#v, want %#v", got, want)
+	if got, want := sent.Username, "reporter"; got != want {
+		t.Fatalf("sent username = %q, want %q", got, want)
+	}
+	if got, want := sent.Role, "reader"; got != want {
+		t.Fatalf("sent role = %q, want %q", got, want)
+	}
+	if sent.Databases != nil {
+		t.Fatalf("sent databases = %#v, want nil", sent.Databases)
 	}
 	if got, want := user.Username, "reporter"; got != want {
 		t.Fatalf("user.Username = %q, want %q", got, want)
@@ -346,6 +353,18 @@ func TestManagedPostgresUsersPreserveEscapedPaths(t *testing.T) {
 		{name: "delete", statusCode: http.StatusNoContent, run: func(client *Client, id, username string) error {
 			return client.DeleteManagedPostgresUser(context.Background(), id, username)
 		}},
+		{name: "set_databases", statusCode: http.StatusNoContent, run: func(client *Client, id, username string) error {
+			return client.SetManagedPostgresUserDatabases(context.Background(), id, username, SetManagedPostgresUserDatabasesRequest{})
+		}},
+		{name: "roles", statusCode: http.StatusOK, body: `{"data":[]}`, run: func(client *Client, id, _ string) error {
+			_, err := client.ListManagedPostgresRoles(context.Background(), id)
+			return err
+		}},
+		// The username doubles as the role name, which goes in the query.
+		{name: "role_members", statusCode: http.StatusOK, body: `{"data":[]}`, run: func(client *Client, id, role string) error {
+			_, err := client.ListManagedPostgresRoleMembers(context.Background(), id, role)
+			return err
+		}},
 	}
 	paths := []struct {
 		name        string
@@ -360,6 +379,15 @@ func TestManagedPostgresUsersPreserveEscapedPaths(t *testing.T) {
 			if operation == "rotate" {
 				return "/v1/postgres/a%2Fb/users/user%2Fname/rotate_password"
 			}
+			if operation == "set_databases" {
+				return "/v1/postgres/a%2Fb/users/user%2Fname/databases"
+			}
+			if operation == "roles" {
+				return "/v1/postgres/a%2Fb/roles?limit=1000"
+			}
+			if operation == "role_members" {
+				return "/v1/postgres/a%2Fb/roles/members?limit=1000&role=user%2Fname"
+			}
 
 			return "/v1/postgres/a%2Fb/users/user%2Fname"
 		}},
@@ -369,6 +397,15 @@ func TestManagedPostgresUsersPreserveEscapedPaths(t *testing.T) {
 			}
 			if operation == "rotate" {
 				return "/v1/postgres/a%2F..%2Fb/users/user%2F..%2Fname/rotate_password"
+			}
+			if operation == "set_databases" {
+				return "/v1/postgres/a%2F..%2Fb/users/user%2F..%2Fname/databases"
+			}
+			if operation == "roles" {
+				return "/v1/postgres/a%2F..%2Fb/roles?limit=1000"
+			}
+			if operation == "role_members" {
+				return "/v1/postgres/a%2F..%2Fb/roles/members?limit=1000&role=user%2F..%2Fname"
 			}
 
 			return "/v1/postgres/a%2F..%2Fb/users/user%2F..%2Fname"
@@ -412,6 +449,17 @@ func TestManagedPostgresUsersClassifyNotFound(t *testing.T) {
 		}},
 		{name: "delete", run: func(client *Client) error {
 			return client.DeleteManagedPostgresUser(context.Background(), "mpg-123", "missing")
+		}},
+		{name: "set_databases", run: func(client *Client) error {
+			return client.SetManagedPostgresUserDatabases(context.Background(), "mpg-123", "missing", SetManagedPostgresUserDatabasesRequest{})
+		}},
+		{name: "roles", run: func(client *Client) error {
+			_, err := client.ListManagedPostgresRoles(context.Background(), "missing")
+			return err
+		}},
+		{name: "role_members", run: func(client *Client) error {
+			_, err := client.ListManagedPostgresRoleMembers(context.Background(), "mpg-123", "missing")
+			return err
 		}},
 	}
 
@@ -1732,5 +1780,352 @@ func TestGetManagedPostgresClusterStorageFieldsNullWhenAbsent(t *testing.T) {
 	}
 	if cluster.StorageUsedBytes != nil || cluster.StorageProvisionedBytes != nil {
 		t.Fatalf("storage fields = %v/%v, want nil/nil", cluster.StorageUsedBytes, cluster.StorageProvisionedBytes)
+	}
+}
+
+func TestListManagedPostgresUsersDecodesRolesAndDatabases(t *testing.T) {
+	transport := &managedPostgresRoundTripper{
+		statusCode: http.StatusOK,
+		body: `{"data":[` +
+			`{"username":"old_agent","role":"writer","roles":null},` +
+			`{"username":"no_key","role":"reader"},` +
+			`{"username":"no_roles","role":"reader","roles":[],"databases_limited":false,"databases":[]},` +
+			`{"username":"analytics","role":"custom","roles":["Team B","analytics"],"databases_limited":true,"databases":["app1","app2"]}` +
+			`]}`,
+	}
+	client := newTestFlapsClient(t, transport)
+
+	users, err := client.ListManagedPostgresUsers(context.Background(), "mpg-123")
+	if err != nil {
+		t.Fatalf("ListManagedPostgresUsers() error = %v", err)
+	}
+	if len(users) != 4 {
+		t.Fatalf("user count = %d, want 4", len(users))
+	}
+	for _, i := range []int{0, 1} {
+		if users[i].Roles != nil {
+			t.Fatalf("users[%d].Roles = %#v, want nil", i, users[i].Roles)
+		}
+		if users[i].DatabasesLimited {
+			t.Fatalf("users[%d].DatabasesLimited = true, want false", i)
+		}
+	}
+	if users[2].Roles == nil || len(users[2].Roles) != 0 {
+		t.Fatalf("users[2].Roles = %#v, want an empty non-nil slice", users[2].Roles)
+	}
+	if got, want := users[3].Role, ManagedPostgresUserRoleCustom; got != want {
+		t.Fatalf("users[3].Role = %q, want %q", got, want)
+	}
+	if got, want := strings.Join(users[3].Roles, ","), "Team B,analytics"; got != want {
+		t.Fatalf("users[3].Roles = %q, want %q", got, want)
+	}
+	if !users[3].DatabasesLimited {
+		t.Fatalf("users[3].DatabasesLimited = false, want true")
+	}
+	if got, want := strings.Join(users[3].Databases, ","), "app1,app2"; got != want {
+		t.Fatalf("users[3].Databases = %q, want %q", got, want)
+	}
+}
+
+func TestCreateManagedPostgresUserDatabases(t *testing.T) {
+	tests := []struct {
+		name      string
+		databases []string
+		wantKey   bool
+	}{
+		{name: "nil_omitted", databases: nil},
+		{name: "empty_omitted", databases: []string{}},
+		{name: "set", databases: []string{"app1", "app2"}, wantKey: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			transport := &managedPostgresRoundTripper{
+				statusCode: http.StatusCreated,
+				body:       `{"data":{"username":"analytics","role":"custom","roles":[],"databases_limited":true,"databases":["app1","app2"]}}`,
+			}
+			client := newTestFlapsClient(t, transport)
+
+			user, err := client.CreateManagedPostgresUser(context.Background(), "mpg-123", CreateManagedPostgresUserRequest{
+				Username:  "analytics",
+				Role:      string(ManagedPostgresUserRoleCustom),
+				Databases: tt.databases,
+			})
+			if err != nil {
+				t.Fatalf("CreateManagedPostgresUser() error = %v", err)
+			}
+			body, err := io.ReadAll(transport.req.Body)
+			if err != nil {
+				t.Fatalf("read request body: %v", err)
+			}
+			var sent map[string]any
+			if err := json.Unmarshal(body, &sent); err != nil {
+				t.Fatalf("decode request body %q: %v", string(body), err)
+			}
+			got, ok := sent["databases"]
+			if ok != tt.wantKey {
+				t.Fatalf("databases key present = %v, want %v in %s", ok, tt.wantKey, body)
+			}
+			if tt.wantKey {
+				list, _ := got.([]any)
+				if len(list) != 2 || list[0] != "app1" || list[1] != "app2" {
+					t.Fatalf("sent databases = %#v, want [app1 app2]", got)
+				}
+			}
+			if !user.DatabasesLimited || strings.Join(user.Databases, ",") != "app1,app2" {
+				t.Fatalf("user = %#v, want limited to app1, app2", user)
+			}
+			if user.Roles == nil || len(user.Roles) != 0 {
+				t.Fatalf("user.Roles = %#v, want an empty non-nil slice", user.Roles)
+			}
+		})
+	}
+}
+
+func TestSetManagedPostgresUserDatabases(t *testing.T) {
+	tests := []struct {
+		name string
+		req  SetManagedPostgresUserDatabasesRequest
+		want string
+	}{
+		{
+			name: "not_limited",
+			req:  SetManagedPostgresUserDatabasesRequest{DatabasesLimited: false},
+			want: `{"databases_limited":false}`,
+		},
+		{
+			name: "not_limited_ignores_empty_list",
+			req:  SetManagedPostgresUserDatabasesRequest{DatabasesLimited: false, Databases: []string{}},
+			want: `{"databases_limited":false}`,
+		},
+		{
+			name: "limited",
+			req:  SetManagedPostgresUserDatabasesRequest{DatabasesLimited: true, Databases: []string{"app1"}},
+			want: `{"databases_limited":true,"databases":["app1"]}`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			transport := &managedPostgresRoundTripper{statusCode: http.StatusNoContent}
+			client := newTestFlapsClient(t, transport)
+
+			if err := client.SetManagedPostgresUserDatabases(context.Background(), "mpg-123", "analytics", tt.req); err != nil {
+				t.Fatalf("SetManagedPostgresUserDatabases() error = %v", err)
+			}
+			if got, want := transport.req.Method, http.MethodPut; got != want {
+				t.Fatalf("request method = %q, want %q", got, want)
+			}
+			if got, want := transport.req.URL.RequestURI(), "/v1/postgres/mpg-123/users/analytics/databases"; got != want {
+				t.Fatalf("request URI = %q, want %q", got, want)
+			}
+			if got, want := actionFromContext(transport.req.Context()), managedPostgresUserDatabasesSet; got != want {
+				t.Fatalf("request action = %q, want %q", got, want)
+			}
+			body, err := io.ReadAll(transport.req.Body)
+			if err != nil {
+				t.Fatalf("read request body: %v", err)
+			}
+			if got := strings.TrimSpace(string(body)); got != tt.want {
+				t.Fatalf("request body = %s, want %s", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestListManagedPostgresRolesTraversesPages(t *testing.T) {
+	transport := &listAppsRoundTripper{bodies: []string{
+		`{"data":[{"name":"Team B","member_count":1}],"next_cursor":"AXsi="}`,
+		`{"data":[{"name":"analytics","member_count":3},{"name":"empty"}]}`,
+	}}
+	client := newTestFlapsClient(t, transport)
+
+	roles, err := client.ListManagedPostgresRoles(context.Background(), "mpg-123")
+	if err != nil {
+		t.Fatalf("ListManagedPostgresRoles() error = %v", err)
+	}
+	want := []ManagedPostgresRole{{Name: "Team B", MemberCount: 1}, {Name: "analytics", MemberCount: 3}, {Name: "empty"}}
+	if !slices.Equal(roles, want) {
+		t.Fatalf("roles = %#v, want %#v", roles, want)
+	}
+	if len(transport.requests) != 2 {
+		t.Fatalf("request count = %d, want 2", len(transport.requests))
+	}
+	for i, req := range transport.requests {
+		if got, want := req.Method, http.MethodGet; got != want {
+			t.Fatalf("request %d method = %q, want %q", i, got, want)
+		}
+		if got, want := req.URL.Path, "/v1/postgres/mpg-123/roles"; got != want {
+			t.Fatalf("request %d path = %q, want %q", i, got, want)
+		}
+		if got, want := req.URL.Query().Get("limit"), "1000"; got != want {
+			t.Fatalf("request %d limit = %q, want %q", i, got, want)
+		}
+		if got, want := actionFromContext(req.Context()), managedPostgresRoleList; got != want {
+			t.Fatalf("request %d action = %q, want %q", i, got, want)
+		}
+	}
+	if transport.requests[0].URL.Query().Has("cursor") {
+		t.Fatalf("first request has a cursor: %q", transport.requests[0].URL.RawQuery)
+	}
+	// Cursors can end in "=", so they must be URL-encoded.
+	if got, want := transport.requests[1].URL.RawQuery, "cursor=AXsi%3D&limit=1000"; got != want {
+		t.Fatalf("second request query = %q, want %q", got, want)
+	}
+}
+
+func TestListManagedPostgresRoleMembersTraversesPages(t *testing.T) {
+	transport := &listAppsRoundTripper{bodies: []string{
+		`{"data":[{"name":"alice"},{"name":"reporting"}],"next_cursor":"page-2"}`,
+		`{"data":[{"name":"writer"}],"next_cursor":""}`,
+	}}
+	client := newTestFlapsClient(t, transport)
+
+	members, err := client.ListManagedPostgresRoleMembers(context.Background(), "mpg-123", "analytics")
+	if err != nil {
+		t.Fatalf("ListManagedPostgresRoleMembers() error = %v", err)
+	}
+	want := []ManagedPostgresRoleMember{{Name: "alice"}, {Name: "reporting"}, {Name: "writer"}}
+	if !slices.Equal(members, want) {
+		t.Fatalf("members = %#v, want %#v", members, want)
+	}
+	if len(transport.requests) != 2 {
+		t.Fatalf("request count = %d, want 2", len(transport.requests))
+	}
+	for i, req := range transport.requests {
+		if got, want := req.URL.Path, "/v1/postgres/mpg-123/roles/members"; got != want {
+			t.Fatalf("request %d path = %q, want %q", i, got, want)
+		}
+		query := req.URL.Query()
+		if got, want := query.Get("role"), "analytics"; got != want {
+			t.Fatalf("request %d role = %q, want %q", i, got, want)
+		}
+		if got, want := query.Get("limit"), "1000"; got != want {
+			t.Fatalf("request %d limit = %q, want %q", i, got, want)
+		}
+		if got, want := actionFromContext(req.Context()), managedPostgresRoleMemberList; got != want {
+			t.Fatalf("request %d action = %q, want %q", i, got, want)
+		}
+	}
+	if got, want := transport.requests[1].URL.Query().Get("cursor"), "page-2"; got != want {
+		t.Fatalf("second request cursor = %q, want %q", got, want)
+	}
+}
+
+func TestListManagedPostgresRolesRetriesFailedPage(t *testing.T) {
+	transport := &listAppsRoundTripper{
+		bodies: []string{
+			`{"data":[{"name":"a","member_count":1}],"next_cursor":"page-2"}`,
+			`{"error":"internal error"}`,
+			`{"data":[{"name":"b","member_count":2}]}`,
+		},
+		statuses: []int{0, http.StatusInternalServerError},
+	}
+	client := newTestFlapsClient(t, transport)
+
+	roles, err := client.ListManagedPostgresRoles(context.Background(), "mpg-123")
+	if err != nil {
+		t.Fatalf("ListManagedPostgresRoles() error = %v", err)
+	}
+	if len(roles) != 2 || roles[0].Name != "a" || roles[1].Name != "b" {
+		t.Fatalf("roles = %#v, want a, b", roles)
+	}
+	if len(transport.requests) != 3 {
+		t.Fatalf("request count = %d, want 3", len(transport.requests))
+	}
+	if got, want := transport.requests[2].URL.Query().Get("cursor"), "page-2"; got != want {
+		t.Fatalf("retried request cursor = %q, want %q", got, want)
+	}
+}
+
+func TestListManagedPostgresRolesDoesNotRetryClientErrors(t *testing.T) {
+	tests := []struct {
+		name   string
+		status int
+		body   string
+	}{
+		{name: "expired_cursor", status: http.StatusBadRequest, body: `{"error":"cursor is expired"}`},
+		{name: "not_implemented", status: http.StatusNotImplemented, body: `{"error":"Customer roles are not available on this cluster yet"}`},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			transport := &listAppsRoundTripper{bodies: []string{tt.body}, statuses: []int{tt.status}}
+			client := newTestFlapsClient(t, transport)
+
+			_, err := client.ListManagedPostgresRoles(context.Background(), "mpg-123")
+			var ferr *FlapsError
+			if !errors.As(err, &ferr) || ferr.ResponseStatusCode != tt.status {
+				t.Fatalf("ListManagedPostgresRoles() error = %v, want a %d FlapsError", err, tt.status)
+			}
+			if len(transport.requests) != 1 {
+				t.Fatalf("request count = %d, want 1", len(transport.requests))
+			}
+		})
+	}
+}
+
+func TestListManagedPostgresRolesRejectsRepeatedCursor(t *testing.T) {
+	transport := &listAppsRoundTripper{bodies: []string{
+		`{"data":[{"name":"a"}],"next_cursor":"same"}`,
+		`{"data":[{"name":"b"}],"next_cursor":"same"}`,
+	}}
+	client := newTestFlapsClient(t, transport)
+
+	roles, err := client.ListManagedPostgresRoles(context.Background(), "mpg-123")
+	if err == nil {
+		t.Fatalf("ListManagedPostgresRoles() = %#v, want an error", roles)
+	}
+	if !strings.Contains(err.Error(), "same cursor") {
+		t.Fatalf("ListManagedPostgresRoles() error = %v, want a repeated cursor error", err)
+	}
+	if len(transport.requests) != 2 {
+		t.Fatalf("request count = %d, want 2", len(transport.requests))
+	}
+}
+
+func TestManagedPostgresRolesAndLimitsClassifyNotImplemented(t *testing.T) {
+	operations := []struct {
+		name    string
+		message string
+		run     func(*Client) error
+	}{
+		{name: "roles", message: "failed to list Managed Postgres roles: Customer roles are not available on this cluster yet", run: func(client *Client) error {
+			_, err := client.ListManagedPostgresRoles(context.Background(), "mpg-123")
+			return err
+		}},
+		{name: "role_members", message: "failed to list Managed Postgres role members: Customer roles are not available on this cluster yet", run: func(client *Client) error {
+			_, err := client.ListManagedPostgresRoleMembers(context.Background(), "mpg-123", "analytics")
+			return err
+		}},
+		{name: "set_databases", message: "failed to set Managed Postgres user databases: Custom users and database limits are not available on this cluster yet", run: func(client *Client) error {
+			return client.SetManagedPostgresUserDatabases(context.Background(), "mpg-123", "analytics", SetManagedPostgresUserDatabasesRequest{DatabasesLimited: true, Databases: []string{"app1"}})
+		}},
+		{name: "create", message: "failed to create Managed Postgres user: Custom users and database limits are not available on this cluster yet", run: func(client *Client) error {
+			_, err := client.CreateManagedPostgresUser(context.Background(), "mpg-123", CreateManagedPostgresUserRequest{Username: "analytics", Role: "custom"})
+			return err
+		}},
+	}
+
+	for _, operation := range operations {
+		t.Run(operation.name, func(t *testing.T) {
+			_, apiMessage, _ := strings.Cut(operation.message, ": ")
+			body, err := json.Marshal(map[string]string{"error": apiMessage})
+			if err != nil {
+				t.Fatalf("encode body: %v", err)
+			}
+			transport := &managedPostgresRoundTripper{statusCode: http.StatusNotImplemented, body: string(body)}
+
+			err = operation.run(newTestFlapsClient(t, transport))
+			if !errors.Is(err, ErrFlapsNotImplemented) {
+				t.Fatalf("request error = %v, want ErrFlapsNotImplemented", err)
+			}
+			if errors.Is(err, ErrFlapsNotFound) {
+				t.Fatalf("request error = %v, unexpectedly classified as not found", err)
+			}
+			if got, want := err.Error(), operation.message; got != want {
+				t.Fatalf("request error = %q, want %q", got, want)
+			}
+		})
 	}
 }
