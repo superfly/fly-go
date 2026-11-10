@@ -88,4 +88,7 @@ const (
 	managedPostgresExtensionDisable
 	managedPostgresAttachmentCreate
 	managedPostgresAttachmentDelete
+	managedPostgresRoleList
+	managedPostgresRoleMemberList
+	managedPostgresUserDatabasesSet
 )

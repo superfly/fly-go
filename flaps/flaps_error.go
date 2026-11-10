@@ -13,6 +13,11 @@ var ErrFlapsNotFound = &FlapsError{ResponseStatusCode: http.StatusNotFound}
 // Managed Postgres returns it for a cluster that has already been deleted.
 var ErrFlapsGone = &FlapsError{ResponseStatusCode: http.StatusGone}
 
+// ErrFlapsNotImplemented is returned when the API answers HTTP 501. Managed
+// Postgres sends it when the cluster's agent is too old for the call; the
+// error's message is the API's explanation.
+var ErrFlapsNotImplemented = &FlapsError{ResponseStatusCode: http.StatusNotImplemented}
+
 type StatusCode string
 
 const (
