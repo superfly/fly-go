@@ -435,8 +435,14 @@ type MachineRootfs struct {
 }
 
 type MachineCacheDrive struct {
-	// Beta: size of the cache drive in MiB. At most 51200; 0 uses the default
+	// Fixed size of the Machine-owned cache drive in MiB. At most 51200.
+	// With a path, at least 16 MiB is required; without a path, 0 disables the device.
 	SizeMB uint64 `toml:"size_mb,omitempty" json:"size_mb,omitempty"`
+	// Optional absolute guest mount path. When set, the device is formatted as ext4.
+	// Without a path, the device retains legacy raw block behavior. Contents survive
+	// same-host restarts and path changes, but are discarded on size or mode changes,
+	// relocation, recovery on another host, and cloning.
+	Path string `toml:"path,omitempty" json:"path,omitempty"`
 }
 
 // MachineSpot configures spot pricing behavior for a Machine

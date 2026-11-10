@@ -676,3 +676,26 @@ func TestReplayCacheUnmarshalJSON(t *testing.T) {
 		}
 	}
 }
+
+func TestMachineCacheDrivePathJSONRoundTrip(t *testing.T) {
+	for _, raw := range []string{
+		`{"cache_drive":{"size_mb":10240,"path":"/cache"}}`,
+		`{"cache_drive":{"size_mb":1024}}`,
+	} {
+		var config MachineConfig
+		if err := json.Unmarshal([]byte(raw), &config); err != nil {
+			t.Fatal(err)
+		}
+		encoded, err := json.Marshal(config)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var roundtrip MachineConfig
+		if err := json.Unmarshal(encoded, &roundtrip); err != nil {
+			t.Fatal(err)
+		}
+		if config.CacheDrive == nil || roundtrip.CacheDrive == nil || *config.CacheDrive != *roundtrip.CacheDrive {
+			t.Fatalf("cache declaration lost during JSON roundtrip: %s", encoded)
+		}
+	}
+}
