@@ -88,4 +88,6 @@ const (
 	managedPostgresExtensionDisable
 	managedPostgresAttachmentCreate
 	managedPostgresAttachmentDelete
+	managedPostgresMaintenanceWindowGet
+	managedPostgresMaintenanceWindowUpdate
 )

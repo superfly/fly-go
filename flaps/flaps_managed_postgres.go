@@ -236,6 +236,31 @@ type CreateManagedPostgresAttachmentRequest struct {
 	AppName string `json:"app_name"`
 }
 
+// ManagedPostgresMaintenanceWindow is the weekly window during which
+// maintenance may be performed on a Managed Postgres cluster, returned by
+// GET and PATCH /v1/postgres/:id/maintenance_window.
+type ManagedPostgresMaintenanceWindow struct {
+	// Day is a lowercase weekday, e.g. "sunday".
+	Day string `json:"day"`
+	// StartHour is the hour (0-23) in Timezone at which the window opens.
+	StartHour     int    `json:"start_hour"`
+	DurationHours int    `json:"duration_hours"`
+	Timezone      string `json:"timezone"`
+}
+
+// UpdateManagedPostgresMaintenanceWindowRequest is the body for
+// PATCH /v1/postgres/:id/maintenance_window. Fields are pointers so that 0
+// (midnight) can be sent and unset fields are omitted; the API keeps the
+// current value of any omitted field.
+type UpdateManagedPostgresMaintenanceWindowRequest struct {
+	// Day is a lowercase weekday, e.g. "sunday".
+	Day *string `json:"day,omitempty"`
+	// StartHour is the hour (0-23) at which the window opens.
+	StartHour *int `json:"start_hour,omitempty"`
+	// DurationHours is the window length in hours (3-8).
+	DurationHours *int `json:"duration_hours,omitempty"`
+}
+
 type managedPostgresClusterEnvelope struct {
 	Data ManagedPostgresCluster `json:"data"`
 }
@@ -270,6 +295,10 @@ type managedPostgresBackupListEnvelope struct {
 
 type managedPostgresExtensionListEnvelope struct {
 	Data []ManagedPostgresExtension `json:"data"`
+}
+
+type managedPostgresMaintenanceWindowEnvelope struct {
+	Data ManagedPostgresMaintenanceWindow `json:"data"`
 }
 
 type managedPostgresPlanListEnvelope struct {
@@ -573,4 +602,35 @@ func (f *Client) DeleteManagedPostgresAttachment(ctx context.Context, id, appNam
 	}
 
 	return nil
+}
+
+// GetManagedPostgresMaintenanceWindow returns the maintenance window of a
+// Managed Postgres cluster.
+func (f *Client) GetManagedPostgresMaintenanceWindow(ctx context.Context, id string) (ManagedPostgresMaintenanceWindow, error) {
+	ctx = contextWithAction(ctx, managedPostgresMaintenanceWindowGet)
+
+	endpoint := fmt.Sprintf("/postgres/%s/maintenance_window", url.PathEscape(id))
+
+	var env managedPostgresMaintenanceWindowEnvelope
+	if err := f._sendRequest(ctx, http.MethodGet, endpoint, nil, &env, nil); err != nil {
+		return ManagedPostgresMaintenanceWindow{}, fmt.Errorf("failed to get Managed Postgres maintenance window: %w", err)
+	}
+
+	return env.Data, nil
+}
+
+// UpdateManagedPostgresMaintenanceWindow changes the maintenance window of a
+// Managed Postgres cluster. Fields left nil in req keep their current value.
+// The updated window is returned.
+func (f *Client) UpdateManagedPostgresMaintenanceWindow(ctx context.Context, id string, req UpdateManagedPostgresMaintenanceWindowRequest) (ManagedPostgresMaintenanceWindow, error) {
+	ctx = contextWithAction(ctx, managedPostgresMaintenanceWindowUpdate)
+
+	endpoint := fmt.Sprintf("/postgres/%s/maintenance_window", url.PathEscape(id))
+
+	var env managedPostgresMaintenanceWindowEnvelope
+	if err := f._sendRequest(ctx, http.MethodPatch, endpoint, req, &env, nil); err != nil {
+		return ManagedPostgresMaintenanceWindow{}, fmt.Errorf("failed to update Managed Postgres maintenance window: %w", err)
+	}
+
+	return env.Data, nil
 }
