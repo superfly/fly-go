@@ -1734,3 +1734,195 @@ func TestGetManagedPostgresClusterStorageFieldsNullWhenAbsent(t *testing.T) {
 		t.Fatalf("storage fields = %v/%v, want nil/nil", cluster.StorageUsedBytes, cluster.StorageProvisionedBytes)
 	}
 }
+
+const managedPostgresMaintenanceWindowBody = `{"data":{"day":"sunday","start_hour":1,"duration_hours":3,"timezone":"America/New_York"}}`
+
+func TestGetManagedPostgresMaintenanceWindow(t *testing.T) {
+	transport := &managedPostgresRoundTripper{statusCode: http.StatusOK, body: managedPostgresMaintenanceWindowBody}
+	client := newTestFlapsClient(t, transport)
+
+	window, err := client.GetManagedPostgresMaintenanceWindow(context.Background(), "mpg-123")
+	if err != nil {
+		t.Fatalf("GetManagedPostgresMaintenanceWindow() error = %v", err)
+	}
+	if got, want := transport.req.Method, http.MethodGet; got != want {
+		t.Fatalf("request method = %q, want %q", got, want)
+	}
+	if got, want := transport.req.URL.RequestURI(), "/v1/postgres/mpg-123/maintenance_window"; got != want {
+		t.Fatalf("request URI = %q, want %q", got, want)
+	}
+	if got, want := actionFromContext(transport.req.Context()), managedPostgresMaintenanceWindowGet; got != want {
+		t.Fatalf("request action = %q, want %q", got, want)
+	}
+	if transport.req.Body != nil {
+		t.Fatalf("request body is non-nil")
+	}
+	want := ManagedPostgresMaintenanceWindow{Day: "sunday", StartHour: 1, DurationHours: 3, Timezone: "America/New_York"}
+	if window != want {
+		t.Fatalf("window = %+v, want %+v", window, want)
+	}
+}
+
+func TestUpdateManagedPostgresMaintenanceWindow(t *testing.T) {
+	day := "monday"
+	startHour := 0
+	durationHours := 4
+
+	tests := []struct {
+		name     string
+		req      UpdateManagedPostgresMaintenanceWindowRequest
+		wantBody map[string]any
+	}{
+		{
+			name: "all_fields",
+			req: UpdateManagedPostgresMaintenanceWindowRequest{
+				Day:           &day,
+				StartHour:     &startHour,
+				DurationHours: &durationHours,
+			},
+			wantBody: map[string]any{"day": "monday", "start_hour": float64(0), "duration_hours": float64(4)},
+		},
+		{
+			name:     "start_hour_midnight_only",
+			req:      UpdateManagedPostgresMaintenanceWindowRequest{StartHour: &startHour},
+			wantBody: map[string]any{"start_hour": float64(0)},
+		},
+		{
+			name:     "day_only",
+			req:      UpdateManagedPostgresMaintenanceWindowRequest{Day: &day},
+			wantBody: map[string]any{"day": "monday"},
+		},
+		{
+			name:     "empty",
+			req:      UpdateManagedPostgresMaintenanceWindowRequest{},
+			wantBody: map[string]any{},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			transport := &managedPostgresRoundTripper{
+				statusCode: http.StatusOK,
+				body:       `{"data":{"day":"monday","start_hour":0,"duration_hours":4,"timezone":"UTC"}}`,
+			}
+			client := newTestFlapsClient(t, transport)
+
+			window, err := client.UpdateManagedPostgresMaintenanceWindow(context.Background(), "mpg-123", test.req)
+			if err != nil {
+				t.Fatalf("UpdateManagedPostgresMaintenanceWindow() error = %v", err)
+			}
+			if got, want := transport.req.Method, http.MethodPatch; got != want {
+				t.Fatalf("request method = %q, want %q", got, want)
+			}
+			if got, want := transport.req.URL.RequestURI(), "/v1/postgres/mpg-123/maintenance_window"; got != want {
+				t.Fatalf("request URI = %q, want %q", got, want)
+			}
+			if got, want := actionFromContext(transport.req.Context()), managedPostgresMaintenanceWindowUpdate; got != want {
+				t.Fatalf("request action = %q, want %q", got, want)
+			}
+			body, err := io.ReadAll(transport.req.Body)
+			if err != nil {
+				t.Fatalf("read request body: %v", err)
+			}
+			var sent map[string]any
+			if err := json.Unmarshal(body, &sent); err != nil {
+				t.Fatalf("decode request body %q: %v", string(body), err)
+			}
+			if !maps.Equal(sent, test.wantBody) {
+				t.Fatalf("request body = %s, want %v", body, test.wantBody)
+			}
+			want := ManagedPostgresMaintenanceWindow{Day: "monday", StartHour: 0, DurationHours: 4, Timezone: "UTC"}
+			if window != want {
+				t.Fatalf("window = %+v, want %+v", window, want)
+			}
+		})
+	}
+}
+
+func TestManagedPostgresMaintenanceWindowPreservesEscapedPath(t *testing.T) {
+	operations := []struct {
+		name string
+		run  func(*Client) error
+	}{
+		{name: "get", run: func(client *Client) error {
+			_, err := client.GetManagedPostgresMaintenanceWindow(context.Background(), "a/../b?c")
+			return err
+		}},
+		{name: "update", run: func(client *Client) error {
+			_, err := client.UpdateManagedPostgresMaintenanceWindow(context.Background(), "a/../b?c", UpdateManagedPostgresMaintenanceWindowRequest{})
+			return err
+		}},
+	}
+
+	for _, operation := range operations {
+		t.Run(operation.name, func(t *testing.T) {
+			transport := &managedPostgresRoundTripper{statusCode: http.StatusOK, body: managedPostgresMaintenanceWindowBody}
+			if err := operation.run(newTestFlapsClient(t, transport)); err != nil {
+				t.Fatalf("operation error = %v", err)
+			}
+			if got, want := transport.req.URL.RequestURI(), "/v1/postgres/a%2F..%2Fb%3Fc/maintenance_window"; got != want {
+				t.Fatalf("request URI = %q, want %q", got, want)
+			}
+		})
+	}
+}
+
+func TestManagedPostgresMaintenanceWindowClassifiesErrors(t *testing.T) {
+	operations := []struct {
+		name string
+		run  func(*Client) error
+	}{
+		{name: "get", run: func(client *Client) error {
+			_, err := client.GetManagedPostgresMaintenanceWindow(context.Background(), "mpg-123")
+			return err
+		}},
+		{name: "update", run: func(client *Client) error {
+			startHour := 25
+			_, err := client.UpdateManagedPostgresMaintenanceWindow(context.Background(), "mpg-123", UpdateManagedPostgresMaintenanceWindowRequest{StartHour: &startHour})
+			return err
+		}},
+	}
+	statuses := []struct {
+		statusCode int
+		sentinel   error
+	}{
+		{statusCode: http.StatusNotFound, sentinel: ErrFlapsNotFound},
+		{statusCode: http.StatusGone, sentinel: ErrFlapsGone},
+		{statusCode: http.StatusConflict},
+		{statusCode: http.StatusUnprocessableEntity},
+	}
+
+	for _, operation := range operations {
+		for _, status := range statuses {
+			t.Run(operation.name+"_"+http.StatusText(status.statusCode), func(t *testing.T) {
+				transport := &managedPostgresRoundTripper{statusCode: status.statusCode, body: `{"error":"nope"}`}
+				err := operation.run(newTestFlapsClient(t, transport))
+				if status.sentinel != nil && !errors.Is(err, status.sentinel) {
+					t.Fatalf("request error = %v, want %v", err, status.sentinel)
+				}
+				var flapsErr *FlapsError
+				if !errors.As(err, &flapsErr) {
+					t.Fatalf("request error = %v, want wrapped FlapsError", err)
+				}
+				if got, want := flapsErr.ResponseStatusCode, status.statusCode; got != want {
+					t.Fatalf("response status = %d, want %d", got, want)
+				}
+				if got, want := flapsErr.ResponseBody, []byte(`{"error":"nope"}`); string(got) != string(want) {
+					t.Fatalf("response body = %q, want %q", got, want)
+				}
+			})
+		}
+	}
+}
+
+func TestManagedPostgresMaintenanceWindowActions(t *testing.T) {
+	actions := map[flapsAction]string{
+		managedPostgresMaintenanceWindowGet:    "managedPostgresMaintenanceWindowGet",
+		managedPostgresMaintenanceWindowUpdate: "managedPostgresMaintenanceWindowUpdate",
+	}
+	for action, want := range actions {
+		if got := action.String(); got != want {
+			t.Errorf("action string = %q, want %q", got, want)
+		}
+	}
+}
