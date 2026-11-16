@@ -699,3 +699,79 @@ func TestMachineCacheDrivePathJSONRoundTrip(t *testing.T) {
 		}
 	}
 }
+
+func TestMachineConfigCacheDiskAliases(t *testing.T) {
+	for _, tc := range []struct {
+		name, input string
+		want        *MachineCacheDrive
+		invalid     bool
+	}{
+		{name: "new mounted", input: `{"cache_disk":{"size_mb":64,"path":"/cache"}}`, want: &MachineCacheDrive{SizeMB: 64, Path: "/cache"}},
+		{name: "legacy mounted", input: `{"cache_drive":{"size_mb":64,"path":"/cache"}}`, want: &MachineCacheDrive{SizeMB: 64, Path: "/cache"}},
+		{name: "legacy raw", input: `{"cache_drive":{"size_mb":1024}}`, want: &MachineCacheDrive{SizeMB: 1024}},
+		{name: "matching aliases", input: `{"cache_disk":{"path":"/cache","size_mb":64},"cache_drive":{"size_mb":64,"path":"/cache"}}`, want: &MachineCacheDrive{SizeMB: 64, Path: "/cache"}},
+		{name: "different sizes", input: `{"cache_disk":{"size_mb":64},"cache_drive":{"size_mb":128}}`, invalid: true},
+		{name: "different paths", input: `{"cache_disk":{"size_mb":64,"path":"/cache"},"cache_drive":{"size_mb":64,"path":"/other"}}`, invalid: true},
+		{name: "null disk conflict", input: `{"cache_disk":null,"cache_drive":{"size_mb":64}}`, invalid: true},
+		{name: "null drive conflict", input: `{"cache_drive":null,"cache_disk":{"size_mb":64}}`, invalid: true},
+		{name: "both null", input: `{"cache_drive":null,"cache_disk":null}`},
+		{name: "disabled", input: `{"cache_disk":{"size_mb":0}}`, want: &MachineCacheDrive{}},
+		{name: "absent", input: `{}`},
+		{name: "invalid legacy type", input: `{"cache_drive":1}`, invalid: true},
+		{name: "invalid new type", input: `{"cache_disk":1}`, invalid: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var config MachineConfig
+			err := json.Unmarshal([]byte(tc.input), &config)
+			if (err != nil) != tc.invalid {
+				t.Fatalf("decode error = %v, want invalid %v", err, tc.invalid)
+			}
+			if tc.invalid {
+				return
+			}
+			if (config.CacheDrive == nil) != (tc.want == nil) || (tc.want != nil && *config.CacheDrive != *tc.want) {
+				t.Fatalf("cache = %+v, want %+v", config.CacheDrive, tc.want)
+			}
+			encoded, err := json.Marshal(config)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var fields map[string]json.RawMessage
+			if err := json.Unmarshal(encoded, &fields); err != nil {
+				t.Fatal(err)
+			}
+			if _, ok := fields["cache_disk"]; ok {
+				t.Fatalf("new key emitted before the reader rollout: %s", encoded)
+			}
+			if _, ok := fields["cache_drive"]; ok != (tc.want != nil) {
+				t.Fatalf("legacy key presence incorrect: %s", encoded)
+			}
+			var roundtrip MachineConfig
+			if err := json.Unmarshal(encoded, &roundtrip); err != nil {
+				t.Fatal(err)
+			}
+			if (roundtrip.CacheDrive == nil) != (tc.want == nil) || (tc.want != nil && *roundtrip.CacheDrive != *tc.want) {
+				t.Fatalf("roundtrip lost cache: %s", encoded)
+			}
+		})
+	}
+}
+
+func TestMachineConfigJSONPreservesOtherFields(t *testing.T) {
+	var machine Machine
+	err := json.Unmarshal([]byte(`{"id":"abc","config":{"image":"alpine","env":{"HELLO":"world"},"mounts":[{"volume":"vol_abc","path":"/data"}],"cache_drive":{"size_mb":64,"path":"/cache"}}}`), &machine)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if machine.ID != "abc" || machine.Config.Image != "alpine" || machine.Config.Env["HELLO"] != "world" || len(machine.Config.Mounts) != 1 || machine.Config.Mounts[0].Volume != "vol_abc" {
+		t.Fatalf("unrelated fields lost: %+v", machine)
+	}
+	// Decoding a partial config into an existing value retains omitted fields,
+	// while an explicit null clears the cache, just like standard JSON decoding.
+	if err := json.Unmarshal([]byte(`{"cache_drive":null}`), machine.Config); err != nil {
+		t.Fatal(err)
+	}
+	if machine.Config.CacheDrive != nil || machine.Config.Image != "alpine" {
+		t.Fatalf("partial update lost fields: %+v", machine.Config)
+	}
+}
