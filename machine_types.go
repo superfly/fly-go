@@ -1005,6 +1005,7 @@ func (c *MachineConfig) UnmarshalJSON(data []byte) error {
 		decoded.CacheDrive = drive
 	}
 	*c = MachineConfig(decoded)
+
 	return nil
 }
 

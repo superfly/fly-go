@@ -250,6 +250,7 @@ func (t *Tokens) normalized(macaroonsAndUserTokens, includeScheme bool) string {
 		all := make([]string, 0, len(t.macaroons)+len(t.oauths))
 		all = append(all, t.macaroons...)
 		all = append(all, t.oauths...)
+
 		return scheme + strings.Join(all, ",")
 	}
 	if len(t.macaroons) == 0 {
