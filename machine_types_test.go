@@ -385,7 +385,7 @@ func TestMachineCacheDriveJSON(t *testing.T) {
 			{
 				name:   "cache drive with size",
 				input:  MachineConfig{CacheDrive: &MachineCacheDrive{SizeMB: 1024}},
-				output: `{"init":{},"cache_drive":{"size_mb":1024}}`,
+				output: `{"init":{},"cache_disk":{"size_mb":1024}}`,
 			},
 			{
 				name:   "nil cache drive omitted",
@@ -740,11 +740,11 @@ func TestMachineConfigCacheDiskAliases(t *testing.T) {
 			if err := json.Unmarshal(encoded, &fields); err != nil {
 				t.Fatal(err)
 			}
-			if _, ok := fields["cache_disk"]; ok {
-				t.Fatalf("new key emitted before the reader rollout: %s", encoded)
+			if _, ok := fields["cache_drive"]; ok {
+				t.Fatalf("legacy key emitted: %s", encoded)
 			}
-			if _, ok := fields["cache_drive"]; ok != (tc.want != nil) {
-				t.Fatalf("legacy key presence incorrect: %s", encoded)
+			if _, ok := fields["cache_disk"]; ok != (tc.want != nil) {
+				t.Fatalf("canonical key presence incorrect: %s", encoded)
 			}
 			var roundtrip MachineConfig
 			if err := json.Unmarshal(encoded, &roundtrip); err != nil {

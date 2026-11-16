@@ -958,7 +958,7 @@ type MachineConfig struct {
 	Rootfs *MachineRootfs `toml:"rootfs,omitempty" json:"rootfs,omitempty"`
 	// Semi-durable cache disk attached to the Machine. Contents generally survive Machine stops, restarts, and updates,
 	// but durability is not guaranteed. Expect Machines to start with an empty cache disk at any time
-	CacheDrive *MachineCacheDrive `toml:"cache_drive,omitempty" json:"cache_drive,omitempty"`
+	CacheDrive *MachineCacheDrive `toml:"cache_disk,omitempty" json:"cache_disk,omitempty"`
 
 	// Spot pricing settings for the Machine
 	Spot *MachineSpot `toml:"spot,omitempty" json:"spot,omitempty"`
