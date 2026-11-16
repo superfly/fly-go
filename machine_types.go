@@ -648,7 +648,7 @@ var (
 )
 
 type MachineCheck struct {
-	// The port to connect to, often the same as internal_port
+	// The port to connect to. Required for top-level checks
 	Port *int `toml:"port,omitempty" json:"port,omitempty"`
 	// tcp or http
 	Type *string `toml:"type,omitempty" json:"type,omitempty"`
@@ -675,7 +675,7 @@ type MachineCheck struct {
 }
 
 type MachineServiceCheck struct {
-	// The port to connect to, often the same as internal_port
+	// The port to connect to. Defaults to the service's internal_port
 	Port *int `toml:"port,omitempty" json:"port,omitempty"`
 	// tcp or http
 	Type *string `toml:"type,omitempty" json:"type,omitempty"`
