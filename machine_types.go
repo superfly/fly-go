@@ -435,13 +435,10 @@ type MachineRootfs struct {
 }
 
 type MachineCacheDrive struct {
-	// Fixed size of the Machine-owned cache drive in MiB. At most 51200.
-	// With a path, at least 16 MiB is required; without a path, 0 disables the device.
+	// Size of the cache disk in MiB. Between 16 and 51200.
+	// Changing the size discards the disk's contents.
 	SizeMB uint64 `toml:"size_mb,omitempty" json:"size_mb,omitempty"`
-	// Optional absolute guest mount path. When set, the device is formatted as ext4.
-	// Without a path, the device retains legacy raw block behavior. Contents survive
-	// same-host restarts and path changes, but are discarded on size or mode changes,
-	// relocation, recovery on another host, and cloning.
+	// Absolute path in the Machine at which to mount the cache disk.
 	Path string `toml:"path,omitempty" json:"path,omitempty"`
 }
 
@@ -959,7 +956,8 @@ type MachineConfig struct {
 	// Beta: the size of the Machine's root filesystem and whether it persists. This field may be
 	// removed in the future
 	Rootfs *MachineRootfs `toml:"rootfs,omitempty" json:"rootfs,omitempty"`
-	// Beta: a cache drive attached to the Machine. This field may be removed in the future
+	// Semi-durable cache disk attached to the Machine. Contents generally survive Machine stops, restarts, and updates,
+	// but durability is not guaranteed. Expect Machines to start with an empty cache disk at any time
 	CacheDrive *MachineCacheDrive `toml:"cache_drive,omitempty" json:"cache_drive,omitempty"`
 
 	// Spot pricing settings for the Machine
@@ -969,6 +967,45 @@ type MachineConfig struct {
 	VMSize string `toml:"size,omitempty" json:"size,omitempty"`
 	// Deprecated: use Service.Autostart instead
 	DisableMachineAutostart *bool `toml:"disable_machine_autostart,omitempty" json:"disable_machine_autostart,omitempty"`
+}
+
+// UnmarshalJSON accepts both cache_drive and cache_disk, including in stored
+// Machine configurations.
+func (c *MachineConfig) UnmarshalJSON(data []byte) error {
+	type plain MachineConfig
+	decoded := plain(*c)
+	input := struct {
+		*plain
+		Disk  json.RawMessage `json:"cache_disk"`
+		Drive json.RawMessage `json:"cache_drive"`
+	}{plain: &decoded}
+	if err := json.Unmarshal(data, &input); err != nil {
+		return err
+	}
+	var disk, drive *MachineCacheDrive
+	if input.Disk != nil {
+		if err := json.Unmarshal(input.Disk, &disk); err != nil {
+			return fmt.Errorf("invalid config.cache_disk: %w", err)
+		}
+	}
+	if input.Drive != nil {
+		if err := json.Unmarshal(input.Drive, &drive); err != nil {
+			return fmt.Errorf("invalid config.cache_drive: %w", err)
+		}
+	}
+	if input.Disk != nil && input.Drive != nil {
+		if (disk == nil) != (drive == nil) || (disk != nil && *disk != *drive) {
+			return fmt.Errorf("config.cache_disk and config.cache_drive must match when both are specified")
+		}
+	}
+	switch {
+	case input.Disk != nil:
+		decoded.CacheDrive = disk
+	case input.Drive != nil:
+		decoded.CacheDrive = drive
+	}
+	*c = MachineConfig(decoded)
+	return nil
 }
 
 func (c *MachineConfig) ProcessGroup() string {
