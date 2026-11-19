@@ -234,7 +234,7 @@ func (f *Client) do(ctx context.Context, method, endpoint string, in interface{}
 		switch {
 		case err == nil:
 			return nil
-		case errors.Is(err, syscall.ECONNRESET):
+		case errors.Is(err, syscall.ECONNRESET), errors.Is(err, io.EOF):
 			return err
 		default:
 			return backoff.Permanent(err)

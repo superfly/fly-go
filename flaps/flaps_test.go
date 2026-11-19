@@ -225,6 +225,22 @@ func TestFlaps_GetRetriesOnConnReset(t *testing.T) {
 	}
 }
 
+func TestFlaps_GetRetriesOnEOF(t *testing.T) {
+	tripper := &scriptedTripper{steps: []step{
+		{err: io.EOF},
+		{err: io.EOF},
+		{body: `{}`},
+	}}
+	client := newTestFlapsClient(t, tripper)
+
+	if err := client._sendRequest(context.Background(), http.MethodGet, "/apps", nil, nil, nil); err != nil {
+		t.Fatalf("_sendRequest: %v", err)
+	}
+	if got := tripper.callCount(); got != 3 {
+		t.Fatalf("call count = %d, want 3", got)
+	}
+}
+
 func TestFlaps_GetGivesUpAfterMaxRetries(t *testing.T) {
 	tripper := &scriptedTripper{steps: []step{
 		{err: connReset()},
