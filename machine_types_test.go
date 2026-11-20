@@ -775,3 +775,45 @@ func TestMachineConfigJSONPreservesOtherFields(t *testing.T) {
 		t.Fatalf("partial update lost fields: %+v", machine.Config)
 	}
 }
+
+func TestMachineRootfsUsageUnmarshal(t *testing.T) {
+	for _, tc := range []struct {
+		name, input    string
+		image, overlay *uint64
+		invalid        bool
+	}{
+		{name: "API strings", input: `{"image_bytes":"217579520","overlay_bytes":"0"}`, image: rootfsBytes(217579520), overlay: rootfsBytes(0)},
+		{name: "numbers", input: `{"image_bytes":1024,"overlay_bytes":512}`, image: rootfsBytes(1024), overlay: rootfsBytes(512)},
+		{name: "absent", input: `{}`},
+		{name: "partial", input: `{"image_bytes":"1024"}`, image: rootfsBytes(1024)},
+		{name: "null", input: `{"image_bytes":null,"overlay_bytes":null}`},
+		{name: "negative", input: `{"image_bytes":"-1"}`, invalid: true},
+		{name: "overflow", input: `{"image_bytes":"18446744073709551616"}`, invalid: true},
+		{name: "invalid", input: `{"image_bytes":"abc"}`, invalid: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var req MachineRequest
+			err := json.Unmarshal([]byte(`{"rootfs_usage":`+tc.input+`}`), &req)
+			if tc.invalid {
+				if err == nil {
+					t.Fatal("expected invalid measurement to fail decoding")
+				}
+
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			if req.RootfsUsage == nil {
+				t.Fatal("missing rootfs usage")
+			}
+			for _, field := range []struct{ got, want *uint64 }{{req.RootfsUsage.ImageBytes, tc.image}, {req.RootfsUsage.OverlayBytes, tc.overlay}} {
+				if (field.got == nil) != (field.want == nil) || (field.got != nil && *field.got != *field.want) {
+					t.Fatalf("unexpected measurement: %+v", req.RootfsUsage)
+				}
+			}
+		})
+	}
+}
+
+func rootfsBytes(value uint64) *uint64 { return &value }
