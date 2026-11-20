@@ -7,7 +7,7 @@ require (
 	github.com/PuerkitoBio/rehttp v1.4.0
 	github.com/superfly/client-signals/go v0.5.0
 	github.com/superfly/graphql v0.2.6
-	github.com/superfly/macaroon v0.3.2
+	github.com/superfly/macaroon v0.3.3
 	go.opentelemetry.io/otel v1.47.0
 	go.opentelemetry.io/otel/trace v1.47.0
 	golang.org/x/crypto v0.59.0
