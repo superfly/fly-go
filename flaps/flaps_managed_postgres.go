@@ -298,7 +298,9 @@ type managedPostgresExtensionListEnvelope struct {
 }
 
 type managedPostgresMaintenanceWindowEnvelope struct {
-	Data ManagedPostgresMaintenanceWindow `json:"data"`
+	// Data is nil when the API answers "data": null, for a cluster with no
+	// maintenance window.
+	Data *ManagedPostgresMaintenanceWindow `json:"data"`
 }
 
 type managedPostgresPlanListEnvelope struct {
@@ -605,15 +607,16 @@ func (f *Client) DeleteManagedPostgresAttachment(ctx context.Context, id, appNam
 }
 
 // GetManagedPostgresMaintenanceWindow returns the maintenance window of a
-// Managed Postgres cluster.
-func (f *Client) GetManagedPostgresMaintenanceWindow(ctx context.Context, id string) (ManagedPostgresMaintenanceWindow, error) {
+// Managed Postgres cluster. It returns nil, and no error, for a cluster with
+// no window, whose maintenance can run at any time.
+func (f *Client) GetManagedPostgresMaintenanceWindow(ctx context.Context, id string) (*ManagedPostgresMaintenanceWindow, error) {
 	ctx = contextWithAction(ctx, managedPostgresMaintenanceWindowGet)
 
 	endpoint := fmt.Sprintf("/postgres/%s/maintenance_window", url.PathEscape(id))
 
 	var env managedPostgresMaintenanceWindowEnvelope
 	if err := f._sendRequest(ctx, http.MethodGet, endpoint, nil, &env, nil); err != nil {
-		return ManagedPostgresMaintenanceWindow{}, fmt.Errorf("failed to get Managed Postgres maintenance window: %w", err)
+		return nil, fmt.Errorf("failed to get Managed Postgres maintenance window: %w", err)
 	}
 
 	return env.Data, nil
@@ -621,15 +624,15 @@ func (f *Client) GetManagedPostgresMaintenanceWindow(ctx context.Context, id str
 
 // UpdateManagedPostgresMaintenanceWindow changes the maintenance window of a
 // Managed Postgres cluster. Fields left nil in req keep their current value.
-// The updated window is returned.
-func (f *Client) UpdateManagedPostgresMaintenanceWindow(ctx context.Context, id string, req UpdateManagedPostgresMaintenanceWindowRequest) (ManagedPostgresMaintenanceWindow, error) {
+// The updated window is returned, or nil if the API answers with none.
+func (f *Client) UpdateManagedPostgresMaintenanceWindow(ctx context.Context, id string, req UpdateManagedPostgresMaintenanceWindowRequest) (*ManagedPostgresMaintenanceWindow, error) {
 	ctx = contextWithAction(ctx, managedPostgresMaintenanceWindowUpdate)
 
 	endpoint := fmt.Sprintf("/postgres/%s/maintenance_window", url.PathEscape(id))
 
 	var env managedPostgresMaintenanceWindowEnvelope
 	if err := f._sendRequest(ctx, http.MethodPatch, endpoint, req, &env, nil); err != nil {
-		return ManagedPostgresMaintenanceWindow{}, fmt.Errorf("failed to update Managed Postgres maintenance window: %w", err)
+		return nil, fmt.Errorf("failed to update Managed Postgres maintenance window: %w", err)
 	}
 
 	return env.Data, nil

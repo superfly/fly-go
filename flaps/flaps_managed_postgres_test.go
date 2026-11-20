@@ -1758,8 +1758,21 @@ func TestGetManagedPostgresMaintenanceWindow(t *testing.T) {
 		t.Fatalf("request body is non-nil")
 	}
 	want := ManagedPostgresMaintenanceWindow{Day: "sunday", StartHour: 1, DurationHours: 3, Timezone: "America/New_York"}
-	if window != want {
+	if window == nil || *window != want {
 		t.Fatalf("window = %+v, want %+v", window, want)
+	}
+}
+
+func TestGetManagedPostgresMaintenanceWindowWithoutWindow(t *testing.T) {
+	transport := &managedPostgresRoundTripper{statusCode: http.StatusOK, body: `{"data":null}`}
+	client := newTestFlapsClient(t, transport)
+
+	window, err := client.GetManagedPostgresMaintenanceWindow(context.Background(), "mpg-123")
+	if err != nil {
+		t.Fatalf("GetManagedPostgresMaintenanceWindow() error = %v", err)
+	}
+	if window != nil {
+		t.Fatalf("window = %+v, want nil", *window)
 	}
 }
 
@@ -1832,7 +1845,7 @@ func TestUpdateManagedPostgresMaintenanceWindow(t *testing.T) {
 				t.Fatalf("request body = %s, want %v", body, test.wantBody)
 			}
 			want := ManagedPostgresMaintenanceWindow{Day: "monday", StartHour: 0, DurationHours: 4, Timezone: "UTC"}
-			if window != want {
+			if window == nil || *window != want {
 				t.Fatalf("window = %+v, want %+v", window, want)
 			}
 		})
