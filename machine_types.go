@@ -345,6 +345,7 @@ func (u *MachineRootfsUsage) UnmarshalJSON(data []byte) error {
 		*field.dest = &value
 	}
 	*u = decoded
+
 	return nil
 }
 

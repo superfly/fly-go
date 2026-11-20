@@ -798,6 +798,7 @@ func TestMachineRootfsUsageUnmarshal(t *testing.T) {
 				if err == nil {
 					t.Fatal("expected invalid measurement to fail decoding")
 				}
+
 				return
 			}
 			if err != nil {
