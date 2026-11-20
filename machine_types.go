@@ -304,9 +304,48 @@ func (e *MachineEvent) Time() time.Time {
 }
 
 type MachineRequest struct {
+	RootfsUsage  *MachineRootfsUsage  `toml:"rootfs_usage,omitempty" json:"rootfs_usage,omitempty"`
 	ExitEvent    *MachineExitEvent    `toml:"exit_event,omitempty" json:"exit_event,omitempty"`
 	MonitorEvent *MachineMonitorEvent `toml:"MonitorEvent,omitempty" json:"MonitorEvent,omitempty"`
 	RestartCount int                  `toml:"restart_count,omitempty" json:"restart_count,omitempty"`
+}
+
+// MachineRootfsUsage records storage measured at a lifecycle transition.
+// Nil byte counts are unmeasured; zero is a known measurement.
+type MachineRootfsUsage struct {
+	ImageBytes   *uint64 `toml:"image_bytes,omitempty" json:"image_bytes,omitempty"`
+	OverlayBytes *uint64 `toml:"overlay_bytes,omitempty" json:"overlay_bytes,omitempty"`
+}
+
+// The Machines API encodes protobuf uint64 values as decimal strings.
+// Accept numbers too, for compatibility with other JSON producers.
+func (u *MachineRootfsUsage) UnmarshalJSON(data []byte) error {
+	var raw struct {
+		ImageBytes   *json.Number `json:"image_bytes"`
+		OverlayBytes *json.Number `json:"overlay_bytes"`
+	}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	var decoded MachineRootfsUsage
+	for _, field := range []struct {
+		value *json.Number
+		dest  **uint64
+	}{
+		{raw.ImageBytes, &decoded.ImageBytes},
+		{raw.OverlayBytes, &decoded.OverlayBytes},
+	} {
+		if field.value == nil {
+			continue
+		}
+		var value uint64
+		if err := json.Unmarshal([]byte(field.value.String()), &value); err != nil {
+			return err
+		}
+		*field.dest = &value
+	}
+	*u = decoded
+	return nil
 }
 
 // returns the ExitCode from MonitorEvent if it exists, otherwise ExitEvent
