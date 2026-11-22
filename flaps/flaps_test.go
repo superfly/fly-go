@@ -264,6 +264,7 @@ func TestFlapsGetRetriesRefusedDial(t *testing.T) {
 		if dials.Add(1) == 1 {
 			addr = refusedAddr
 		}
+
 		return dialer.DialContext(ctx, network, addr)
 	}}
 	defer transport.CloseIdleConnections()

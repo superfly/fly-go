@@ -4,4 +4,4 @@ package flaps
 
 import "syscall"
 
-const connectionRefused = syscall.ECONNREFUSED
+const errConnectionRefused = syscall.ECONNREFUSED
