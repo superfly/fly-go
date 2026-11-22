@@ -10,10 +10,12 @@ import (
 	"net/http/httptest"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"testing"
 
 	"github.com/superfly/client-signals/go"
+	"golang.org/x/net/http2"
 )
 
 func TestNewWithOptionsSetsCookieJar(t *testing.T) {
@@ -241,6 +243,35 @@ func TestFlaps_GetRetriesOnEOF(t *testing.T) {
 	}
 }
 
+func TestFlaps_GetRetriesHTTP2InternalError(t *testing.T) {
+	var calls atomic.Int32
+	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.ProtoMajor != 2 {
+			t.Errorf("protocol = %s, want HTTP/2", r.Proto)
+		}
+		if calls.Add(1) == 1 {
+			panic(http.ErrAbortHandler) // Send RST_STREAM(INTERNAL_ERROR) before response headers.
+		}
+		fmt.Fprint(w, `{"id":"m1"}`)
+	}))
+	server.EnableHTTP2 = true
+	server.StartTLS()
+	defer server.Close()
+
+	t.Setenv("FLY_FLAPS_BASE_URL", server.URL)
+	client, err := NewWithOptions(t.Context(), NewClientOpts{Transport: server.Client().Transport})
+	if err != nil {
+		t.Fatal(err)
+	}
+	m, err := client.Get(t.Context(), "app", "m1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if m.ID != "m1" || calls.Load() != 2 {
+		t.Fatalf("machine = %q, calls = %d", m.ID, calls.Load())
+	}
+}
+
 func TestFlaps_GetGivesUpAfterMaxRetries(t *testing.T) {
 	tripper := &scriptedTripper{steps: []step{
 		{err: connReset()},
@@ -438,5 +469,43 @@ func TestSnakeCase(t *testing.T) {
 		if got != tc.want {
 			t.Errorf("%s, got '%v', want '%v'", tc.name, got, tc.want)
 		}
+	}
+}
+
+func TestPeerInternalResetRejectsOtherErrors(t *testing.T) {
+	peer := errors.New("received from peer")
+	for _, err := range []error{
+		errors.New("stream error: stream ID 1; INTERNAL_ERROR; received from peer"),
+		http2.StreamError{StreamID: 1, Code: http2.ErrCodeCancel, Cause: peer},
+		http2.StreamError{StreamID: 1, Code: http2.ErrCodeInternal},
+		http2.StreamError{StreamID: 1, Code: http2.ErrCodeInternal, Cause: context.Canceled},
+	} {
+		if isPeerInternalReset(err) {
+			t.Errorf("unexpected retry for %T: %v", err, err)
+		}
+	}
+}
+
+func TestPeerInternalResetAttemptLimits(t *testing.T) {
+	for _, tc := range []struct {
+		method   string
+		attempts int32
+	}{{"GET", 3}, {"POST", 1}, {"PUT", 1}, {"PATCH", 1}, {"DELETE", 1}} {
+		t.Run(tc.method, func(t *testing.T) {
+			var calls atomic.Int32
+			srv := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { calls.Add(1); panic(http.ErrAbortHandler) }))
+			srv.EnableHTTP2 = true
+			srv.StartTLS()
+			defer srv.Close()
+			t.Setenv("FLY_FLAPS_BASE_URL", srv.URL)
+			client, err := NewWithOptions(t.Context(), NewClientOpts{Transport: srv.Client().Transport})
+			if err != nil {
+				t.Fatal(err)
+			}
+			err = client._sendRequest(t.Context(), tc.method, "/apps/probe", nil, nil, nil)
+			if !isPeerInternalReset(err) || calls.Load() != tc.attempts {
+				t.Fatalf("%s: attempts=%d, error=%v", tc.method, calls.Load(), err)
+			}
+		})
 	}
 }
