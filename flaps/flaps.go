@@ -25,6 +25,7 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
+	"golang.org/x/net/http2"
 )
 
 const headerFlyRequestId = "fly-request-id"
@@ -194,6 +195,13 @@ func (f *Client) _sendRequest(ctx context.Context, method, endpoint string, in, 
 	return nil
 }
 
+// net/http supports errors.As into http2.StreamError even for its bundled
+// transport. The peer-reset cause is private to each HTTP/2 implementation.
+func isPeerInternalReset(err error) bool {
+	stream, ok := errors.AsType[http2.StreamError](err)
+	return ok && stream.Code == http2.ErrCodeInternal && stream.Cause != nil && stream.Cause.Error() == "received from peer"
+}
+
 // do issues a single HTTP request. When safeToRetry is true, transient network
 // failures are retried.
 //
@@ -234,7 +242,7 @@ func (f *Client) do(ctx context.Context, method, endpoint string, in interface{}
 		switch {
 		case err == nil:
 			return nil
-		case errors.Is(err, syscall.ECONNRESET), errors.Is(err, io.EOF):
+		case errors.Is(err, syscall.ECONNRESET), errors.Is(err, io.EOF), isPeerInternalReset(err):
 			return err
 		default:
 			return backoff.Permanent(err)
