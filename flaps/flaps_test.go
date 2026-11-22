@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -243,19 +244,40 @@ func TestFlaps_GetRetriesOnEOF(t *testing.T) {
 	}
 }
 
-func TestFlapsConnectionRefusedAttempts(t *testing.T) {
-	for _, tc := range []struct {
-		method   string
-		attempts int
-	}{{http.MethodGet, 3}, {http.MethodPost, 1}, {http.MethodPut, 1}, {http.MethodPatch, 1}, {http.MethodDelete, 1}} {
-		t.Run(tc.method, func(t *testing.T) {
-			tripper := &scriptedTripper{steps: []step{{err: syscall.ECONNREFUSED}, {err: syscall.ECONNREFUSED}, {err: syscall.ECONNREFUSED}}}
-			client := newTestFlapsClient(t, tripper)
-			err := client._sendRequest(context.Background(), tc.method, "/apps", nil, nil, nil)
-			if !errors.Is(err, syscall.ECONNREFUSED) || tripper.callCount() != tc.attempts {
-				t.Fatalf("attempts=%d error=%v", tripper.callCount(), err)
-			}
-		})
+func TestFlapsGetRetriesRefusedDial(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		fmt.Fprint(w, `{"id":"m1"}`)
+	}))
+	defer server.Close()
+	unused, err := net.Listen("tcp4", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	refusedAddr := unused.Addr().String()
+	if err := unused.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	var dials atomic.Int32
+	dialer := &net.Dialer{}
+	transport := &http.Transport{DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+		if dials.Add(1) == 1 {
+			addr = refusedAddr
+		}
+		return dialer.DialContext(ctx, network, addr)
+	}}
+	defer transport.CloseIdleConnections()
+	t.Setenv("FLY_FLAPS_BASE_URL", server.URL)
+	client, err := NewWithOptions(t.Context(), NewClientOpts{Transport: transport})
+	if err != nil {
+		t.Fatal(err)
+	}
+	m, err := client.Get(t.Context(), "app", "m1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if m.ID != "m1" || dials.Load() != 2 {
+		t.Fatalf("machine = %q, dials = %d", m.ID, dials.Load())
 	}
 }
 
