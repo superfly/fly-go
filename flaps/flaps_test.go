@@ -243,6 +243,22 @@ func TestFlaps_GetRetriesOnEOF(t *testing.T) {
 	}
 }
 
+func TestFlapsConnectionRefusedAttempts(t *testing.T) {
+	for _, tc := range []struct {
+		method   string
+		attempts int
+	}{{http.MethodGet, 3}, {http.MethodPost, 1}, {http.MethodPut, 1}, {http.MethodPatch, 1}, {http.MethodDelete, 1}} {
+		t.Run(tc.method, func(t *testing.T) {
+			tripper := &scriptedTripper{steps: []step{{err: syscall.ECONNREFUSED}, {err: syscall.ECONNREFUSED}, {err: syscall.ECONNREFUSED}}}
+			client := newTestFlapsClient(t, tripper)
+			err := client._sendRequest(context.Background(), tc.method, "/apps", nil, nil, nil)
+			if !errors.Is(err, syscall.ECONNREFUSED) || tripper.callCount() != tc.attempts {
+				t.Fatalf("attempts=%d error=%v", tripper.callCount(), err)
+			}
+		})
+	}
+}
+
 func TestFlaps_GetRetriesHTTP2InternalError(t *testing.T) {
 	var calls atomic.Int32
 	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
