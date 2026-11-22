@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -240,6 +241,44 @@ func TestFlaps_GetRetriesOnEOF(t *testing.T) {
 	}
 	if got := tripper.callCount(); got != 3 {
 		t.Fatalf("call count = %d, want 3", got)
+	}
+}
+
+func TestFlapsGetRetriesRefusedDial(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		fmt.Fprint(w, `{"id":"m1"}`)
+	}))
+	defer server.Close()
+	unused, err := net.Listen("tcp4", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	refusedAddr := unused.Addr().String()
+	if err := unused.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	var dials atomic.Int32
+	dialer := &net.Dialer{}
+	transport := &http.Transport{DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+		if dials.Add(1) == 1 {
+			addr = refusedAddr
+		}
+
+		return dialer.DialContext(ctx, network, addr)
+	}}
+	defer transport.CloseIdleConnections()
+	t.Setenv("FLY_FLAPS_BASE_URL", server.URL)
+	client, err := NewWithOptions(t.Context(), NewClientOpts{Transport: transport})
+	if err != nil {
+		t.Fatal(err)
+	}
+	m, err := client.Get(t.Context(), "app", "m1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if m.ID != "m1" || dials.Load() != 2 {
+		t.Fatalf("machine = %q, dials = %d", m.ID, dials.Load())
 	}
 }
 
