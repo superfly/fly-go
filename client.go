@@ -10,13 +10,13 @@ import (
 	"os"
 	"regexp"
 	"strings"
-	"syscall"
 	"time"
 
 	_ "github.com/Khan/genqlient/generate"
 	genq "github.com/Khan/genqlient/graphql"
 	"github.com/cenkalti/backoff/v4"
 	"github.com/superfly/client-signals/go"
+	"github.com/superfly/fly-go/internal/errno"
 	"github.com/superfly/fly-go/tokens"
 	"github.com/superfly/graphql"
 	"go.opentelemetry.io/otel"
@@ -81,7 +81,7 @@ func retryQueryOnConnReset(ctx context.Context, isQuery bool, op func() error) e
 		switch {
 		case err == nil:
 			return nil
-		case errors.Is(err, syscall.ECONNRESET):
+		case errors.Is(err, errno.ErrConnectionReset):
 			return err
 		default:
 			return backoff.Permanent(err)
