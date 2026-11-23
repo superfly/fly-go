@@ -56,10 +56,10 @@ func (s *scriptedTripper) callCount() int {
 	return s.calls
 }
 
-// connReset returns an error that errors.Is matches as errno.ConnectionReset,
+// connReset returns an error that errors.Is matches as errno.ErrConnectionReset,
 // shaped like what the net stack actually produces.
 func connReset() error {
-	return fmt.Errorf("read tcp: %w", errno.ConnectionReset)
+	return fmt.Errorf("read tcp: %w", errno.ErrConnectionReset)
 }
 
 func newTestClient(transport http.RoundTripper) *Client {
@@ -328,7 +328,7 @@ func TestRunWithContext_GivesUpAfterMaxRetries(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error after retries exhausted, got nil")
 	}
-	if !errors.Is(err, errno.ConnectionReset) {
+	if !errors.Is(err, errno.ErrConnectionReset) {
 		t.Fatalf("error chain does not contain ECONNRESET: %v", err)
 	}
 	if got := tripper.callCount(); got != 3 {

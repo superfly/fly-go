@@ -81,7 +81,7 @@ func retryQueryOnConnReset(ctx context.Context, isQuery bool, op func() error) e
 		switch {
 		case err == nil:
 			return nil
-		case errors.Is(err, errno.ConnectionReset):
+		case errors.Is(err, errno.ErrConnectionReset):
 			return err
 		default:
 			return backoff.Permanent(err)

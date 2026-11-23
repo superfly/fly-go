@@ -5,6 +5,6 @@ package errno
 import "syscall"
 
 const (
-	ConnectionRefused = syscall.ECONNREFUSED
-	ConnectionReset   = syscall.ECONNRESET
+	ErrConnectionRefused = syscall.ECONNREFUSED
+	ErrConnectionReset   = syscall.ECONNRESET
 )
