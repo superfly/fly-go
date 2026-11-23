@@ -18,6 +18,7 @@ import (
 	"github.com/cenkalti/backoff/v4"
 	"github.com/superfly/client-signals/go"
 	fly "github.com/superfly/fly-go"
+	"github.com/superfly/fly-go/internal/errno"
 	"github.com/superfly/fly-go/internal/tracing"
 	"github.com/superfly/fly-go/tokens"
 	"github.com/superfly/macaroon"
@@ -241,7 +242,7 @@ func (f *Client) do(ctx context.Context, method, endpoint string, in interface{}
 		switch {
 		case err == nil:
 			return nil
-		case errors.Is(err, errConnectionRefused), errors.Is(err, errConnectionReset), errors.Is(err, io.EOF), isPeerInternalReset(err):
+		case errors.Is(err, errno.ConnectionRefused), errors.Is(err, errno.ConnectionReset), errors.Is(err, io.EOF), isPeerInternalReset(err):
 			return err
 		default:
 			return backoff.Permanent(err)

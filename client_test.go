@@ -8,11 +8,11 @@ import (
 	"net/http"
 	"strings"
 	"sync"
-	"syscall"
 	"testing"
 
 	genq "github.com/Khan/genqlient/graphql"
 	"github.com/superfly/client-signals/go"
+	"github.com/superfly/fly-go/internal/errno"
 	"github.com/superfly/graphql"
 )
 
@@ -56,10 +56,10 @@ func (s *scriptedTripper) callCount() int {
 	return s.calls
 }
 
-// connReset returns an error that errors.Is matches as syscall.ECONNRESET,
+// connReset returns an error that errors.Is matches as errno.ConnectionReset,
 // shaped like what the net stack actually produces.
 func connReset() error {
-	return fmt.Errorf("read tcp: %w", syscall.ECONNRESET)
+	return fmt.Errorf("read tcp: %w", errno.ConnectionReset)
 }
 
 func newTestClient(transport http.RoundTripper) *Client {
@@ -328,7 +328,7 @@ func TestRunWithContext_GivesUpAfterMaxRetries(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error after retries exhausted, got nil")
 	}
-	if !errors.Is(err, syscall.ECONNRESET) {
+	if !errors.Is(err, errno.ConnectionReset) {
 		t.Fatalf("error chain does not contain ECONNRESET: %v", err)
 	}
 	if got := tripper.callCount(); got != 3 {
