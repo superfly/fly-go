@@ -12,7 +12,6 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
-	"syscall"
 	"testing"
 
 	"github.com/superfly/client-signals/go"
@@ -199,7 +198,7 @@ func (c *captureTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 func connReset() error {
-	return fmt.Errorf("read tcp: %w", syscall.ECONNRESET)
+	return fmt.Errorf("read tcp: %w", errConnectionReset)
 }
 
 func newTestFlapsClient(t *testing.T, transport http.RoundTripper) *Client {
@@ -323,7 +322,7 @@ func TestFlaps_GetGivesUpAfterMaxRetries(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error after retries exhausted, got nil")
 	}
-	if !errors.Is(err, syscall.ECONNRESET) {
+	if !errors.Is(err, errConnectionReset) {
 		t.Fatalf("error chain does not contain ECONNRESET: %v", err)
 	}
 	if got := tripper.callCount(); got != 3 {

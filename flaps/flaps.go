@@ -13,7 +13,6 @@ import (
 	"os"
 	"regexp"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/cenkalti/backoff/v4"
@@ -242,7 +241,7 @@ func (f *Client) do(ctx context.Context, method, endpoint string, in interface{}
 		switch {
 		case err == nil:
 			return nil
-		case errors.Is(err, errConnectionRefused), errors.Is(err, syscall.ECONNRESET), errors.Is(err, io.EOF), isPeerInternalReset(err):
+		case errors.Is(err, errConnectionRefused), errors.Is(err, errConnectionReset), errors.Is(err, io.EOF), isPeerInternalReset(err):
 			return err
 		default:
 			return backoff.Permanent(err)
