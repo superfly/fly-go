@@ -292,6 +292,7 @@ type MachineImageRef struct {
 }
 
 type MachineEvent struct {
+	ID        string          `toml:"id,omitempty" json:"id,omitempty"`
 	Type      string          `toml:"type,omitempty" json:"type,omitempty"`
 	Status    string          `toml:"status,omitempty" json:"status,omitempty"`
 	Request   *MachineRequest `toml:"request,omitempty" json:"request,omitempty"`
