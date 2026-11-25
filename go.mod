@@ -58,5 +58,5 @@ require (
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.72.0
 	go.opentelemetry.io/otel/metric v1.47.0 // indirect
-	golang.org/x/net v0.62.0
+	golang.org/x/net v0.63.0
 )
