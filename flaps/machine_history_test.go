@@ -39,6 +39,7 @@ func TestMachineHistoryPreservesAffinity(t *testing.T) {
 		calls++
 		headers := http.Header{}
 		headers.Set(AffinityHeader, next)
+
 		return &http.Response{StatusCode: 200, Header: headers, Request: r, Body: io.NopCloser(strings.NewReader(body))}, nil
 	})
 	client, err := NewWithOptions(t.Context(), NewClientOpts{AffinityStore: store, Transport: transport})
@@ -62,6 +63,7 @@ func TestMachineHistoryRefusesRedirect(t *testing.T) {
 		if calls > 1 {
 			t.Fatal("followed Machine history redirect")
 		}
+
 		return &http.Response{StatusCode: http.StatusTemporaryRedirect, Header: http.Header{"Location": {"/elsewhere"}}, Request: r, Body: http.NoBody}, nil
 	})})
 	if err != nil {
@@ -70,5 +72,23 @@ func TestMachineHistoryRefusesRedirect(t *testing.T) {
 	var out map[string]any
 	if err := client.GetMachineVersion(t.Context(), "app-a", "m", "v", &out); err == nil || calls != 1 {
 		t.Fatalf("redirect read: calls=%d, err=%v", calls, err)
+	}
+}
+
+func TestMachineHistoryRejectsNonOK(t *testing.T) {
+	for _, status := range []int{http.StatusPartialContent, http.StatusNotFound} {
+		t.Run(http.StatusText(status), func(t *testing.T) {
+			client := newTestFlapsClient(t, readTransport(func(r *http.Request) (*http.Response, error) {
+				return &http.Response{
+					StatusCode: status,
+					Request:    r,
+					Body:       io.NopCloser(strings.NewReader(`{"id":"m"}`)),
+				}, nil
+			}))
+			var machine struct{ ID string }
+			if err := client.GetMachineVersion(t.Context(), "app-a", "m", "v", &machine); err == nil || machine.ID != "" {
+				t.Fatalf("HTTP %d: decoded %+v, err=%v", status, machine, err)
+			}
+		})
 	}
 }

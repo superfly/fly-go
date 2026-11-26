@@ -14,14 +14,16 @@ func (f *Client) GetMachineVersion(ctx context.Context, appName, machineID, vers
 	if version == "" {
 		return fmt.Errorf("missing Machine version")
 	}
+
 	return f.readMachineHistory(ctx, appName, machineID, "?version="+url.QueryEscape(version), out)
 }
 
 // GetMachineEvents decodes up to limit events into out without following redirects.
 func (f *Client) GetMachineEvents(ctx context.Context, appName, machineID string, limit int, out any) error {
 	if limit <= 0 {
-		return fmt.Errorf("Machine event limit must be positive")
+		return fmt.Errorf("event limit must be positive")
 	}
+
 	return f.readMachineHistory(ctx, appName, machineID, fmt.Sprintf("/events?limit=%d", limit), out)
 }
 
@@ -45,7 +47,8 @@ func (f *Client) readMachineHistory(ctx context.Context, appName, machineID, suf
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("Flaps lookup returned HTTP %d", resp.StatusCode)
+		return fmt.Errorf("flaps lookup returned HTTP %d", resp.StatusCode)
 	}
+
 	return json.NewDecoder(resp.Body).Decode(out)
 }
