@@ -41,5 +41,8 @@ func (f *Client) readMachineHistory(ctx context.Context, appName, machineID, suf
 		CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
 	}
 
+	ctx = contextWithAction(ctx, machineGet)
+	ctx = contextWithMachineID(ctx, machineID)
+
 	return reader.sendRequestWithStatus(ctx, http.MethodGet, path, nil, out, nil, http.StatusOK)
 }

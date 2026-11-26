@@ -23,6 +23,9 @@ func TestMachineHistoryPreservesAffinity(t *testing.T) {
 	store.StoreAffinity(base, "app-a", first, expires)
 	calls := 0
 	transport := readTransport(func(r *http.Request) (*http.Response, error) {
+		if action, id := actionFromContext(r.Context()), machineIDFromContext(r.Context()); action != machineGet || id != "m" {
+			t.Fatalf("%s: got action %v and Machine ID %q", r.URL, action, id)
+		}
 		want := first
 		if calls > 0 {
 			want = next
