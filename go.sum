@@ -98,8 +98,8 @@ github.com/superfly/client-signals/go v0.5.0 h1:BHsCmQomDIliEehaWPqtJ9QHY41BO+yA
 github.com/superfly/client-signals/go v0.5.0/go.mod h1:FTpkC1/boj2Lez8w98k9Zs9ihtvz8a1VeGXDtaq7asY=
 github.com/superfly/graphql v0.2.6 h1:zppbodNerWecoXEdjkhrqaNaSjGqobhXNlViHFuZzb4=
 github.com/superfly/graphql v0.2.6/go.mod h1:CVfDl31srm8HnJ9udwLu6hFNUW/P6GUM2dKcG1YQ8jc=
-github.com/superfly/macaroon v0.3.2 h1:vrPnUZUsd0DkSO6ievTESgGE1B3LJE3trXnDYZU1KTc=
-github.com/superfly/macaroon v0.3.2/go.mod h1:ZAmlRD/Hmp/ddTxE8IonZ7NdTny2DcOffRvZhapQwJw=
+github.com/superfly/macaroon v0.3.3 h1:ff86W84kqhdA7pI0eVTd2AhKEg/LVsIcLVnFC5PpkP0=
+github.com/superfly/macaroon v0.3.3/go.mod h1:lvaNFk0vyLvlZkxcfAwXgYhvSd0CTMtdFBbzfajmM9Q=
 github.com/vektah/gqlparser/v2 v2.5.64 h1:N32yM6hQ6Kd5RdjCCEJsUrbCebVoA9yLLMOIa88Mkk0=
 github.com/vektah/gqlparser/v2 v2.5.64/go.mod h1:nILRSUbsWDTuf8hSmAgFxuYh0SaMZdkvl6JSEbkJX8g=
 github.com/vmihailenco/msgpack/v5 v5.4.1 h1:cQriyiUvjTwOHg8QZaPihLWeRAAVoCpE00IUPn0Bjt8=
