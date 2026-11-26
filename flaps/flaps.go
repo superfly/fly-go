@@ -135,6 +135,11 @@ func snakeCase(s string) string {
 }
 
 func (f *Client) _sendRequest(ctx context.Context, method, endpoint string, in, out interface{}, headers map[string][]string) error {
+	return f.sendRequestWithStatus(ctx, method, endpoint, in, out, headers, 0)
+}
+
+// A nonzero expectedStatus requires that exact response before decoding out.
+func (f *Client) sendRequestWithStatus(ctx context.Context, method, endpoint string, in, out interface{}, headers map[string][]string, expectedStatus int) error {
 	actionName := snakeCase(actionFromContext(ctx).String())
 	var caveats []string
 	caveatNames, err := f.getCaveatNames()
@@ -172,7 +177,7 @@ func (f *Client) _sendRequest(ctx context.Context, method, endpoint string, in, 
 
 	span.AddLink(trace.Link{SpanContext: tracing.SpanContextFromHeaders(resp)})
 
-	if resp.StatusCode > 299 {
+	if resp.StatusCode > 299 || (expectedStatus != 0 && resp.StatusCode != expectedStatus) {
 		responseBody, err := io.ReadAll(resp.Body)
 		if err != nil {
 			responseBody = make([]byte, 0)
@@ -331,7 +336,7 @@ func (f *Client) getCaveatNames() ([]string, error) {
 // handleAPIError returns an error based on the status code and response body.
 func handleAPIError(statusCode int, responseBody []byte) error {
 	switch statusCode / 100 {
-	case 1, 3:
+	case 1, 2, 3:
 		return fmt.Errorf("API returned unexpected status, %d", statusCode)
 	case 4, 5:
 		apiErr := struct {

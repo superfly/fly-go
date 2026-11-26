@@ -1,6 +1,7 @@
 package flaps
 
 import (
+	"errors"
 	"io"
 	"net/http"
 	"strings"
@@ -78,16 +79,26 @@ func TestMachineHistoryRefusesRedirect(t *testing.T) {
 func TestMachineHistoryRejectsNonOK(t *testing.T) {
 	for _, status := range []int{http.StatusPartialContent, http.StatusNotFound} {
 		t.Run(http.StatusText(status), func(t *testing.T) {
+			const body = `{"id":"m","error":"history unavailable"}`
 			client := newTestFlapsClient(t, readTransport(func(r *http.Request) (*http.Response, error) {
 				return &http.Response{
 					StatusCode: status,
 					Request:    r,
-					Body:       io.NopCloser(strings.NewReader(`{"id":"m"}`)),
+					Header:     http.Header{"Fly-Request-Id": {"history-request"}},
+					Body:       io.NopCloser(strings.NewReader(body)),
 				}, nil
 			}))
 			var machine struct{ ID string }
-			if err := client.GetMachineVersion(t.Context(), "app-a", "m", "v", &machine); err == nil || machine.ID != "" {
+			err := client.GetMachineVersion(t.Context(), "app-a", "m", "v", &machine)
+			var apiErr *FlapsError
+			if !errors.As(err, &apiErr) || apiErr.ResponseStatusCode != status || machine.ID != "" {
 				t.Fatalf("HTTP %d: decoded %+v, err=%v", status, machine, err)
+			}
+			if apiErr.ResponseBodyString() != body || GetErrorRequestID(err) != "history-request" {
+				t.Fatalf("missing response diagnostics: %+v", apiErr)
+			}
+			if status == http.StatusNotFound && (!errors.Is(err, ErrFlapsNotFound) || err.Error() != "history unavailable") {
+				t.Fatalf("unexpected 404 error: %v", err)
 			}
 		})
 	}

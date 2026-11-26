@@ -2,7 +2,6 @@ package flaps
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -41,14 +40,6 @@ func (f *Client) readMachineHistory(ctx context.Context, appName, machineID, suf
 		Timeout:       f.httpClient.Timeout,
 		CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
 	}
-	resp, err := reader.do(ctx, http.MethodGet, path, nil, nil, true)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("flaps lookup returned HTTP %d", resp.StatusCode)
-	}
 
-	return json.NewDecoder(resp.Body).Decode(out)
+	return reader.sendRequestWithStatus(ctx, http.MethodGet, path, nil, out, nil, http.StatusOK)
 }
